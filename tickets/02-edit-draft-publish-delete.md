@@ -4,7 +4,7 @@
 
 **Blocked by:** 01: Save and browse links in Likes.
 
-**Status:** implemented (local verification; deployment pending)
+**Status:** done (verified locally; deployment pending)
 
 - [x] The owner can edit an existing item's URL, title, description, and commentary without changing its original saved order.
 - [x] Saving publishes by default, with an explicit option to save as a draft.
