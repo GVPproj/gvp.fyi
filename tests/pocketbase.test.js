@@ -3,6 +3,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
 import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import net from 'node:net';
+import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -14,6 +15,7 @@ import { createLikesAPI } from '../src/lib/likes.js';
 // Exactly 15 lowercase alphanumeric characters; set this ID in the admin UI.
 const OWNER_ID = 'likesowner00001';
 const binary = process.env.POCKETBASE_BINARY && path.resolve(process.env.POCKETBASE_BINARY);
+const hooks = fileURLToPath(new URL('../pocketbase/pb_hooks/', import.meta.url));
 const migrations = fileURLToPath(new URL('../pocketbase/pb_migrations/', import.meta.url));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -33,6 +35,8 @@ async function start(t, { migrate = true } = {}) {
   });
   await mkdir(path.join(dir, 'migrations'));
   if (migrate) await cp(migrations, path.join(dir, 'migrations'), { recursive: true });
+  // Runtime validation must be exercised as deployed, not just the schema.
+  await cp(hooks, path.join(dir, 'hooks'), { recursive: true });
   const socket = net.createServer();
   socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
@@ -50,28 +54,36 @@ async function start(t, { migrate = true } = {}) {
     throw new Error('Temporary PocketBase superuser provisioning failed');
   }
   let logs = '';
-  child = spawn(binary, ['serve', '--http', `127.0.0.1:${port}`, ...flags], { cwd: dir });
-  exited = once(child, 'exit');
-  child.stdout.on('data', (data) => { logs += data; });
-  child.stderr.on('data', (data) => { logs += data; });
-  let ready = false;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (child.exitCode !== null) break;
-    try { if ((await fetch(`${base}/api/health`)).ok) { ready = true; break; } } catch {}
-    await pause(50);
+  async function boot() {
+    child = spawn(binary, ['serve', '--http', `127.0.0.1:${port}`, ...flags], { cwd: dir });
+    exited = once(child, 'exit');
+    child.stdout.on('data', (data) => { logs += data; });
+    child.stderr.on('data', (data) => { logs += data; });
+    let ready = false;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (child.exitCode !== null) break;
+      try { if ((await fetch(`${base}/api/health`)).ok) { ready = true; break; } } catch {}
+      await pause(50);
+    }
+    assert.ok(ready, `Local PocketBase failed to start:\n${logs}`);
   }
-  assert.ok(ready, `Local PocketBase failed to start:\n${logs}`);
+  await boot();
+  async function restart() {
+    child.kill('SIGTERM');
+    await exited;
+    await boot();
+  }
   async function request(route, { method = 'GET', token, body } = {}) {
     const response = await fetch(`${base}/api/${route}`, {
-      method, headers: { 'Content-Type': 'application/json', ...(token && { Authorization: token }) },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      method, headers: { ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...(token && { Authorization: token }) },
+      ...(body !== undefined && { body: body instanceof FormData ? body : JSON.stringify(body) }),
     });
     const data = response.status === 204 ? null : await response.json();
     return { status: response.status, data };
   }
   const auth = await request('collections/_superusers/auth-with-password', { method: 'POST', body: { identity: email, password } });
   assert.equal(auth.status, 200);
-  return { request, base, adminToken: auth.data.token, dir, flags };
+  return { request, base, adminToken: auth.data.token, dir, flags, restart };
 }
 
 test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
@@ -247,7 +259,7 @@ test('fixed owner ID in another auth collection grants no access (before owner p
 }, async (t) => {
   // PocketBase prohibits duplicate IDs across auth collections, so this needs
   // a separate database with no Likes owner yet. It isolates the collection guard.
-  const { request, adminToken } = await start(t);
+  const { request, base, adminToken } = await start(t);
   const collection = await request('collections', { method: 'POST', token: adminToken,
     body: { name: 'other_accounts', type: 'auth', fields: [{ name: 'password', type: 'password', min: 12 }], passwordAuth: { enabled: true, identityFields: ['email'] } } });
   assert.equal(collection.status, 200);
@@ -269,6 +281,13 @@ test('fixed owner ID in another auth collection grants no access (before owner p
   assert.equal((await request(records, { method: 'POST', token, body })).status, 400);
   assert.equal((await request(`${records}/${draft.data.id}`, { method: 'PATCH', token, body: { published: true } })).status, 404);
   assert.equal((await request(`${records}/${draft.data.id}`, { method: 'DELETE', token })).status, 404);
+  const asset = await request(records, { method: 'POST', token: adminToken, body: upload(png, 'private.png', { published: false }) });
+  assert.equal(asset.status, 200);
+  const fileToken = (await request('files/token', { method: 'POST', token })).data.token;
+  for (const thumb of ['', '&thumb=400x400']) {
+    const result = await fetch(`${base}/api/files/likes_items/${asset.data.id}/${asset.data.asset}?token=${fileToken}${thumb}`);
+    assert.ok([403, 404].includes(result.status));
+  }
   const groups = 'collections/likes_collections/records';
   const group = await request(groups, { method: 'POST', token: adminToken, body: { name: 'Public grouping' } });
   assert.equal(group.status, 200);
@@ -417,3 +436,200 @@ for (const name of ['likes_owners', 'likes_items']) {
     assert.equal((await request(`collections/${otherName}`, { token: adminToken })).status, 404);
   });
 }
+
+// All asset assertions use the real HTTP API, including file downloads.
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQAQAAAAB+XjmZAAAAPklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4NndAAAfVRSv0AAAAASUVORK5CYII=', 'base64');
+const pdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF');
+function upload(bytes = png, name = 'image.png', fields = {}) {
+  const body = new FormData();
+  for (const [key, value] of Object.entries({ title: 'Asset', published: true, ...fields })) body.append(key, String(value));
+  body.append('asset', new Blob([bytes]), name);
+  return body;
+}
+
+test('asset record and file HTTP contract', {
+  skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
+}, async (t) => {
+  const { request, base, adminToken, restart } = await start(t);
+  const password = randomBytes(24).toString('hex');
+  async function login(id, email) {
+    assert.equal((await request('collections/likes_owners/records', { method: 'POST', token: adminToken,
+      body: { id, email, password, passwordConfirm: password } })).status, 200);
+    return (await request('collections/likes_owners/auth-with-password', { method: 'POST', body: { identity: email, password } })).data.token;
+  }
+  const token = await login(OWNER_ID, 'asset-owner@example.test');
+  const records = 'collections/likes_items/records';
+  const save = (body, id) => request(id ? `${records}/${id}` : records, { method: id ? 'PATCH' : 'POST', token, body });
+  const fileURL = (item, query = '') => `${base}/api/files/likes_items/${item.id}/${item.asset}${query}`;
+  // Observe durable storage via the public superuser backup API, not a DB or
+  // filesystem side channel. Python's stdlib reads the downloaded ZIP manifest.
+  async function storedFiles() {
+    const key = `assets-${randomBytes(8).toString('hex')}.zip`;
+    assert.equal((await request('backups', { method: 'POST', token: adminToken, body: { name: key } })).status, 204);
+    const ft = await request('files/token', { method: 'POST', token: adminToken });
+    let response;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      response = await fetch(`${base}/api/backups/${key}?token=${ft.data.token}`);
+      if (response.ok) break;
+      await pause(50);
+    }
+    assert.equal(response.status, 200);
+    const names = JSON.parse(execFileSync('python3', ['-c',
+      'import sys,io,zipfile,json; print(json.dumps(zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())).namelist()))'],
+    { input: Buffer.from(await response.arrayBuffer()), encoding: 'utf8' }));
+    assert.equal((await request(`backups/${key}`, { method: 'DELETE', token: adminToken })).status, 204);
+    return names.filter((name) => name.startsWith('storage/') && !name.endsWith('/')).sort();
+  }
+  let image;
+  await t.test('standalone image upload returns one filename and is publicly downloadable', async () => {
+    const result = await save(upload());
+    assert.equal(result.status, 200, JSON.stringify(result));
+    image = result.data;
+    assert.equal(image.url, '');
+    assert.match(image.asset, /\.png$/);
+    const response = await fetch(fileURL(image));
+    assert.equal(response.status, 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+  });
+  await t.test('all documented formats are accepted with descriptive text and optional source', async () => {
+    const formats = [
+      ['jpg', '/9j/4AAQSkZJRgABAgAAAQABAAD//gAQTGF2YzYyLjI4LjEwMgD/2wBDAAgEBAQEBAUFBQUFBQYGBgYGBgYGBgYGBgYHBwcICAgHBwcGBgcHCAgICAkJCQgICAgJCQoKCgwMCwsODg4RERT/xABMAAEBAAAAAAAAAAAAAAAAAAAABgEBAQAAAAAAAAAAAAAAAAAABgcQAQAAAAAAAAAAAAAAAAAAAAARAQAAAAAAAAAAAAAAAAAAAAD/wAARCAACAAIDASIAAhEAAxEA/9oADAMBAAIRAxEAPwCLAE1/f//Z'],
+      ['gif', 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'],
+      ['webp', 'UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAgA0JaACdLoB+AADsAD+8Oj3/yC5YXXI1/8gP+QH/ID/+PIAAAA='],
+      ['pdf', pdf.toString('base64')],
+    ];
+    for (const [extension, encoded] of formats) {
+      const bytes = Buffer.from(encoded, 'base64');
+      const result = await save(upload(bytes, `asset.${extension}`, { description: 'Source attribution', commentary: 'My thoughts' }));
+      assert.equal(result.status, 200, JSON.stringify(result));
+      assert.equal(result.data.description, 'Source attribution');
+      assert.equal(result.data.commentary, 'My thoughts');
+      assert.deepEqual(Buffer.from(await (await fetch(fileURL(result.data))).arrayBuffer()), bytes);
+    }
+  });
+  await t.test('extension must be supported and match detected contents, not the multipart MIME header', async () => {
+    for (const [bytes, name] of [[png, 'image.svg'], [png, 'image.pdf'], [pdf, 'paper.png'], [png, 'no-extension']]) {
+      const result = await save(upload(bytes, name));
+      assert.equal(result.status, 400, name);
+      assert.ok(result.data.data.asset, JSON.stringify(result));
+    }
+  });
+  await t.test('native size, MIME and single-file validation rejects writes atomically', async () => {
+    const max = Buffer.alloc(10 * 1024 * 1024, 32);
+    pdf.copy(max);
+    const accepted = await save(upload(max, 'limit.PDF', { url: 'https://example.com/source', description: 'Attribution' }));
+    assert.equal(accepted.status, 200, JSON.stringify(accepted));
+    assert.match(accepted.data.asset, /\.pdf$/);
+    assert.equal((await fetch(fileURL(accepted.data))).headers.get('content-length'), String(max.length));
+    const before = await storedFiles();
+    for (const body of [upload(Buffer.concat([max, Buffer.from('x')]), 'large.pdf'),
+      upload(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), 'bad.png'),
+      upload(png, 'image.png', { url: 'ftp://example.com' }), upload(png, 'image.png', { title: '' })]) {
+      const count = (await request(records, { token })).data.totalItems;
+      assert.equal((await save(body)).status, 400);
+      assert.equal((await request(records, { token })).data.totalItems, count);
+    }
+    const multiple = upload();
+    multiple.append('asset', new Blob([pdf]), 'paper.pdf');
+    assert.equal((await save(multiple)).status, 400);
+    assert.equal((await save(upload(png, 'invalid.pdf'), image.id)).status, 400);
+    assert.equal((await request(`${records}/${image.id}`)).data.asset, image.asset);
+    assert.deepEqual(Buffer.from(await (await fetch(fileURL(image))).arrayBuffer()), png);
+    assert.deepEqual(await storedFiles(), before, 'Rejected uploads leave no stored originals or thumbnails');
+  });
+  await t.test('interrupted multipart upload never commits a record or durable asset', async () => {
+    const before = await storedFiles();
+    const count = (await request(records, { token })).data.totalItems;
+    const partial = httpRequest(`${base}/api/${records}`, { method: 'POST', headers: {
+      Authorization: token, 'Content-Type': 'multipart/form-data; boundary=abandoned-upload',
+    } });
+    partial.on('error', () => {}); // Intentional client disconnect.
+    partial.write('--abandoned-upload\r\nContent-Disposition: form-data; name="title"\r\n\r\nAbandoned\r\n' +
+      '--abandoned-upload\r\nContent-Disposition: form-data; name="asset"; filename="abandoned.png"\r\nContent-Type: image/png\r\n\r\n');
+    partial.write(png);
+    await pause(50);
+    partial.destroy(); // No multipart terminator, no completed record save.
+    await pause(100);
+    assert.equal((await request(records, { token })).data.totalItems, count);
+    assert.deepEqual(await storedFiles(), before);
+  });
+  await t.test('draft originals and generated thumbnails check current publication and file-token identity', async () => {
+    const other = await login('otherowner00001', 'other-assets@example.test');
+    async function fileToken(auth) {
+      const result = await request('files/token', { method: 'POST', token: auth });
+      assert.equal(result.status, 200);
+      return result.data.token;
+    }
+    const ownerFileToken = await fileToken(token);
+    const privatePDF = await save(upload(pdf, 'private.pdf', { published: false }));
+    assert.equal(privatePDF.status, 200);
+    assert.ok([403, 404].includes((await fetch(fileURL(privatePDF.data))).status));
+    assert.deepEqual(Buffer.from(await (await fetch(fileURL(privatePDF.data, `?token=${ownerFileToken}`))).arrayBuffer()), pdf);
+    const otherFileToken = await fileToken(other);
+    // Warm a thumbnail while public; returning to draft must protect cached thumbs too.
+    const thumb = await fetch(fileURL(image, '?thumb=400x400'));
+    assert.equal(thumb.status, 200);
+    assert.match(thumb.headers.get('content-type'), /^image\//);
+    assert.notDeepEqual(Buffer.from(await thumb.arrayBuffer()), png, 'A generated thumbnail, not fallback original');
+    assert.equal((await save({ published: false }, image.id)).status, 200);
+    for (const suffix of ['', '?thumb=400x400']) {
+      for (const denied of [undefined, other, otherFileToken]) {
+        const url = fileURL(image, suffix + (suffix ? '&' : '?') + new URLSearchParams({ token: denied || '' }));
+        assert.ok([403, 404].includes((await fetch(url)).status));
+        assert.ok([403, 404].includes((await fetch(fileURL(image, suffix), { headers: denied ? { Authorization: denied } : {} })).status));
+      }
+      assert.equal((await fetch(fileURL(image, suffix + (suffix ? '&' : '?') + `token=${ownerFileToken}`))).status, 200);
+    }
+    assert.equal((await save({ published: true }, image.id)).status, 200);
+    assert.equal((await fetch(fileURL(image))).status, 200);
+    assert.equal((await fetch(fileURL(image, '?thumb=400x400'))).status, 200);
+    assert.equal((await save({ published: false }, image.id)).status, 200);
+    await restart();
+    const persisted = await request(`${records}/${image.id}`, { token });
+    assert.equal(persisted.data.asset, image.asset);
+    assert.equal(persisted.data.published, false);
+    assert.ok([403, 404].includes((await fetch(fileURL(image))).status));
+    assert.deepEqual(Buffer.from(await (await fetch(fileURL(image, `?token=${ownerFileToken}`))).arrayBuffer()), png);
+    assert.equal((await save({ published: true }, image.id)).status, 200);
+  });
+  await t.test('replacement, removal and deletion retire originals/thumbs without cross-record sharing', async () => {
+    const twin = await save(upload());
+    assert.equal(twin.status, 200);
+    assert.notEqual(twin.data.asset, image.asset);
+    assert.equal((await save({ title: 'Forged reference', asset: image.asset })).status, 400);
+    assert.equal((await save({ asset: image.asset }, twin.data.id)).status, 400);
+    const before = await storedFiles();
+    assert.ok(before.some((name) => name.includes(`thumbs_${image.asset}/`)), 'Thumbnail was durably generated');
+    assert.equal((await save(upload(pdf, 'failed-replacement.pdf', { title: '' }), image.id)).status, 400);
+    assert.deepEqual(await storedFiles(), before, 'Failed edit preserves original and generated thumbs');
+    const replacement = await save(upload(pdf, 'replacement.pdf'), image.id);
+    assert.equal(replacement.status, 200, JSON.stringify(replacement));
+    assert.equal(replacement.data.created, image.created);
+    for (const suffix of ['', '?thumb=400x400']) assert.equal((await fetch(fileURL(image, suffix))).status, 404);
+    assert.deepEqual(Buffer.from(await (await fetch(fileURL(twin.data))).arrayBuffer()), png);
+    assert.deepEqual(Buffer.from(await (await fetch(fileURL(replacement.data))).arrayBuffer()), pdf);
+    const cleared = await save({ asset: '', url: 'https://example.com/source' }, image.id);
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.data.asset, '');
+    assert.equal((await fetch(fileURL(replacement.data))).status, 404);
+    assert.equal((await fetch(fileURL(twin.data, '?thumb=400x400'))).status, 200);
+    assert.equal((await request(`${records}/${twin.data.id}`, { method: 'DELETE', token })).status, 204);
+    for (const suffix of ['', '?thumb=400x400']) assert.equal((await fetch(fileURL(twin.data, suffix))).status, 404);
+    const after = await storedFiles();
+    for (const retired of [image.asset, twin.data.asset, replacement.data.asset]) {
+      assert.ok(!after.some((name) => name.includes(retired)), `Original and thumbs cleaned: ${retired}`);
+    }
+    // Restore the fixture for the following invariant test.
+    image = (await save(upload(png, 'restored.png', { url: '' }), image.id)).data;
+  });
+  await t.test('URL or asset is required on create and update, including superuser writes', async () => {
+    for (const writer of [token, adminToken]) {
+      const result = await request(records, { method: 'POST', token: writer, body: { title: 'Empty' } });
+      assert.equal(result.status, 400);
+      assert.match(result.data.data.url.message, /URL or an asset/);
+    }
+    const cleared = await save({ asset: '' }, image.id);
+    assert.equal(cleared.status, 400);
+    assert.equal((await request(`${records}/${image.id}`)).data.asset, image.asset);
+  });
+});

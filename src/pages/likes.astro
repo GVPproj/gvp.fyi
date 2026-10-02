@@ -17,8 +17,12 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
       <button id="sign-out" type="button" hidden>Sign out</button>
       <button id="reauthenticate" type="button" hidden>Sign in again (keep edits)</button>
       <form id="save-link" hidden>
-        <h2 id="editor-title">Save a link</h2>
-        <label>URL <input name="url" type="url" placeholder="https://" required maxlength="2048" /></label>
+        <h2 id="editor-title">Save an item</h2>
+        <label>Destination / source URL (optional for uploads) <input name="url" type="url" placeholder="https://" maxlength="2048" /></label>
+        <label>Image or PDF <input name="asset" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" aria-describedby="upload-limits" /></label>
+        <p id="upload-limits">JPEG, PNG, GIF, WebP or PDF; maximum 10 MiB. Uploaded only when you save. Selecting a file replaces the current upload.</p>
+        <p id="current-asset"></p>
+        <label><input name="removeAsset" type="checkbox" /> Remove current upload (a destination URL is then required)</label>
         <label>Title <input name="title" required maxlength="300" /></label>
         <label>Description <textarea name="description" maxlength="5000"></textarea></label>
         <label>Commentary <textarea name="commentary" maxlength="10000"></textarea></label>
@@ -57,6 +61,11 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
     <p id="read-status" role="status">Loading Likes…</p>
     <button id="retry-read" type="button">Retry</button>
     <ul id="likes-board" aria-label="Published likes"></ul>
+    <dialog id="image-viewer" aria-label="Image viewer">
+      <button type="button" autofocus>Close image</button>
+      <p role="status"></p>
+      <img alt="" />
+    </dialog>
   </section>
 </Layout>
 
@@ -90,6 +99,10 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
   #likes-board { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; }
   #likes-board li { min-width: 0; }
   #likes-board a { display: block; color: inherit; text-decoration: none; }
+  #likes-board .image-card { display: block; width: 100%; padding: 0; text-align: left; background: none; border: 0; }
+  #image-viewer { max-width: 95vw; max-height: 95vh; color: var(--nord6); background: var(--nord0); border: 1px solid var(--nord3); }
+  #image-viewer::backdrop { background: rgb(0 0 0 / .8); }
+  #image-viewer img { display: block; max-width: 85vw; max-height: 75vh; object-fit: contain; margin: auto; }
   #likes-board a:hover h2 { text-decoration: underline; }
   #likes-board h2 { font-size: 1rem; font-weight: 400; margin: .75rem 0 .25rem; overflow-wrap: anywhere; }
   #likes-board p { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }

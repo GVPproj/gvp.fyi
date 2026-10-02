@@ -1,63 +1,9 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { once } from 'node:events';
-import net from 'node:net';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { chromium } from 'playwright-core';
+import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
-const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
-const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function startAstro(t) {
-  const socket = net.createServer();
-  socket.listen(0, '127.0.0.1');
-  await once(socket, 'listening');
-  const port = socket.address().port;
-  await new Promise((resolve) => socket.close(resolve));
-  const base = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, [
-    fileURLToPath(new URL('../node_modules/astro/bin/astro.mjs', import.meta.url)),
-    // Leave any developer server and its Astro lock untouched.
-    'dev', '--ignore-lock', '--host', '127.0.0.1', '--port', String(port),
-  ], {
-    cwd: fileURLToPath(new URL('../', import.meta.url)),
-    env: { ...process.env, PUBLIC_POCKETBASE_URL: 'https://pb.example', ASTRO_TELEMETRY_DISABLED: '1' },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let logs = '', spawnError;
-  const exited = new Promise((resolve) => {
-    child.once('exit', resolve);
-    child.once('error', (error) => { spawnError = error; resolve(); });
-  });
-  child.stdout.on('data', (data) => { logs += data; });
-  child.stderr.on('data', (data) => { logs += data; });
-  t.after(async () => {
-    if (child.exitCode === null && child.signalCode === null && !spawnError) {
-      child.kill('SIGTERM');
-      const force = setTimeout(() => child.kill('SIGKILL'), 3000);
-      await exited;
-      clearTimeout(force);
-    }
-  });
-  for (let attempt = 0; attempt < 200; attempt++) {
-    if (spawnError || child.exitCode !== null) break;
-    try {
-      if ((await fetch(`${base}/likes`, { signal: AbortSignal.timeout(1000) })).ok) return base;
-    } catch {}
-    await pause(100);
-  }
-  assert.fail(`Temporary Astro server failed to start: ${spawnError ?? ''}\n${logs}`);
-}
-
-test('Likes named filters survive refresh, Blog navigation, and browser Back/Forward', {
-  skip: !executablePath && 'Set PLAYWRIGHT_CHROMIUM_EXECUTABLE to a local Chromium executable',
-  timeout: 60000,
-}, async (t) => {
-  const base = await startAstro(t);
-  const browser = await chromium.launch({ executablePath, headless: true });
-  t.after(() => browser.close());
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+test('Likes named filters survive refresh, Blog navigation, and browser Back/Forward', browserOptions, async (t) => {
+  const { base, context, page } = await realBrowser(t);
   const unexpected = [];
   const groups = [{ id: 'music0000000001', name: 'Music' }, { id: 'books0000000001', name: 'Books' }];
   const items = [
@@ -78,8 +24,6 @@ test('Likes named filters survive refresh, Blog navigation, and browser Back/For
     unexpected.push(route.request().url());
     await route.abort();
   });
-  const page = await context.newPage();
-  page.setDefaultTimeout(5000);
   const namedURL = (id) => `${base}/likes?collection=${id}`;
   async function expectFilter(name, titles) {
     await page.getByRole('heading', { name: 'Likes', exact: true }).waitFor();

@@ -5,7 +5,7 @@ document.addEventListener('astro:page-load', () => {
   if (!root || root.dataset.bound) return;
   root.dataset.bound = 'true';
   // Tokens and private records stay in this page's memory, never storage.
-  let token = '', editing = null, busy = false;
+  let token = '', editing = null, existingAsset = '', busy = false;
   let publicItems = [], draftItems = [], boardRequest = 0, draftRequest = 0;
   let collections = [], loaded = false, memberships = new Set(), readMessage = '';
   const window = document.defaultView;
@@ -24,19 +24,77 @@ document.addEventListener('astro:page-load', () => {
   const deleteButton = root.querySelector('#delete-item');
   const confirmation = root.querySelector('#delete-confirmation');
   const fields = ['url', 'title', 'description', 'commentary'];
+  const viewer = root.querySelector('#image-viewer');
+  const viewerImage = viewer.querySelector('img');
+  const viewerStatus = viewer.querySelector('[role=status]');
+  let viewerRequest = 0, viewerOpener, viewerItemId;
+  viewer.querySelector('button').addEventListener('click', () => viewer.close());
+  // The close button is the viewer's only focusable control.
+  viewer.addEventListener('keydown', event => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      viewer.querySelector('button').focus();
+    }
+  });
+  viewer.addEventListener('close', () => {
+    viewerRequest++;
+    viewerImage.removeAttribute('src');
+    viewerImage.alt = '';
+    const replacement = [...root.querySelectorAll('[data-item-id]')]
+      .find(card => card.dataset.itemId === viewerItemId)?.querySelector('.image-card');
+    const focusTarget = viewerOpener?.isConnected ? viewerOpener : replacement ?? root.querySelector('#retry-read');
+    focusTarget.focus();
+  });
+  async function openAsset(item, opener) {
+    const pdf = /\.pdf$/i.test(item.asset);
+    const session = token;
+    const request = ++viewerRequest;
+    // Open synchronously to retain the browser's user-gesture permission.
+    const tab = pdf ? window.open('about:blank', '_blank') : null;
+    if (tab) tab.opener = null;
+    if (!pdf) {
+      viewerOpener = opener;
+      viewerItemId = item.id;
+      viewerImage.removeAttribute('src');
+      viewerImage.alt = item.description || item.title;
+      viewerStatus.textContent = 'Loading image…';
+      viewer.showModal();
+    }
+    try {
+      const fileToken = item.published ? '' : (await api.fileToken(session)).token;
+      if (session !== token || request !== viewerRequest) { tab?.close(); return; }
+      const url = api.assetURL(item, fileToken);
+      if (pdf) {
+        if (!tab) throw new Error('Allow popups to open the PDF in a new tab.');
+        tab.location.href = url;
+      } else {
+        viewerImage.onload = () => { viewerStatus.textContent = ''; };
+        viewerImage.onerror = () => { viewerStatus.textContent = 'Image could not load. Close and reopen to try again.'; };
+        viewerImage.src = url;
+      }
+    } catch (error) {
+      tab?.close();
+      if (request !== viewerRequest) return;
+      if (pdf) draftStatus.textContent = error.message;
+      else viewerStatus.textContent = error.message;
+    }
+  }
 
   function resetEditor() {
     editing = null;
+    existingAsset = '';
+    root.querySelector('#current-asset').textContent = '';
     memberships = new Set();
     deleteButton.hidden = true;
     confirmation.hidden = true;
     save.reset();
     draft.checked = false;
     renderMemberships();
-    root.querySelector('#editor-title').textContent = 'Save a link';
+    root.querySelector('#editor-title').textContent = 'Save an item';
   }
   function itemCard(item) {
-    const card = renderItem(document, item);
+    const card = renderItem(document, item, { assetURL: api.assetURL(item), openAsset });
+    card.dataset.itemId = item.id;
     if (token) {
       const edit = document.createElement('button');
       edit.type = 'button';
@@ -45,6 +103,10 @@ document.addEventListener('astro:page-load', () => {
       edit.addEventListener('click', () => {
         if (busy) return;
         editing = item.id;
+        existingAsset = item.asset ?? '';
+        save.querySelector('[name=asset]').value = '';
+        save.querySelector('[name=removeAsset]').checked = false;
+        root.querySelector('#current-asset').textContent = existingAsset ? `Current upload: ${existingAsset}` : '';
         deleteButton.hidden = false;
         confirmation.hidden = true;
         for (const field of fields) save.querySelector(`[name=${field}]`).value = item[field] ?? '';
@@ -294,6 +356,7 @@ document.addEventListener('astro:page-load', () => {
   logout.addEventListener('click', () => {
     if (busy) return;
     token = '';
+    if (viewer.open) viewer.close();
     draftRequest++;
     draftItems = [];
     drafts.replaceChildren();
@@ -307,7 +370,9 @@ document.addEventListener('astro:page-load', () => {
     event.preventDefault();
     if (busy || !token) return;
     const published = !draft.checked;
-    const data = { ...Object.fromEntries(new FormData(save)), published, collections: [...memberships] };
+    const data = { ...Object.fromEntries(new FormData(save)), published, collections: [...memberships],
+      asset: save.querySelector('[name=asset]').files?.[0], existingAsset,
+      removeAsset: save.querySelector('[name=removeAsset]').checked };
     setBusy(true);
     saveStatus.textContent = 'Saving…';
     try {
@@ -316,7 +381,7 @@ document.addEventListener('astro:page-load', () => {
       resetEditor();
       saveStatus.textContent = published ? 'Published.' : 'Saved as draft.';
       await Promise.all([load(), loadDrafts()]);
-    } catch (error) { saveStatus.textContent = `${error.message} Your fields have been kept.`; }
+    } catch (error) { saveStatus.textContent = `${error.message} Your fields have been kept. Save was not confirmed; reload the board and drafts before retrying to check for a completed save.`; }
     finally { setBusy(false); }
   });
   updateAuth();

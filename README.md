@@ -26,7 +26,7 @@ Keep `pnpm dev` running while viewing the site. The port is fixed so the proxy c
 
 ## Likes
 
-`/likes` reads published links from PocketBase in the browser; saves do not require a rebuild. `/links` retains a static-host-compatible redirect.
+`/likes` reads published links, images, and PDFs from PocketBase in the browser; saves do not require a rebuild. `/links` retains a static-host-compatible redirect.
 
 Owners can create, rename, and delete named collections and choose zero or several memberships in the item editor. Visitors browse All or one collection using shareable `/likes?collection=<record-id>` URLs. Renaming preserves these URLs; deleted or unknown collections show an unavailable state with an All link. Deleting a collection requires confirmation and never deletes items. Collection names are public, but membership never makes a draft public.
 
@@ -39,13 +39,17 @@ pnpm test
 pnpm build
 # Include the real PocketBase authorization tests (upgrade target: version 0.40.4):
 POCKETBASE_BINARY=/absolute/path/to/pocketbase pnpm test
-# Run only the real-browser Likes navigation regression (otherwise skipped):
-PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js
+# Run real-browser Likes navigation and upload/viewer regressions (otherwise skipped):
+PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js
 ```
 
-The browser regression starts a temporary loopback Astro dev server, mocks PocketBase HTTP at `https://pb.example`, and blocks other external requests. It uses `playwright-core` with an existing Chromium executable (for example `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` or `chrome-linux64/chrome`); no browser download or production backend is needed.
+The browser regressions start temporary loopback Astro dev servers, mock PocketBase HTTP at `https://pb.example`, and block other external requests. They use `playwright-core` with an existing Chromium executable (for example `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` or `chrome-linux64/chrome`); no browser download or production backend is needed.
 
-Tests cover safe rendering, browser states and save failures, and (with the binary supplied) real anonymous/owner/non-owner API permissions and ordering in a disposable database. They never connect to production. Preview enrichment and uploads belong to later tickets; links currently use square hostname placeholders.
+Tests cover safe rendering, browser states and save failures, and (with the binary supplied) real anonymous/owner/non-owner API permissions, protected uploads, file cleanup, and ordering in a disposable database. They never connect to production. URL preview enrichment belongs to a later ticket; links currently use square hostname placeholders.
+
+Owners can upload one JPEG, PNG, GIF, WebP, or PDF per item, up to **10 MiB (10,485,760 bytes)**. The title is required; uploads need no destination URL. The optional URL credits a source, and description/commentary provide text. Images fit square previews without cropping and open an on-site viewer (Escape or Close to dismiss); PDFs open the stored file in a new tab. The editor retains the current upload unless you replace it or explicitly remove it. Selecting a file alone uploads nothing; Cancel clears the local selection. A failed save retains edits; if the connection drops, reload the board/drafts before retrying because the server may have completed the save.
+
+Assets belong directly to their PocketBase item, not to Git or the static build. Draft originals and thumbnails are protected by the item’s view rule. Files already downloaded while published cannot be made secret retroactively. Deploy the backend migration **and hooks before the frontend**; see [`pocketbase/ticket-04-rollout.md`](pocketbase/ticket-04-rollout.md) for storage, cleanup, limits, and verification.
 
 Nord colors and semantic color variables live in `src/styles/global.css`. The portrait respects reduced-motion preferences.
 
