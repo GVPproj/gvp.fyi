@@ -269,6 +269,126 @@ test('fixed owner ID in another auth collection grants no access (before owner p
   assert.equal((await request(records, { method: 'POST', token, body })).status, 400);
   assert.equal((await request(`${records}/${draft.data.id}`, { method: 'PATCH', token, body: { published: true } })).status, 404);
   assert.equal((await request(`${records}/${draft.data.id}`, { method: 'DELETE', token })).status, 404);
+  const groups = 'collections/likes_collections/records';
+  const group = await request(groups, { method: 'POST', token: adminToken, body: { name: 'Public grouping' } });
+  assert.equal(group.status, 200);
+  assert.equal((await request(groups, { method: 'POST', token, body: { name: 'Denied' } })).status, 400);
+  assert.equal((await request(`${groups}/${group.data.id}`, { method: 'PATCH', token, body: { name: 'Denied' } })).status, 404);
+  assert.equal((await request(`${groups}/${group.data.id}`, { method: 'DELETE', token })).status, 404);
+  assert.equal((await request(`${records}/${draft.data.id}`, { method: 'PATCH', token,
+    body: { collections: [group.data.id] } })).status, 404);
+});
+
+test('named collections through the PocketBase REST interface', {
+  skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
+}, async (t) => {
+  const { request, adminToken } = await start(t);
+  const password = randomBytes(24).toString('hex');
+  async function provision(id, email) {
+    const created = await request('collections/likes_owners/records', { method: 'POST', token: adminToken,
+      body: { id, email, password, passwordConfirm: password } });
+    assert.equal(created.status, 200);
+    const auth = await request('collections/likes_owners/auth-with-password', { method: 'POST',
+      body: { identity: email, password } });
+    assert.equal(auth.status, 200);
+    return auth.data.token;
+  }
+  const token = await provision(OWNER_ID, 'owner@example.test');
+  const otherToken = await provision('otherowner00001', 'other@example.test');
+  const groups = 'collections/likes_collections/records';
+  let group;
+  await t.test('owner creates and renames a public named collection with stable identity and a bounded required name', async () => {
+    const created = await request(groups, { method: 'POST', token, body: { name: 'Reading' } });
+    assert.equal(created.status, 200, JSON.stringify(created));
+    group = created.data;
+    const renamed = await request(`${groups}/${group.id}`, { method: 'PATCH', token, body: { name: 'a'.repeat(100) } });
+    assert.equal(renamed.status, 200);
+    assert.equal(renamed.data.id, group.id);
+    assert.equal((await request(`${groups}/${group.id}`)).data.name, 'a'.repeat(100));
+    assert.deepEqual((await request(groups)).data.items.map((item) => item.id), [group.id]);
+    for (const name of ['', 'a'.repeat(101)]) {
+      for (const [route, method] of [[groups, 'POST'], [`${groups}/${group.id}`, 'PATCH']]) {
+        const invalid = await request(route, { method, token, body: { name } });
+        assert.equal(invalid.status, 400);
+        assert.ok(invalid.data.data.name);
+      }
+    }
+    assert.equal((await request(`${groups}/${group.id}`)).data.name, 'a'.repeat(100));
+    for (const deniedToken of [undefined, otherToken]) {
+      assert.equal((await request(groups, { method: 'POST', token: deniedToken, body: { name: 'Denied' } })).status, 400);
+      assert.equal((await request(`${groups}/${group.id}`, { method: 'PATCH', token: deniedToken, body: { name: 'Denied' } })).status, 404);
+      assert.equal((await request(`${groups}/${group.id}`, { method: 'DELETE', token: deniedToken })).status, 404);
+    }
+  });
+
+  await t.test('optional multiple memberships filter newest-saved items, preserve draft privacy, and delete non-destructively', async () => {
+    const second = await request(groups, { method: 'POST', token, body: { name: 'Music' } });
+    assert.equal(second.status, 200);
+    const records = 'collections/likes_items/records';
+    async function save(title, extra = {}) {
+      const result = await request(records, { method: 'POST', token,
+        body: { url: 'https://example.com/item', title, published: true, ...extra } });
+      assert.equal(result.status, 200, JSON.stringify(result));
+      return result.data;
+    }
+    const memberships = [group.id, second.data.id];
+    const older = await save('Older', { collections: memberships });
+    assert.deepEqual([...older.collections].sort(), [...memberships].sort());
+    const ungrouped = await save('Ungrouped');
+    assert.deepEqual(ungrouped.collections, []);
+    const draft = await save('Secret draft', { published: false, collections: memberships });
+    await pause(1100); // Saved order must not depend on random IDs or last edit time.
+    const newer = await save('Newer', { collections: [group.id] });
+    const renamed = await request(`${groups}/${group.id}`, { method: 'PATCH', token, body: { name: 'Renamed' } });
+    assert.equal(renamed.status, 200);
+    assert.equal(renamed.data.id, group.id);
+    assert.equal((await request(`${records}/${older.id}`, { method: 'PATCH', token, body: { title: 'Edited older' } })).status, 200);
+    const filter = (id) => `${records}?${new URLSearchParams({ filter: `collections.id ?= "${id}"`, sort: '-created', expand: 'collections' })}`;
+    const filtered = await request(filter(group.id));
+    assert.equal(filtered.status, 200);
+    assert.deepEqual(filtered.data.items.map((item) => item.id), [newer.id, older.id]);
+    assert.equal(filtered.data.items[1].created, older.created);
+    assert.equal(filtered.data.items[1].expand.collections.find((item) => item.id === group.id).name, 'Renamed');
+    assert.deepEqual((await request(filter(second.data.id))).data.items.map((item) => item.id), [older.id]);
+    assert.deepEqual(new Set((await request(records)).data.items.map((item) => item.id)), new Set([older.id, newer.id, ungrouped.id]));
+
+    // Back-relations must enforce the item rules, not the public grouping rules.
+    const reverse = `${groups}/${group.id}?expand=likes_items_via_collections`;
+    for (const deniedToken of [undefined, otherToken]) {
+      const expanded = await request(reverse, { token: deniedToken });
+      assert.equal(expanded.status, 200);
+      assert.deepEqual(new Set(expanded.data.expand.likes_items_via_collections.map((item) => item.id)), new Set([older.id, newer.id]));
+      assert.equal((await request(`${records}/${draft.id}?expand=collections`, { token: deniedToken })).status, 404);
+      assert.deepEqual((await request(filter(group.id), { token: deniedToken })).data.items.map((item) => item.id), [newer.id, older.id]);
+      assert.equal((await request(records, { method: 'POST', token: deniedToken,
+        body: { url: 'https://example.com/denied', title: 'Denied', published: true, collections: memberships } })).status, 400);
+      for (const id of [older.id, draft.id]) {
+        assert.equal((await request(`${records}/${id}`, { method: 'PATCH', token: deniedToken, body: { collections: [] } })).status, 404);
+      }
+    }
+    const ownerExpanded = await request(reverse, { token });
+    assert.deepEqual(new Set(ownerExpanded.data.expand.likes_items_via_collections.map((item) => item.id)), new Set([older.id, newer.id, draft.id]));
+    assert.equal((await request(`${records}/${draft.id}?expand=collections`, { token })).data.expand.collections.length, 2);
+
+    const assigned = await request(`${records}/${ungrouped.id}`, { method: 'PATCH', token, body: { collections: memberships } });
+    assert.equal(assigned.status, 200);
+    assert.deepEqual([...assigned.data.collections].sort(), [...memberships].sort());
+    const removed = await request(`${records}/${ungrouped.id}`, { method: 'PATCH', token, body: { collections: [] } });
+    assert.equal(removed.status, 200);
+    assert.deepEqual(removed.data.collections, []);
+    assert.equal((await request(`${groups}/${group.id}`, { method: 'DELETE', token })).status, 204);
+    assert.equal((await request(`${groups}/${group.id}`)).status, 404);
+    assert.deepEqual((await request(filter(group.id))).data.items, []);
+    for (const item of [older, newer, draft, ungrouped]) {
+      const preserved = await request(`${records}/${item.id}`, { token });
+      assert.equal(preserved.status, 200);
+      assert.equal(preserved.data.created, item.created);
+      assert.equal(preserved.data.published, item.published);
+      assert.deepEqual(preserved.data.collections, [older.id, draft.id].includes(item.id) ? [second.data.id] : []);
+    }
+    assert.equal((await request(`${records}/${draft.id}`)).status, 404);
+    assert.equal((await request(`${groups}/${second.data.id}`)).status, 200);
+  });
 });
 
 for (const name of ['likes_owners', 'likes_items']) {

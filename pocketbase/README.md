@@ -1,5 +1,7 @@
 # Likes backend — live and verified
 
+Pending additive changes: [Ticket 02 rollout](ticket-02-rollout.md) (commentary) and [Ticket 03 rollout](ticket-03-rollout.md) (named collections). Deploy their migrations before the corresponding frontend; the production status below does not claim these changes are live.
+
 ## Production status (2026-10-02)
 
 The owner approved upgrading the shared backend and both consumers: this site's Likes board and `../biolink-react`.

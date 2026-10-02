@@ -7,6 +7,9 @@ document.addEventListener('astro:page-load', () => {
   // Tokens and private records stay in this page's memory, never storage.
   let token = '', editing = null, busy = false;
   let publicItems = [], draftItems = [], boardRequest = 0, draftRequest = 0;
+  let collections = [], loaded = false, memberships = new Set(), readMessage = '';
+  const window = document.defaultView;
+  const selectedCollection = () => new URL(window.location.href).searchParams.get('collection') ?? '';
   const api = createLikesAPI(root.dataset.endpoint);
   const board = root.querySelector('#likes-board');
   const status = root.querySelector('#read-status');
@@ -24,10 +27,12 @@ document.addEventListener('astro:page-load', () => {
 
   function resetEditor() {
     editing = null;
+    memberships = new Set();
     deleteButton.hidden = true;
     confirmation.hidden = true;
     save.reset();
     draft.checked = false;
+    renderMemberships();
     root.querySelector('#editor-title').textContent = 'Save a link';
   }
   function itemCard(item) {
@@ -44,6 +49,8 @@ document.addEventListener('astro:page-load', () => {
         confirmation.hidden = true;
         for (const field of fields) save.querySelector(`[name=${field}]`).value = item[field] ?? '';
         draft.checked = !item.published;
+        memberships = new Set(item.collections ?? []);
+        renderMemberships();
         root.querySelector('#editor-title').textContent = 'Edit item';
         saveStatus.textContent = '';
         root.querySelector('.owner-tools').open = true;
@@ -53,9 +60,126 @@ document.addEventListener('astro:page-load', () => {
     }
     return card;
   }
-  function renderBoard() {
-    board.replaceChildren(...publicItems.map(itemCard));
+  function renderMemberships() {
+    root.querySelector('#item-collections').replaceChildren(...collections.map(collection => {
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'collections';
+      input.value = collection.id;
+      input.checked = memberships.has(collection.id);
+      input.disabled = busy;
+      input.addEventListener('change', () => {
+        if (input.checked) memberships.add(collection.id);
+        else memberships.delete(collection.id);
+      });
+      label.append(input, document.createTextNode(` ${collection.name}`));
+      return label;
+    }));
   }
+  async function mutateCollection(action, success) {
+    if (busy || !token) return;
+    setBusy(true);
+    const message = root.querySelector('#collection-status');
+    message.textContent = 'Saving collection…';
+    try {
+      const result = await action();
+      boardRequest++;
+      draftRequest++;
+      success(result);
+      collections.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+      renderCollections();
+      renderMemberships();
+      renderBoard();
+      message.textContent = 'Collection saved.';
+      await Promise.all([load(), loadDrafts()]);
+    } catch (error) { message.textContent = `${error.message} Your collection changes were not confirmed. Retry or reload to check.`; }
+    finally { setBusy(false); }
+  }
+  function renderCollections() {
+    root.querySelector('#collection-list').replaceChildren(...collections.map(collection => {
+      const row = document.createElement('li');
+      const form = document.createElement('form');
+      const label = document.createElement('label');
+      label.textContent = 'Collection name';
+      const input = document.createElement('input');
+      input.value = collection.name;
+      input.required = true;
+      input.maxLength = 100;
+      label.append(input);
+      const rename = document.createElement('button');
+      rename.textContent = 'Rename';
+      form.append(label, rename);
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        mutateCollection(() => api.saveCollection(token, input.value, collection.id), updated => {
+          collections = collections.map(existing => existing.id === updated.id ? updated : existing);
+        });
+      });
+      const button = (text, key, action) => {
+        const control = document.createElement('button');
+        control.type = 'button';
+        control.textContent = text;
+        control.dataset[key] = '';
+        control.disabled = busy;
+        control.addEventListener('click', action);
+        return control;
+      };
+      const confirmation = document.createElement('div');
+      confirmation.hidden = true;
+      const warning = document.createElement('p');
+      warning.textContent = `Delete “${collection.name}”? Only the grouping will be removed. All items will be kept.`;
+      confirmation.append(warning,
+        button('Delete collection', 'confirm', () => {
+          if (confirmation.hidden) return;
+          mutateCollection(() => api.removeCollection(token, collection.id), () => {
+            collections = collections.filter(existing => existing.id !== collection.id);
+            memberships.delete(collection.id);
+            for (const item of [...publicItems, ...draftItems]) item.collections = item.collections?.filter(id => id !== collection.id) ?? [];
+          });
+        }),
+        button('Keep collection', 'cancel', () => { if (!busy) confirmation.hidden = true; }));
+      row.append(form, button('Delete collection…', 'delete', () => { if (!busy) confirmation.hidden = false; }), confirmation);
+      return row;
+    }));
+  }
+  root.querySelector('#create-collection').addEventListener('submit', event => {
+    event.preventDefault();
+    const input = root.querySelector('#create-collection input');
+    mutateCollection(() => api.saveCollection(token, input.value), collection => {
+      collections.push(collection);
+      input.value = '';
+    });
+  });
+  function renderBoard() {
+    const selected = selectedCollection();
+    const known = !selected || collections.some(collection => collection.id === selected);
+    const visible = known ? publicItems.filter(item => !selected || item.collections?.includes(selected)) : [];
+    board.replaceChildren(...visible.map(itemCard));
+    status.textContent = readMessage || (!loaded ? '' : !known ? 'This collection is unavailable. Choose All to browse Likes.'
+      : visible.length ? '' : selected ? 'No likes in this collection.' : 'No likes yet.');
+    const filters = [{ id: '', name: 'All' }, ...collections].map(collection => {
+      const link = document.createElement('a');
+      const url = new URL(window.location.href);
+      if (collection.id) url.searchParams.set('collection', collection.id);
+      else url.searchParams.delete('collection');
+      link.href = url.href;
+      link.dataset.collection = collection.id;
+      link.textContent = collection.name;
+      if (selected === collection.id) link.setAttribute('aria-current', 'page');
+      link.addEventListener('click', event => {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || (event.button && event.button !== 0)) return;
+        event.preventDefault();
+        window.history.pushState(null, '', link.href);
+        renderBoard();
+      });
+      return link;
+    });
+    root.querySelector('#collection-filters').replaceChildren(...filters);
+  }
+  const navigate = () => { if (root.isConnected) renderBoard(); };
+  window.addEventListener('popstate', navigate);
+  document.addEventListener('astro:before-swap', () => window.removeEventListener('popstate', navigate), { once: true });
   function reconcileItem(id, item) {
     // Apply confirmed writes before refreshing so failed reads cannot revive stale cards.
     boardRequest++;
@@ -80,19 +204,28 @@ document.addEventListener('astro:page-load', () => {
     logout.hidden = !token;
     root.querySelector('#reauthenticate').hidden = !token;
     root.querySelector('#draft-tools').hidden = !token;
+    root.querySelector('#collection-tools').hidden = !token;
     renderBoard();
   }
   async function load() {
     const request = ++boardRequest;
-    status.textContent = 'Loading Likes…';
+    readMessage = 'Loading Likes…';
+    status.textContent = readMessage;
     try {
-      const items = await api.list();
+      const [items, groups] = await Promise.all([api.list(), api.listCollections()]);
       if (request !== boardRequest) return;
       publicItems = items;
+      collections = groups;
+      loaded = true;
+      readMessage = '';
+      renderCollections();
+      renderMemberships();
       renderBoard();
-      status.textContent = items.length ? '' : 'No likes yet.';
     } catch (error) {
-      if (request === boardRequest) status.textContent = `${error.message} Use Retry to reload the board.`;
+      if (request === boardRequest) {
+        readMessage = `${error.message} Use Retry to reload the board.`;
+        status.textContent = readMessage;
+      }
     }
   }
   async function loadDrafts() {
@@ -174,7 +307,7 @@ document.addEventListener('astro:page-load', () => {
     event.preventDefault();
     if (busy || !token) return;
     const published = !draft.checked;
-    const data = { ...Object.fromEntries(new FormData(save)), published };
+    const data = { ...Object.fromEntries(new FormData(save)), published, collections: [...memberships] };
     setBusy(true);
     saveStatus.textContent = 'Saving…';
     try {

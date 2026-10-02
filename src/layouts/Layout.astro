@@ -6,9 +6,10 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   wide?: boolean;
+  clientRouter?: boolean;
 }
 
-const { title, wide = false } = Astro.props;
+const { title, wide = false, clientRouter = true } = Astro.props;
 ---
 
 <!doctype html>
@@ -20,7 +21,8 @@ const { title, wide = false } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <link rel="preload" href="/fonts/gohu-400-latin.woff2" as="font" type="font/woff2" crossorigin />
     <title>{title ? `${title} · gvp.fyi` : 'gvp.fyi'}</title>
-    <ClientRouter />
+    {/* Without router metadata, entering/leaving this page uses native navigation. */}
+    {clientRouter && <ClientRouter />}
   </head>
   <body>
     <SiteHeader />
@@ -29,3 +31,10 @@ const { title, wide = false } = Astro.props;
     </main>
   </body>
 </html>
+
+<script>
+  // Conditional ClientRouter scripts are not emitted in dev when omitted.
+  // Keep Astro's initial astro:page-load event for Likes and shared components;
+  // the router still requires page metadata to enable client-side navigation.
+  import 'astro:transitions/client';
+</script>

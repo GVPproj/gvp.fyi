@@ -21,6 +21,7 @@ async function editor(t) {
       return Response.json(item);
     }
     if (state.failRead) throw new Error('offline');
+    if (url.includes('/likes_collections/')) return Response.json({ items: [], totalPages: 1 });
     const draft = new URL(url).searchParams.get('filter') === 'published=false';
     assert.ok(!draft || options.headers.Authorization === 'owner');
     return Response.json({ items: state.items.filter(item => item.published !== draft), totalPages: 1 });

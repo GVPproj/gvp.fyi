@@ -20,18 +20,35 @@ export function createLikesAPI(base, fetcher = fetch) {
     }
     return response.status === 204 ? undefined : response.json();
   }
-  async function listItems(published, options = {}) {
+  async function listRecords(query, options = {}) {
     const items = [];
     let page = 1, result;
     do {
-      result = await request(`collections/likes_items/records?filter=published%3D${published}&sort=-created,-id&perPage=200&page=${page++}`, options);
+      result = await request(`${query}&perPage=200&page=${page++}`, options);
       items.push(...result.items);
     } while (page <= result.totalPages);
     return items;
   }
   return {
-    list() { return listItems(true); },
-    listDrafts(token) { return listItems(false, { headers: { Authorization: token } }); },
+    listCollections() {
+      return listRecords('collections/likes_collections/records?sort=name,id');
+    },
+    saveCollection(token, name, id) {
+      if (!name.trim()) throw new Error('Enter a collection name.');
+      return request(`collections/likes_collections/records${id ? `/${encodeURIComponent(id)}` : ''}`, {
+        method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+    },
+    removeCollection(token, id) {
+      return request(`collections/likes_collections/records/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: { Authorization: token },
+      });
+    },
+    list() { return listRecords('collections/likes_items/records?filter=published%3Dtrue&sort=-created,-id'); },
+    listDrafts(token) {
+      return listRecords('collections/likes_items/records?filter=published%3Dfalse&sort=-created,-id', { headers: { Authorization: token } });
+    },
     remove(token, id) {
       return request(`collections/likes_items/records/${encodeURIComponent(id)}`, {
         method: 'DELETE', headers: { Authorization: token },
@@ -43,13 +60,13 @@ export function createLikesAPI(base, fetcher = fetch) {
         body: JSON.stringify({ identity: email, password }),
       });
     },
-    save(token, { url, title, description = '', commentary = '', published = true }, id) {
+    save(token, { url, title, description = '', commentary = '', published = true, collections }, id) {
       const safeURL = webURL(url);
       if (!safeURL) throw new Error('Enter a full http:// or https:// URL without credentials.');
       if (!title.trim()) throw new Error('Enter a title.');
       return request(`collections/likes_items/records${id ? `/${encodeURIComponent(id)}` : ''}`, {
         method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
-        body: JSON.stringify({ url: safeURL, title: title.trim(), description: description.trim(), commentary: commentary.trim(), published }),
+        body: JSON.stringify({ url: safeURL, title: title.trim(), description: description.trim(), commentary: commentary.trim(), published, ...(collections !== undefined && { collections }) }),
       });
     },
   };

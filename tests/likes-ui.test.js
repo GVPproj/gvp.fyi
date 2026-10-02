@@ -13,6 +13,7 @@ test('board states, owner save, failed-save retention, and sign out', async t =>
       return Response.json(items[0]);
     }
     if (failRead) throw new Error('offline');
+    if (url.includes('/likes_collections/')) return Response.json({ items: [], totalPages: 1 });
     const draft = new URL(url).searchParams.get('filter') === 'published=false';
     return Response.json({ items: items.filter(item => item.published !== draft), totalPages: 1 });
   };
