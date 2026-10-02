@@ -4,7 +4,7 @@
 
 **Blocked by:** Owner-account provisioning and live owner login/save smoke verification. PocketBase 0.40.4 and the additive collections are deployed; the fresh recovery snapshot and existing public data were verified.
 
-**Status:** in-progress — backend and biolink deployed; Likes frontend rollout and private owner provisioning pending
+**Status:** in-progress — backend and both frontends deployed; private owner provisioning and authenticated production smoke verification pending
 
 - [x] Inspect the existing PocketBase version, application, persistent storage, and deployment before making additive changes; preserve existing consumers and data.
 - [x] Replace Links navigation with Likes, serve the board at `/likes`, and preserve access from `/links` through a redirect or hosting-compatible equivalent.
@@ -28,8 +28,9 @@
 
 ## Remaining rollout steps
 
-1. Finish Likes frontend rollout and public browser smoke verification. Backend CI/deployment, fresh Fly snapshot restoration, full image rehearsal, and live API checks have passed; recovery artifacts are documented outside Git.
-2. Administratively provision `likes_owners` record `likesowner00001` with the owner's private email/password credentials.
-3. Smoke-test owner sign-in/save/sign-out, anonymous visibility, and existing biolink login/edit behavior. Do not seed test content into production.
+1. Administratively provision `likes_owners` record `likesowner00001` with the owner's private email/password credentials.
+2. Smoke-test owner sign-in/save/sign-out, anonymous visibility, and existing biolink login/edit behavior. Do not seed test content into production.
+
+Backend CI/deployment, fresh Fly snapshot restoration, full image rehearsal, and live API checks passed. Both frontends are published: Likes from `fea55cf`, biolink from `636cf6f`. Production Chromium checks passed for empty Likes rendering, login visibility, Retry, `/links` redirect, nine biolink records, and biolink `/admin` routing, with no application JavaScript errors. Recovery artifacts remain outside Git.
 
 See [`pocketbase/README.md`](../pocketbase/README.md) for inspection findings and rollout details.

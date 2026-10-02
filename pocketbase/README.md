@@ -11,7 +11,7 @@ The owner approved upgrading the shared backend and both consumers: this site's 
 - Both new collections, `likes_owners` and `likes_items`, are deployed. **No owner account or sample content was created.** Public Likes listing is empty.
 - All nine live biolink records match the fresh pre-upgrade backup. Public `markdownPosts` (3), `posts` (2), and `tests` (6) remain readable. Both ordinary-user and Likes-owner password-auth endpoints are enabled.
 - Biolink SDK **0.28.1** is deployed from commit `636cf6f` at `https://links.grahamvanpelt.com` (Netlify deploy `6ac0214bf8c65100089ba37c`).
-- Likes frontend deployment/browser smoke checks are in progress; owner login/save verification awaits private account provisioning.
+- Likes is deployed at **https://gvp.fyi/likes/** from commit `fea55cf` (Netlify deploy `6ac0223deca7930008a13ed5`). `PUBLIC_POCKETBASE_URL` is configured for Netlify builds. Owner login/save verification awaits private account provisioning.
 
 Keep content, credentials, databases, and backups outside Git. Do not deploy an empty database over the mounted volume. Existing collection rules were intentionally preserved, not silently tightened or loosened.
 
@@ -40,6 +40,7 @@ Original machine/config metadata is saved beside the private backup. Restoring t
 - Full backend source, including existing migration history, repaired hooks, and additive Likes migration, started against fresh restored data. Historical applied migrations were skipped correctly. The old historical files are not a modern empty-database bootstrap.
 - Likes: **19 tests passed, zero skipped**; backend hooks: **8 passed**; biolink SDK: **5 passed**. Both frontend builds passed.
 - Biolink tests cover the actual installed SDK's public projection/order, ordinary-user login, authorized CRUD, rejected unauthorized writes, and signout. Browser owner login/CRUD still needs human verification; no test writes were made to production.
+- Production Chromium smoke checks passed: Likes empty state, configured endpoint, login-form visibility, hidden save form, Retry, and `/links` redirect; biolink loads nine links and direct `/admin` navigation shows login. No application JavaScript errors, credentials entered, or production test writes.
 - Biolink's stale lockfile required updates beyond PocketBase to satisfy existing manifest ranges. Two moderate npm advisories remain; details are in its README.
 - The restored settings had S3 and SMTP disabled; the supplied ZIP contained no uploads.
 
@@ -63,6 +64,5 @@ Website saves set `published: true`; text renders safely and destinations are re
 
 ## Remaining checks
 
-1. Finish Likes deployment with `PUBLIC_POCKETBASE_URL=https://pocketbase-fly-starter.fly.dev` and verify public browser rendering and the `/links` redirect.
-2. Privately provision the exact owner record, then verify sign-in/save/sign-out and anonymous visibility using an intended real link, not seeded test content.
-3. Owner should verify existing biolink login/edit behavior with their normal account; backend upgrade may require signing in again.
+1. Privately provision the exact owner record, then verify sign-in/save/sign-out and anonymous visibility using an intended real link, not seeded test content.
+2. Owner should verify existing biolink login/edit behavior with their normal account; backend upgrade may require signing in again.
