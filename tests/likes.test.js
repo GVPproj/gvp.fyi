@@ -19,6 +19,14 @@ test('supplied text is inert and external destinations are safe', () => {
   assert.equal(renderItem(document, { title, description: '', url: 'javascript:alert(1)' }).querySelector('a'), null);
 });
 
+test('commentary is rendered as text, never markup', () => {
+  const { document } = parseHTML('<html><body></body></html>');
+  const commentary = '<img src=x onerror=alert(1)><script>alert(1)</script>';
+  const card = renderItem(document, { url: 'https://example.com', title: 'Title', description: '', commentary });
+  assert.ok(card.textContent.includes(commentary));
+  assert.equal(card.querySelector('img, script'), null);
+});
+
 test('public listing explicitly filters and orders every page without credentials', async () => {
   const requests = [];
   const api = createLikesAPI('https://pb.example', async (url, options) => {
@@ -30,6 +38,21 @@ test('public listing explicitly filters and orders every page without credential
     assert.equal(url.searchParams.get('sort'), '-created,-id');
     assert.equal(url.searchParams.get('filter'), 'published=true');
     assert.equal(options.headers, undefined);
+  }
+});
+
+test('draft listing authenticates and filters every page in saved order', async () => {
+  const requests = [];
+  const api = createLikesAPI('https://pb.example', async (url, options) => {
+    requests.push([new URL(url), options]);
+    return Response.json({ items: [{ id: String(requests.length) }], totalPages: 2 });
+  });
+  assert.deepEqual(await api.listDrafts('owner-token'), [{ id: '1' }, { id: '2' }]);
+  for (const [index, [url, options]] of requests.entries()) {
+    assert.equal(url.searchParams.get('filter'), 'published=false');
+    assert.equal(url.searchParams.get('sort'), '-created,-id');
+    assert.equal(url.searchParams.get('page'), String(index + 1));
+    assert.equal(options.headers.Authorization, 'owner-token');
   }
 });
 
@@ -46,6 +69,42 @@ test('save publishes by default and failed saves do not mutate input', async () 
   assert.equal(body.published, true);
   assert.equal(body.title, 'A title');
   assert.deepEqual(data, original);
+});
+
+test('save creates drafts and edits all fields with authenticated PATCH', async () => {
+  const requests = [];
+  const fields = { url: 'https://example.com', title: ' Edited ', description: ' Summary ', commentary: ' My thoughts ', published: false };
+  const api = createLikesAPI('https://pb.example', async (url, options) => {
+    requests.push({ url, ...options });
+    return Response.json({ id: 'item123', ...JSON.parse(options.body) });
+  });
+  assert.equal((await api.save('owner-token', fields)).published, false);
+  assert.equal((await api.save('owner-token', fields, 'item123')).commentary, 'My thoughts');
+  assert.deepEqual(requests.map(({ url, method }) => [url, method]), [
+    ['https://pb.example/api/collections/likes_items/records', 'POST'],
+    ['https://pb.example/api/collections/likes_items/records/item123', 'PATCH'],
+  ]);
+  for (const request of requests) {
+    assert.equal(request.headers.Authorization, 'owner-token');
+    assert.deepEqual(JSON.parse(request.body), {
+      url: 'https://example.com/', title: 'Edited', description: 'Summary', commentary: 'My thoughts', published: false,
+    });
+  }
+  assert.equal(fields.title, ' Edited ');
+});
+
+test('remove authenticates DELETE, accepts empty 204, and propagates failures', async () => {
+  let status = 204;
+  const api = createLikesAPI('https://pb.example', async (url, options) => {
+    assert.equal(url, 'https://pb.example/api/collections/likes_items/records/item123');
+    assert.equal(options.method, 'DELETE');
+    assert.equal(options.headers.Authorization, 'owner-token');
+    return new Response(null, { status });
+  });
+  await api.remove('owner-token', 'item123');
+  for (status of [403, 404, 500]) {
+    await assert.rejects(api.remove('owner-token', 'item123'), /owner account|try again/);
+  }
 });
 
 test('read failures and missing configuration are actionable', async () => {

@@ -133,7 +133,13 @@ test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
       assert.equal((await request(`${records}/${first.id}`, { method: 'PATCH', token, body: { title: 'Unauthorized' } })).status, 404);
       assert.equal((await request(`${records}/${first.id}`, { method: 'DELETE', token })).status, 404);
       assert.equal((await request(`${records}/${draft.data.id}`, { token })).status, 404);
+      assert.equal((await request(`${records}/${draft.data.id}`, { method: 'PATCH', token,
+        body: { title: 'Stolen draft', commentary: 'Unauthorized', published: true } })).status, 404);
+      assert.equal((await request(`${records}/${draft.data.id}`, { method: 'DELETE', token })).status, 404);
       assert.equal((await request(records, { token })).data.totalItems, 1);
+      const preserved = await request(`${records}/${draft.data.id}`, { token: auth.token });
+      assert.equal(preserved.data.title, 'Draft');
+      assert.equal(preserved.data.published, false);
       assert.equal((await request(`${records}/${first.id}`)).data.title, 'First');
     });
   }
@@ -184,6 +190,45 @@ test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
     const noDescription = await request(records, { method: 'POST', token: auth.token,
       body: { url: 'https://example.com/optional', title: 'No description', published: false } });
     assert.equal(noDescription.status, 200);
+  });
+
+  await t.test('owner edits, publishes, returns to draft, and deletes without changing saved order', async () => {
+    const fields = { url: 'https://example.com/private', title: 'Private', description: 'Summary', commentary: 'Original thoughts', published: false };
+    const older = await api.save(auth.token, fields);
+    assert.equal(older.commentary, 'Original thoughts');
+    await pause(1100);
+    const newer = await api.save(auth.token, { ...fields, title: 'Newer draft' });
+    assert.deepEqual((await api.listDrafts(auth.token)).slice(0, 2).map((item) => item.id), [newer.id, older.id]);
+    const editedFields = { url: 'https://example.com/edited', title: 'Edited', description: 'Edited summary', commentary: 'Edited thoughts' };
+    const edited = await api.save(auth.token, editedFields, older.id);
+    assert.equal(edited.created, older.created);
+    assert.ok(Date.parse(edited.updated) > Date.parse(older.updated));
+    assert.equal(edited.published, true);
+    for (const [key, value] of Object.entries(editedFields)) assert.equal(edited[key], value);
+    assert.equal((await request(`${records}/${older.id}`)).data.commentary, 'Edited thoughts');
+    await api.save(auth.token, { ...fields, published: true }, newer.id);
+    assert.deepEqual((await api.list()).slice(0, 2).map((item) => item.id), [newer.id, older.id]);
+    const returned = await api.save(auth.token, { ...editedFields, published: false }, older.id);
+    assert.equal(returned.created, older.created);
+    assert.equal((await request(`${records}/${older.id}`)).status, 404);
+    assert.ok(!(await api.list()).some((item) => item.id === older.id));
+    assert.ok((await api.listDrafts(auth.token)).some((item) => item.id === older.id));
+    await api.remove(auth.token, older.id);
+    await api.remove(auth.token, newer.id);
+    assert.equal((await request(`${records}/${older.id}`, { token: auth.token })).status, 404);
+    assert.ok(!(await api.listDrafts(auth.token)).some((item) => item.id === older.id));
+    assert.ok(!(await api.list()).some((item) => item.id === newer.id));
+  });
+
+  await t.test('commentary accepts 10000 characters and rejects longer edits without losing saved data', async () => {
+    const fields = { ...valid, commentary: 'a'.repeat(10000), published: false };
+    const item = await api.save(auth.token, fields);
+    assert.equal(item.commentary, fields.commentary);
+    await assert.rejects(api.save(auth.token, { ...fields, commentary: 'b'.repeat(10001) }, item.id), /link fields/);
+    const preserved = await request(`${records}/${item.id}`, { token: auth.token });
+    assert.equal(preserved.data.commentary, fields.commentary);
+    assert.equal(preserved.data.created, item.created);
+    await api.remove(auth.token, item.id);
   });
 
   await t.test('designated owner can update and delete items', async () => {

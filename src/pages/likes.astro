@@ -7,7 +7,7 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
   <section id="likes" data-endpoint={endpoint}>
     <h1>Likes</h1>
     <details class="owner-tools">
-      <summary>Owner sign in / save a link</summary>
+      <summary>Owner sign in / edit Likes</summary>
       <form id="owner-login">
         <label>Email <input name="email" type="email" autocomplete="username" required /></label>
         <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
@@ -15,13 +15,31 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
       </form>
       <p id="auth-status" role="status"></p>
       <button id="sign-out" type="button" hidden>Sign out</button>
+      <button id="reauthenticate" type="button" hidden>Sign in again (keep edits)</button>
       <form id="save-link" hidden>
+        <h2 id="editor-title">Save a link</h2>
         <label>URL <input name="url" type="url" placeholder="https://" required maxlength="2048" /></label>
         <label>Title <input name="title" required maxlength="300" /></label>
         <label>Description <textarea name="description" maxlength="5000"></textarea></label>
-        <button>Save and publish</button>
+        <label>Commentary <textarea name="commentary" maxlength="10000"></textarea></label>
+        <label><input name="draft" type="checkbox" /> Save as draft (owner only)</label>
+        <p id="draft-warning">Returning a published item to draft hides it from future public reads. Previously downloaded or cached content cannot be made secret retroactively.</p>
+        <button>Save item</button>
+        <button id="new-item" type="button">Cancel / new item</button>
+        <button id="delete-item" type="button" hidden>Delete item…</button>
+        <div id="delete-confirmation" hidden>
+          <p>Delete this item? Deletion is permanent. There is no trash or undo.</p>
+          <button id="confirm-delete" type="button">Permanently delete</button>
+          <button id="cancel-delete" type="button">Keep item</button>
+        </div>
       </form>
       <p id="save-status" role="status"></p>
+      <div id="draft-tools" hidden>
+        <h2>Drafts — owner only</h2>
+        <p id="draft-status" role="status"></p>
+        <button id="retry-drafts" type="button">Reload drafts</button>
+        <ul id="drafts-board" aria-label="Draft likes"></ul>
+      </div>
     </details>
     <noscript>Enable JavaScript to load the public Likes board.</noscript>
     <p id="read-status" role="status">Loading Likes…</p>
@@ -43,6 +61,11 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
   #likes form { max-width: 38rem; margin-block: 1rem; }
   #likes label { display: block; margin-block: .75rem; }
   #likes input, #likes textarea { display: block; width: 100%; }
+  #likes input[type="checkbox"] { display: inline-block; width: auto; }
+  #drafts-board { list-style: none; padding: 0; }
+  #drafts-board li { margin-block: 1rem; }
+  #drafts-board .like-preview { display: none; }
+  #drafts-board p { white-space: pre-wrap; overflow-wrap: anywhere; }
   #likes input, #likes textarea, #likes button {
     font: inherit; color: var(--nord6); background: var(--nord1);
     border: 1px solid var(--nord3); border-radius: .25rem; padding: .5rem .75rem;

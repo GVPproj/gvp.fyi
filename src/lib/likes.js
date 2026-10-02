@@ -18,17 +18,24 @@ export function createLikesAPI(base, fetcher = fetch) {
       if (response.status === 400) throw new Error('Check your credentials or link fields and try again.');
       throw new Error('Likes could not complete the request. Please try again.');
     }
-    return response.json();
+    return response.status === 204 ? undefined : response.json();
+  }
+  async function listItems(published, options = {}) {
+    const items = [];
+    let page = 1, result;
+    do {
+      result = await request(`collections/likes_items/records?filter=published%3D${published}&sort=-created,-id&perPage=200&page=${page++}`, options);
+      items.push(...result.items);
+    } while (page <= result.totalPages);
+    return items;
   }
   return {
-    async list() {
-      const items = [];
-      let page = 1, result;
-      do {
-        result = await request(`collections/likes_items/records?filter=published%3Dtrue&sort=-created,-id&perPage=200&page=${page++}`);
-        items.push(...result.items);
-      } while (page <= result.totalPages);
-      return items;
+    list() { return listItems(true); },
+    listDrafts(token) { return listItems(false, { headers: { Authorization: token } }); },
+    remove(token, id) {
+      return request(`collections/likes_items/records/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: { Authorization: token },
+      });
     },
     login(email, password) {
       return request('collections/likes_owners/auth-with-password', {
@@ -36,13 +43,13 @@ export function createLikesAPI(base, fetcher = fetch) {
         body: JSON.stringify({ identity: email, password }),
       });
     },
-    save(token, { url, title, description }) {
+    save(token, { url, title, description = '', commentary = '', published = true }, id) {
       const safeURL = webURL(url);
       if (!safeURL) throw new Error('Enter a full http:// or https:// URL without credentials.');
       if (!title.trim()) throw new Error('Enter a title.');
-      return request('collections/likes_items/records', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
-        body: JSON.stringify({ url: safeURL, title: title.trim(), description: description.trim(), published: true }),
+      return request(`collections/likes_items/records${id ? `/${encodeURIComponent(id)}` : ''}`, {
+        method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
+        body: JSON.stringify({ url: safeURL, title: title.trim(), description: description.trim(), commentary: commentary.trim(), published }),
       });
     },
   };
@@ -63,5 +70,10 @@ export function renderItem(document, item) {
   description.textContent = item.description;
   link.append(preview, title, description);
   card.append(link);
+  if (item.commentary) {
+    const commentary = document.createElement('p');
+    commentary.textContent = item.commentary;
+    card.append(commentary);
+  }
   return card;
 }
