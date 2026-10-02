@@ -30,7 +30,7 @@ Keep `pnpm dev` running while viewing the site. The port is fixed so the proxy c
 
 Copy `.env.example` to `.env` and set `PUBLIC_POCKETBASE_URL` before building. This is a public origin, not a credential. Never expose an administrator token through Astro environment variables. The owner signs in using the dedicated `likes_owners` email/password account; its token is kept only in memory and sign-out clears it. There is no signup UI, and signup is also locked on the server.
 
-PocketBase 0.40.4 and the Likes collections are deployed; private owner-account provisioning remains pending. See [`pocketbase/README.md`](pocketbase/README.md) for verification and setup. The board reports backend/configuration errors rather than using Git-backed sample content.
+PocketBase 0.40.4 and the Likes collections are deployed; owner sign-in/save and anonymous publication are verified. See [`pocketbase/README.md`](pocketbase/README.md) for verification and setup. The board reports backend/configuration errors rather than using Git-backed sample content.
 
 ```sh
 pnpm test

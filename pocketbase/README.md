@@ -1,4 +1,4 @@
-# Likes backend — production upgraded; owner provisioning pending
+# Likes backend — live and verified
 
 ## Production status (2026-10-02)
 
@@ -8,10 +8,10 @@ The owner approved upgrading the shared backend and both consumers: this site's 
 - Backend source commit `90c0be3` is on `GVPproj/pocketbase-fly-starter/main`. [CI tests and deployment passed](https://github.com/GVPproj/pocketbase-fly-starter/actions/runs/37066523001).
 - Deployment image: `registry.fly.io/pocketbase-fly-starter:deployment-01M3Z80RB27FBFE4FWCGRG0FFB`.
 - Original machine `4d89070a404018`, `sjc`, shared CPU / 512 MB, and original encrypted 1 GB volume `vol_re89nlggd6xqq15r` mounted at `/pb/pb_data` are preserved. Config primary region remains `sea`; placement was not changed.
-- Both new collections, `likes_owners` and `likes_items`, are deployed. **No owner account or sample content was created.** Public Likes listing is empty.
+- Both new collections, `likes_owners` and `likes_items`, are deployed. The owner subsequently provisioned their account and confirmed successful sign-in and saving a real link. An anonymous API read confirmed one published item. No sample content was seeded by the agent.
 - All nine live biolink records match the fresh pre-upgrade backup. Public `markdownPosts` (3), `posts` (2), and `tests` (6) remain readable. Both ordinary-user and Likes-owner password-auth endpoints are enabled.
 - Biolink SDK **0.28.1** is deployed from commit `636cf6f` at `https://links.grahamvanpelt.com` (Netlify deploy `6ac0214bf8c65100089ba37c`).
-- Likes is deployed at **https://gvp.fyi/likes/** from commit `fea55cf` (Netlify deploy `6ac0223deca7930008a13ed5`). `PUBLIC_POCKETBASE_URL` is configured for Netlify builds. Owner login/save verification awaits private account provisioning.
+- Likes is deployed at **https://gvp.fyi/likes/** from commit `fea55cf` (Netlify deploy `6ac0223deca7930008a13ed5`). `PUBLIC_POCKETBASE_URL` is configured for Netlify builds. Owner sign-in/save and anonymous publication are now confirmed.
 
 Keep content, credentials, databases, and backups outside Git. Do not deploy an empty database over the mounted volume. Existing collection rules were intentionally preserved, not silently tightened or loosened.
 
@@ -62,7 +62,6 @@ The owner must create that record administratively with a private email and pass
 
 Website saves set `published: true`; text renders safely and destinations are restricted to HTTP(S) without embedded credentials. Preview fetching/uploads/editorial management are later tickets.
 
-## Remaining checks
+## Optional follow-up checks
 
-1. Privately provision the exact owner record, then verify sign-in/save/sign-out and anonymous visibility using an intended real link, not seeded test content.
-2. Owner should verify existing biolink login/edit behavior with their normal account; backend upgrade may require signing in again.
+Ticket 01 is complete: the owner confirmed production sign-in/save and an independent anonymous read confirmed publication. Sign-out and authorization are covered by automated tests. The owner can additionally verify live sign-out and existing biolink login/edit behavior; those manual checks were not separately reported.
