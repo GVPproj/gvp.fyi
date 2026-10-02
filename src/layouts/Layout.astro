@@ -1,0 +1,30 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import SiteHeader from '../components/SiteHeader.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Graham Van Pelt's home on the web." />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="preload" href="/fonts/gohu-400-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title ? `${title} · gvp.fyi` : 'gvp.fyi'}</title>
+    <ClientRouter />
+  </head>
+  <body>
+    <SiteHeader />
+    <main aria-label={title ?? 'Graham Van Pelt'}>
+      <slot />
+    </main>
+  </body>
+</html>

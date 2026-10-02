@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+export function getStaticPaths() {
+  return ['Projects', 'Links', 'Blog'].map((title) => ({
+    params: { section: title.toLowerCase() },
+    props: { title },
+  }));
+}
+
+const { title } = Astro.props;
+---
+
+<Layout title={title}>
+  <h1>{title}</h1>
+  <p>Coming soon...</p>
+</Layout>

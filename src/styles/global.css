@@ -37,6 +37,18 @@
   --color-foreground: var(--nord6);
   --color-accent: var(--nord8);
 
+  /* Shared navigation tokens, mapped to this site's Nord palette. */
+  --font-sans: 'Gohu', ui-monospace, monospace;
+  --colour-fill: var(--color-background);
+  --colour-fill-muted: var(--nord1);
+  --colour-text-base: var(--color-foreground);
+  --colour-text-muted: var(--nord4);
+  --colour-accent: var(--color-accent);
+  --colour-highlight: var(--nord7);
+  --ink-700: var(--nord2);
+  --ink-500: var(--nord3);
+  --ink-300: var(--nord4);
+
   background: var(--color-background);
   color: var(--color-foreground);
 }
@@ -46,6 +58,11 @@
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
   margin: 0;
   font-family: 'Gohu', ui-monospace, monospace;
   font-size: 14px;
@@ -59,8 +76,8 @@ main {
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
-  min-height: 100vh;
-  min-height: 100svh;
+  flex: 1;
+  width: 100%;
   padding: 1.5rem;
   text-align: center;
   color: var(--color-accent);

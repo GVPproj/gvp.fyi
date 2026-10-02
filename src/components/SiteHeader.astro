@@ -1,0 +1,388 @@
+---
+import Sig from './Sig.astro'
+
+const path = Astro.url.pathname
+
+const links = [
+  { href: '/projects', label: 'Projects' },
+  { href: '/links', label: 'Links' },
+  { href: '/blog', label: 'Blog' },
+].map((link) => ({
+  ...link,
+  match: (p: string) => p === link.href || p.startsWith(`${link.href}/`),
+}))
+---
+
+<header class="site-header">
+  <a
+    href="/"
+    aria-label="Go back to the homepage"
+    aria-current={path === '/' ? 'page' : undefined}
+    class:list={['home', { current: path === '/' }]}
+  >
+    <Sig />
+  </a>
+
+  <nav class="desktop" aria-label="Main navigation">
+    <ul>
+      {
+        links.map((link) => (
+          <li>
+            <a href={link.href} class:list={{ current: link.match(path) }} aria-current={link.match(path) ? 'page' : undefined}>
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+
+    </ul>
+  </nav>
+
+  <!-- Native popover: light-dismiss, Escape, top layer and the ARIA wiring
+       come free, and the menu works before JS loads — which the Radix
+       dropdown it replaces did not. Accepted tradeoff: no focus trap, which
+       is fine for a bottom sheet of four links. -->
+  <button
+    type="button"
+    popovertarget="site-nav"
+    class="menu-toggle"
+    aria-label="Open menu"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      width="32"
+      height="32"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+    </svg>
+  </button>
+
+  <!-- Bottom sheet. It never covers the header, so the sig stays visible
+       (dimmed by the backdrop) and needs no second copy in here. -->
+  <nav popover id="site-nav" aria-label="Mobile navigation">
+    <div class="handle" aria-hidden="true"></div>
+    <ul>
+      <li>
+        <a href="/" class:list={{ current: path === '/' }} aria-current={path === '/' ? 'page' : undefined}>
+          <span>Home</span>
+          <span class="chev" aria-hidden="true">›</span>
+        </a>
+      </li>
+      {
+        links.map((link) => (
+          <li>
+            <a href={link.href} class:list={{ current: link.match(path) }} aria-current={link.match(path) ? 'page' : undefined}>
+              <span>{link.label}</span>
+              <span class="chev" aria-hidden="true">›</span>
+            </a>
+          </li>
+        ))
+      }
+
+    </ul>
+    <button
+      type="button"
+      popovertarget="site-nav"
+      popovertargetaction="hide"
+      class="menu-close"
+    >
+      Close
+    </button>
+  </nav>
+</header>
+
+<script>
+  // View transitions snapshot the top layer separately from the page root, so
+  // a menu left open during navigation would hang over the outgoing frame and
+  // pop out of existence at the swap. Closing it here instead lets the exit
+  // run on the slide-down transition the popover CSS already describes.
+  document.addEventListener('astro:before-preparation', () => {
+    document.querySelector<HTMLElement>('#site-nav')?.hidePopover()
+  })
+
+  // Brightens the pill's border once it's floating over content. The header
+  // is re-rendered on every client-side navigation, so bind per page load.
+  let cleanup = () => {}
+  let controller = new AbortController()
+
+  function bindScroll() {
+    const header = document.querySelector<HTMLElement>('header.site-header')
+    if (!header) return
+    const update = () => {
+      header.toggleAttribute('data-scrolled', window.scrollY > 24)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    cleanup = () => window.removeEventListener('scroll', update)
+  }
+
+  function bindScrollLock() {
+    const nav = document.querySelector<HTMLElement>('#site-nav')
+    if (!nav) return
+    const desktop = window.matchMedia('(min-width: 48rem)')
+    desktop.addEventListener('change', () => {
+      if (desktop.matches) nav.hidePopover()
+    }, { signal: controller.signal })
+    nav.addEventListener('beforetoggle', (e) => {
+      document.documentElement.style.overflow =
+        (e as ToggleEvent).newState === 'open' ? 'hidden' : ''
+    })
+  }
+
+  function bind() {
+    cleanup()
+    controller.abort()
+    controller = new AbortController()
+    document.documentElement.style.overflow = ''
+    bindScroll()
+    bindScrollLock()
+  }
+  document.addEventListener('astro:page-load', bind)
+</script>
+
+<style>
+  header {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    padding: 1.5rem;
+  }
+
+  /* Desktop: a sticky, frosted pill. It must be a direct child of <body>
+     (the scroll container) for `position: sticky` to work — any wrapper
+     would become its containing block and it would never stick. */
+  @media (width >= 48rem) {
+    header {
+      position: sticky;
+      top: 1rem;
+      z-index: 10;
+      width: fit-content;
+      min-width: 0;
+      align-items: center;
+      gap: 1.75rem;
+      margin-block: 1rem 2.5rem;
+      padding: 1rem 2rem 1rem 1.625rem;
+      border: 1px solid var(--ink-700);
+      border-radius: 999px;
+      background-color: color-mix(in srgb, var(--colour-fill) 80%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px -10px hsl(204 80% 6% / 0.7);
+      transition: border-color 200ms ease;
+    }
+
+    header[data-scrolled] {
+      border-color: var(--ink-500);
+    }
+
+    /* Sig sets its own size (and bumps it at 64rem); the pill needs it small
+       at every desktop width. */
+    header :global(.sig) {
+      width: 9rem;
+      height: 2.25rem;
+    }
+  }
+
+  .home {
+    display: flex;
+    align-items: center;
+    color: var(--colour-text-base);
+  }
+
+  .home:hover {
+    color: var(--colour-highlight);
+  }
+
+  .home.current {
+    color: var(--colour-accent);
+  }
+
+  nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--colour-accent);
+    outline-offset: 4px;
+  }
+
+  nav a {
+    color: var(--colour-text-base);
+  }
+
+  nav a:hover {
+    color: var(--colour-highlight);
+  }
+
+  nav a.current {
+    color: var(--colour-accent);
+  }
+
+  .desktop {
+    display: none;
+    align-self: center;
+  }
+
+  .desktop ul {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    font-family: var(--font-sans);
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 500;
+  }
+
+  @media (width >= 48rem) {
+    /* hairline divider between sig and links */
+    .desktop {
+      display: block;
+      padding-inline-start: 1.75rem;
+      border-inline-start: 1px solid var(--ink-700);
+    }
+
+    .menu-toggle {
+      display: none;
+    }
+  }
+
+  .menu-toggle {
+    padding-inline: 0.375rem;
+    border: 0;
+    border-radius: 0.25rem;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .menu-toggle:focus-visible {
+    background-color: var(--colour-fill-muted);
+    outline: none;
+  }
+
+  /* Bottom sheet: pinned to the bottom edge, slides up from off-screen. */
+  [popover] {
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 85dvh;
+    margin: 0;
+    padding: 0.75rem 1.5rem 2.25rem;
+    border: 0;
+    border-block-start: 1px solid var(--ink-500);
+    border-radius: 1.5rem 1.5rem 0 0;
+    background-color: color-mix(in srgb, var(--colour-fill) 92%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 -20px 50px -20px hsl(204 80% 4% / 0.9);
+    color: var(--colour-text-base);
+    overscroll-behavior: contain;
+    opacity: 0;
+    transform: translateY(100%);
+    /* allow-discrete lets `display` and the top layer participate in the
+       transition, so the sheet slides out instead of vanishing. */
+    transition:
+      opacity 0.2s ease-out,
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+      overlay 0.25s ease-out allow-discrete,
+      display 0.25s ease-out allow-discrete;
+  }
+
+  [popover]:popover-open {
+    opacity: 1;
+    transform: none;
+  }
+
+  @starting-style {
+    [popover]:popover-open {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+  }
+
+  [popover]::backdrop {
+    background: hsl(204 80% 6% / 0.55);
+    transition: background 0.25s ease-out;
+  }
+
+  @starting-style {
+    [popover]:popover-open::backdrop {
+      background: transparent;
+    }
+  }
+
+  .handle {
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0 auto 1rem;
+    border-radius: 999px;
+    background: var(--ink-500);
+  }
+
+  [popover] ul {
+    font-family: var(--font-sans);
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+    font-weight: 500;
+  }
+
+  [popover] li + li a {
+    border-block-start: 1px solid var(--ink-700);
+  }
+
+  [popover] a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 0.25rem;
+  }
+
+  /* :active gives instant press feedback, replacing the old 0.8s
+     flash-return-sleep sequence that ran before every navigation. */
+  [popover] a:active {
+    color: var(--colour-highlight);
+  }
+
+  .chev {
+    color: var(--ink-300);
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .menu-close {
+    display: block;
+    width: 100%;
+    margin-block-start: 1rem;
+    padding: 0.875rem;
+    border: 1px solid var(--ink-700);
+    border-radius: 999px;
+    background: var(--colour-fill-muted);
+    color: var(--colour-text-muted);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    header,
+    [popover],
+    [popover]::backdrop {
+      transition: none;
+    }
+  }
+</style>
