@@ -1,0 +1,79 @@
+@font-face {
+  font-family: 'Gohu';
+  src: url('/fonts/gohu-400-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Nord — Polar Night */
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord3: #4c566a;
+
+  /* Snow Storm */
+  --nord4: #d8dee9;
+  --nord5: #e5e9f0;
+  --nord6: #eceff4;
+
+  /* Frost */
+  --nord7: #8fbcbb;
+  --nord8: #88c0d0;
+  --nord9: #81a1c1;
+  --nord10: #5e81ac;
+
+  /* Aurora */
+  --nord11: #bf616a;
+  --nord12: #d08770;
+  --nord13: #ebcb8b;
+  --nord14: #a3be8c;
+  --nord15: #b48ead;
+
+  --color-background: var(--nord0);
+  --color-foreground: var(--nord6);
+  --color-accent: var(--nord8);
+
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Gohu', ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  font-synthesis: none;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-accent);
+}
+
+h1,
+p {
+  margin: 0;
+  color: var(--color-foreground);
+  font-weight: 400;
+}
+
+h1 {
+  font-size: 28px;
+}
+

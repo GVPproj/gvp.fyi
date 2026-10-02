@@ -1,0 +1,29 @@
+---
+import Face from '../components/Face.astro';
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Graham Van Pelt's home on the web." />
+    <meta name="generator" content={Astro.generator} />
+    <link
+      rel="preload"
+      href="/fonts/gohu-400-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>gvp.fyi</title>
+  </head>
+  <body>
+    <main aria-label="Graham Van Pelt">
+      <h1>GVP.FYI</h1>
+      <Face />
+      <p>Coming soon...</p>
+    </main>
+  </body>
+</html>
