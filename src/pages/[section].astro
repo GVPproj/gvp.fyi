@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 
 export function getStaticPaths() {
-  return ['Projects', 'Links', 'Blog'].map((title) => ({
+  return ['Projects', 'Blog'].map((title) => ({
     params: { section: title.toLowerCase() },
     props: { title },
   }));

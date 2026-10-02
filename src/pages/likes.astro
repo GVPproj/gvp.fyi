@@ -1,0 +1,61 @@
+---
+import Layout from '../layouts/Layout.astro';
+const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
+---
+
+<Layout title="Likes" wide>
+  <section id="likes" data-endpoint={endpoint}>
+    <h1>Likes</h1>
+    <details class="owner-tools">
+      <summary>Owner sign in / save a link</summary>
+      <form id="owner-login">
+        <label>Email <input name="email" type="email" autocomplete="username" required /></label>
+        <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
+        <button>Sign in</button>
+      </form>
+      <p id="auth-status" role="status"></p>
+      <button id="sign-out" type="button" hidden>Sign out</button>
+      <form id="save-link" hidden>
+        <label>URL <input name="url" type="url" placeholder="https://" required maxlength="2048" /></label>
+        <label>Title <input name="title" required maxlength="300" /></label>
+        <label>Description <textarea name="description" maxlength="5000"></textarea></label>
+        <button>Save and publish</button>
+      </form>
+      <p id="save-status" role="status"></p>
+    </details>
+    <noscript>Enable JavaScript to load the public Likes board.</noscript>
+    <p id="read-status" role="status">Loading Likes…</p>
+    <button id="retry-read" type="button">Retry</button>
+    <ul id="likes-board" aria-label="Published likes"></ul>
+  </section>
+</Layout>
+
+<script>
+  import '../scripts/likes.js';
+</script>
+
+<style is:global>
+  main.likes-layout { justify-content: flex-start; text-align: left; max-width: 90rem; }
+  #likes { width: 100%; }
+  #likes h1 { margin-bottom: 1rem; }
+  #likes .owner-tools { margin-bottom: 1.5rem; }
+  #likes summary, #likes button { cursor: pointer; }
+  #likes form { max-width: 38rem; margin-block: 1rem; }
+  #likes label { display: block; margin-block: .75rem; }
+  #likes input, #likes textarea { display: block; width: 100%; }
+  #likes input, #likes textarea, #likes button {
+    font: inherit; color: var(--nord6); background: var(--nord1);
+    border: 1px solid var(--nord3); border-radius: .25rem; padding: .5rem .75rem;
+  }
+  #likes :focus-visible { outline: 2px solid var(--nord8); outline-offset: 3px; }
+  #likes [hidden] { display: none; }
+  #likes button:disabled { opacity: .6; cursor: wait; }
+  #likes-board { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; }
+  #likes-board li { min-width: 0; }
+  #likes-board a { display: block; color: inherit; text-decoration: none; }
+  #likes-board a:hover h2 { text-decoration: underline; }
+  #likes-board h2 { font-size: 1rem; font-weight: 400; margin: .75rem 0 .25rem; overflow-wrap: anywhere; }
+  #likes-board p { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .like-preview { aspect-ratio: 1; background: var(--nord1); display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-wrap: anywhere; overflow: hidden; color: var(--nord4); }
+  .like-preview img { width: 100%; height: 100%; object-fit: contain; }
+</style>

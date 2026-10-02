@@ -5,9 +5,10 @@ import '../styles/global.css';
 
 interface Props {
   title?: string;
+  wide?: boolean;
 }
 
-const { title } = Astro.props;
+const { title, wide = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -23,7 +24,7 @@ const { title } = Astro.props;
   </head>
   <body>
     <SiteHeader />
-    <main aria-label={title ?? 'Graham Van Pelt'}>
+    <main class:list={{ 'likes-layout': wide }} aria-label={title ?? 'Graham Van Pelt'}>
       <slot />
     </main>
   </body>
