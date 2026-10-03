@@ -32,6 +32,8 @@ When you paste or submit a URL for a new item, an owner-only lookup checks for e
 
 Owners can create, rename, and delete named collections and choose zero or several memberships in the item editor. Visitors browse All or one collection using shareable `/likes?collection=<record-id>` URLs. Renaming preserves these URLs; deleted or unknown collections show an unavailable state with an All link. Deleting a collection requires confirmation and never deletes items. Collection names are public, but membership never makes a draft public.
 
+Public Likes loads 24 items at a time, newest-saved first. **Load more** appends without replacing existing cards; failures keep the current page and offer Retry. Switching collections (including browser Back/Forward) starts a fresh page. Pages use an exclusive saved-time/ID cursor, so newly saved items do not shift the remaining results; use **Reload Likes** to see newer saves. Editing or regrouping an item does not change its saved time. Pagination requests are anonymous, exclude drafts, and request no totals. This is not a snapshot of concurrent deletions, publication changes, or membership changes. No backend migration is needed for pagination.
+
 Copy `.env.example` to `.env` and set `PUBLIC_POCKETBASE_URL` before building. This is a public origin, not a credential. Never expose an administrator token through Astro environment variables. The owner signs in using the dedicated `likes_owners` email/password account; its token is kept only in memory and sign-out clears it. There is no signup UI, and signup is also locked on the server.
 
 PocketBase 0.40.4 and the Likes collections are deployed; owner sign-in/save and anonymous publication are verified. See [`pocketbase/README.md`](pocketbase/README.md) for verification and setup. The board reports backend/configuration errors rather than using Git-backed sample content.
@@ -45,7 +47,7 @@ pnpm build
 # Include the real PocketBase authorization tests (upgrade target: version 0.40.4):
 POCKETBASE_BINARY=/absolute/path/to/pocketbase pnpm test
 # Run real-browser Likes navigation and upload/viewer regressions (otherwise skipped):
-PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js tests/likes-previews-browser.test.js tests/likes-text-browser.test.js tests/likes-duplicates-browser.test.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js tests/likes-previews-browser.test.js tests/likes-text-browser.test.js tests/likes-duplicates-browser.test.js tests/likes-pagination-browser.test.js
 ```
 
 The browser regressions start temporary loopback Astro dev servers, mock PocketBase HTTP at `https://pb.example`, and block other external requests. They use `playwright-core` with an existing Chromium executable (for example `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` or `chrome-linux64/chrome`); no browser download or production backend is needed.

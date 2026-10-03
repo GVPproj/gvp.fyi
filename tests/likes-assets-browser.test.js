@@ -142,7 +142,7 @@ test('closing a viewer after an in-flight board refresh focuses the replacement 
   const original = await trigger.elementHandle();
   let release;
   state.readGate = new Promise(resolve => { release = resolve; });
-  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await page.getByRole('button', { name: 'Reload Likes', exact: true }).click();
   await trigger.click();
   await assertViewer(page, 'Landscape');
   release();

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
-import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import net from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -409,6 +409,168 @@ test('named collections through the PocketBase REST interface', {
     }
     assert.equal((await request(`${records}/${draft.id}`)).status, 404);
     assert.equal((await request(`${groups}/${second.data.id}`)).status, 200);
+  });
+});
+
+test('load more: real PocketBase keyset pagination', {
+  skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
+}, async (t) => {
+  const { request, base, adminToken, dir, restart } = await start(t);
+  // Autodate fields ignore REST values in v0.40.4. This fixture-only hook
+  // permits explicit superuser fixture dates, without altering deployed schema
+  // or owner edits. All records still pass real HTTP validation and access rules.
+  await writeFile(path.join(dir, 'hooks/pagination-fixtures.pb.js'), `
+    onRecordUpdateRequest((e) => {
+      if (e.hasSuperuserAuth() && e.requestInfo().body.fixtureCreated) {
+        e.record.setRaw("created", new DateTime(e.requestInfo().body.fixtureCreated));
+      }
+      e.next();
+    }, "likes_items");
+  `);
+  await restart();
+  const api = createLikesAPI(base);
+  const records = 'collections/likes_items/records';
+  const password = randomBytes(24).toString('hex');
+  assert.equal((await request('collections/likes_owners/records', { method: 'POST', token: adminToken,
+    body: { id: OWNER_ID, email: 'paging@example.test', password, passwordConfirm: password } })).status, 200);
+  const { token } = await api.login('paging@example.test', password);
+  const reading = await api.saveCollection(token, 'Reading');
+  const exact = await api.saveCollection(token, 'Exactly 24');
+  const empty = await api.saveCollection(token, 'Drafts only');
+  const recent = '2026-01-02 00:00:00.000Z';
+  const older = '2026-01-01 00:00:00.000Z';
+  const id = (n) => `paging${String(n).padStart(9, '0')}`;
+  async function seed(n, created, extra = {}) {
+    const result = await request(records, { method: 'POST', token: adminToken,
+      body: { id: id(n), title: `Item ${n}`, url: `https://example.com/${n}`, published: true, created, ...extra } });
+    assert.equal(result.status, 200, JSON.stringify(result));
+    const dated = await request(`${records}/${result.data.id}`, { method: 'PATCH', token: adminToken, body: { fixtureCreated: created } });
+    assert.equal(dated.status, 200, JSON.stringify(dated));
+    assert.equal(dated.data.created, created, 'Fixture timestamp must actually be persisted');
+    return dated.data;
+  }
+  const saved = new Map();
+  for (let n = 1; n <= 53; n++) {
+    saved.set(id(n), await seed(n, n <= 30 ? recent : older, {
+      collections: [...(n % 2 ? [reading.id] : []), ...(n <= 24 ? [exact.id] : [])],
+    }));
+  }
+  // Timestamps take precedence over IDs; both timestamp cohorts span a page
+  // boundary. Creation order is deliberately opposite the required tie order.
+  const descending = (high, low) => Array.from({ length: high - low + 1 }, (_, i) => id(high - i));
+  const expected = [...descending(30, 1), ...descending(53, 31)];
+  const filtered = [...descending(29, 1), ...descending(53, 31)].filter((value) => Number(value.slice(6)) % 2);
+  for (const [n, created] of [[101, '2026-01-03 00:00:00.000Z'], [102, recent], [103, older]]) {
+    await seed(n, created, { published: false, collections: [reading.id, exact.id, empty.id] });
+  }
+  const ids = (page) => page.items.map((item) => item.id);
+  function checkPage(page, wanted, more) {
+    assert.deepEqual(ids(page), wanted);
+    assert.ok(page.items.every((item) => item.published));
+    const last = page.items.at(-1);
+    assert.deepEqual(page.nextCursor, more ? { created: last.created, id: last.id } : null,
+      'Cursor names the last visible item, never the lookahead record');
+  }
+
+  await t.test('24-item pages cross equal timestamps without gaps and exhaust after more than two pages', async () => {
+    const first = await api.listPage();
+    checkPage(first, expected.slice(0, 24), true);
+    const second = await api.listPage({ cursor: first.nextCursor });
+    checkPage(second, expected.slice(24, 48), true);
+    const third = await api.listPage({ cursor: second.nextCursor });
+    checkPage(third, expected.slice(48), false);
+    const all = [...ids(first), ...ids(second), ...ids(third)];
+    assert.equal(new Set(all).size, 53);
+    assert.deepEqual(all, expected);
+    const last = third.items.at(-1);
+    checkPage(await api.listPage({ cursor: { created: last.created, id: last.id } }), [], false);
+    // The old all-records API stays available, not silently capped at 24.
+    assert.deepEqual((await api.list()).map((item) => item.id), expected);
+  });
+
+  await t.test('newer insertion between requests neither duplicates nor skips the original remaining items', async () => {
+    const first = await api.listPage();
+    checkPage(first, expected.slice(0, 24), true);
+    const inserted = await seed(200, '2026-01-04 00:00:00.000Z');
+    try {
+      const second = await api.listPage({ cursor: first.nextCursor });
+      checkPage(second, expected.slice(24, 48), true);
+      const third = await api.listPage({ cursor: second.nextCursor });
+      checkPage(third, expected.slice(48), false);
+      assert.deepEqual([...ids(first), ...ids(second), ...ids(third)], expected);
+      checkPage(await api.listPage({ cursor: null }), [inserted.id, ...expected.slice(0, 23)], true);
+    } finally {
+      await api.remove(token, inserted.id);
+    }
+  });
+
+  await t.test('collection filters apply on every page and reset independently of prior cursors', async () => {
+    const first = await api.listPage({ collection: reading.id });
+    checkPage(first, filtered.slice(0, 24), true);
+    checkPage(await api.listPage({ collection: reading.id, cursor: first.nextCursor }), filtered.slice(24), false);
+    checkPage(await api.listPage({ collection: exact.id, cursor: null }), descending(24, 1), false);
+    checkPage(await api.listPage({ collection: empty.id }), [], false);
+    checkPage(await api.listPage({ collection: '', cursor: null }), expected.slice(0, 24), true);
+    checkPage(await api.listPage({ collection: reading.id, cursor: null }), filtered.slice(0, 24), true);
+  });
+
+  await t.test('25th published item supplies lookahead but exactly 24 items have no next cursor', async () => {
+    checkPage(await api.listPage({ collection: exact.id }), descending(24, 1), false);
+    const lookahead = await seed(201, older, { collections: [exact.id] });
+    try {
+      const first = await api.listPage({ collection: exact.id });
+      checkPage(first, descending(24, 1), true);
+      checkPage(await api.listPage({ collection: exact.id, cursor: first.nextCursor }), [lookahead.id], false);
+    } finally {
+      await api.remove(token, lookahead.id);
+    }
+  });
+
+  await t.test('anonymous counts exclude drafts in All and named collections, even without a published filter', async () => {
+    for (const [collection, publicCount, ownerCount] of [['', 53, 56], [reading.id, 27, 30], [exact.id, 24, 27], [empty.id, 0, 3]]) {
+      const query = new URLSearchParams({ perPage: '24', ...(collection && { filter: `collections.id ?= "${collection}"` }) });
+      const route = `${records}?${query}`;
+      const publicList = await request(route);
+      assert.equal(publicList.status, 200);
+      assert.equal(publicList.data.totalItems, publicCount);
+      assert.equal(publicList.data.totalPages, Math.ceil(publicCount / 24));
+      assert.ok(publicList.data.items.every((item) => item.published));
+      const ownerList = await request(route, { token });
+      assert.equal(ownerList.status, 200);
+      assert.equal(ownerList.data.totalItems, ownerCount, 'Draft fixtures exist but are private');
+    }
+  });
+
+  await t.test('editing and adding or removing memberships preserve created and pagination position', async () => {
+    const original = saved.get(id(32)); // Old, not initially in Reading.
+    const first = await api.listPage();
+    const edited = await api.save(token, { ...original, title: 'Edited old item', commentary: 'New commentary' }, original.id);
+    assert.equal(edited.created, original.created);
+    assert.equal(edited.title, 'Edited old item');
+    const assigned = await api.save(token, { ...edited, collections: [reading.id] }, original.id);
+    assert.equal(assigned.created, original.created);
+    assert.deepEqual(assigned.collections, [reading.id]);
+    try {
+      checkPage(await api.listPage(), expected.slice(0, 24), true);
+      const second = await api.listPage({ cursor: first.nextCursor });
+      checkPage(second, expected.slice(24, 48), true);
+      const third = await api.listPage({ cursor: second.nextCursor });
+      checkPage(third, expected.slice(48), false);
+      const visible = third.items.find((item) => item.id === original.id);
+      assert.equal(visible.created, original.created);
+      assert.equal(visible.title, 'Edited old item');
+      const readingFirst = await api.listPage({ collection: reading.id });
+      checkPage(readingFirst, filtered.slice(0, 24), true);
+      checkPage(await api.listPage({ collection: reading.id, cursor: readingFirst.nextCursor }),
+        [id(35), id(33), original.id, id(31)], false);
+    } finally {
+      const removed = await api.save(token, { ...edited, collections: [] }, original.id);
+      assert.equal(removed.created, original.created);
+      assert.deepEqual(removed.collections, []);
+    }
+    checkPage(await api.listPage(), expected.slice(0, 24), true);
+    const readingFirst = await api.listPage({ collection: reading.id });
+    checkPage(await api.listPage({ collection: reading.id, cursor: readingFirst.nextCursor }), filtered.slice(24), false);
   });
 });
 

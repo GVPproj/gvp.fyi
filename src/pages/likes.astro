@@ -85,9 +85,10 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
     </details>
     <noscript>Enable JavaScript to load the public Likes board.</noscript>
     <nav id="collection-filters" aria-label="Named collections"></nav>
-    <p id="read-status" role="status">Loading Likes…</p>
-    <button id="retry-read" type="button">Retry</button>
     <ul id="likes-board" aria-label="Published likes"></ul>
+    <button id="load-more" type="button" aria-controls="likes-board" hidden>Load more</button>
+    <p id="read-status" role="status" tabindex="-1">Loading Likes…</p>
+    <button id="retry-read" type="button" hidden>Retry</button>
     <dialog id="text-reader" aria-label="Text reader">
       <button type="button" autofocus>Close text</button>
       <h2></h2>
@@ -130,6 +131,7 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
   #likes :focus-visible { outline: 2px solid var(--nord8); outline-offset: 3px; }
   #likes [hidden] { display: none; }
   #likes button:disabled { opacity: .6; cursor: wait; }
+  #load-more[aria-disabled="true"] { opacity: .6; cursor: default; }
   #collection-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
   #collection-filters [aria-current="page"] { font-weight: bold; text-decoration: underline; }
   #likes-board { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; }

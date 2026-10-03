@@ -78,6 +78,18 @@ export function createLikesAPI(base, fetcher = fetch) {
         method: 'DELETE', headers: { Authorization: token },
       });
     },
+    async listPage({ collection = '', cursor = null } = {}) {
+      const quote = value => JSON.stringify(String(value));
+      let filter = 'published=true';
+      if (collection) filter += ` && collections.id ?= ${quote(collection)}`;
+      if (cursor) filter += ` && (created < ${quote(cursor.created)} || (created = ${quote(cursor.created)} && id < ${quote(cursor.id)}))`;
+      // Look ahead by one without exposing totals or using shifting page offsets.
+      const query = new URLSearchParams({ filter, sort: '-created,-id', perPage: '25', skipTotal: 'true' });
+      const result = await request(`collections/likes_items/records?${query}`);
+      const items = result.items.slice(0, 24);
+      const last = items.at(-1);
+      return { items, nextCursor: result.items.length > 24 ? { created: last.created, id: last.id } : null };
+    },
     list() { return listRecords('collections/likes_items/records?filter=published%3Dtrue&sort=-created,-id'); },
     listDrafts(token) {
       return listRecords('collections/likes_items/records?filter=published%3Dfalse&sort=-created,-id', { headers: { Authorization: token } });

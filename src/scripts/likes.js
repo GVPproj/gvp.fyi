@@ -13,6 +13,9 @@ document.addEventListener('astro:page-load', () => {
   const api = createLikesAPI(root.dataset.endpoint);
   const board = root.querySelector('#likes-board');
   const status = root.querySelector('#read-status');
+  const more = root.querySelector('#load-more');
+  const retryRead = root.querySelector('#retry-read');
+  let cursor = null, reading = false, retryAppend = false, hasAppendedPage = false;
   const auth = root.querySelector('#owner-login');
   const save = root.querySelector('#save-link');
   const logout = root.querySelector('#sign-out');
@@ -456,8 +459,7 @@ document.addEventListener('astro:page-load', () => {
     const known = !selected || collections.some(collection => collection.id === selected);
     const visible = known ? publicItems.filter(item => !selected || item.collections?.includes(selected)) : [];
     board.replaceChildren(...visible.map(itemCard));
-    status.textContent = readMessage || (!loaded ? '' : !known ? 'This collection is unavailable. Choose All to browse Likes.'
-      : visible.length ? '' : selected ? 'No likes in this collection.' : 'No likes yet.');
+    updateReadState();
     const filters = [{ id: '', name: 'All' }, ...collections].map(collection => {
       const link = document.createElement('a');
       const url = new URL(window.location.href);
@@ -471,13 +473,26 @@ document.addEventListener('astro:page-load', () => {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || (event.button && event.button !== 0)) return;
         event.preventDefault();
         window.history.pushState(null, '', link.href);
-        renderBoard();
+        changeFilter();
+        root.querySelector('#collection-filters [aria-current]')?.focus({ preventScroll: true });
       });
       return link;
     });
-    root.querySelector('#collection-filters').replaceChildren(...filters);
+    const filterNav = root.querySelector('#collection-filters');
+    const focusedFilter = filterNav.contains(document.activeElement) ? document.activeElement.dataset.collection : undefined;
+    filterNav.replaceChildren(...filters);
+    if (focusedFilter !== undefined) filters.find(link => link.dataset.collection === focusedFilter)?.focus({ preventScroll: true });
   }
-  const navigate = () => { if (root.isConnected) renderBoard(); };
+  function changeFilter() {
+    publicItems = [];
+    cursor = null;
+    loaded = false;
+    hasAppendedPage = false;
+    readMessage = '';
+    renderBoard();
+    load();
+  }
+  const navigate = () => { if (root.isConnected) changeFilter(); };
   window.addEventListener('popstate', navigate);
   document.addEventListener('astro:before-swap', () => window.removeEventListener('popstate', navigate), { once: true });
   function reconcileItem(id, item) {
@@ -508,24 +523,58 @@ document.addEventListener('astro:page-load', () => {
     root.querySelector('#collection-tools').hidden = !token;
     renderBoard();
   }
-  async function load() {
+  function updateReadState() {
+    const selected = selectedCollection();
+    const known = !selected || collections.some(collection => collection.id === selected);
+    status.textContent = readMessage || (!loaded ? '' : !known ? 'This collection is unavailable. Choose All to browse Likes.'
+      : publicItems.length ? cursor ? '' : 'All likes loaded.' : selected ? 'No likes in this collection.' : 'No likes yet.');
+    board.setAttribute('aria-busy', String(reading));
+    more.hidden = !known || (!cursor && !hasAppendedPage);
+    // Keep the control focusable while loading and after exhaustion.
+    more.setAttribute('aria-disabled', String(reading || !cursor));
+    more.textContent = reading && loaded ? 'Loading more…' : !cursor && hasAppendedPage ? 'All likes loaded' : 'Load more';
+    retryRead.hidden = false;
+    retryRead.setAttribute('aria-disabled', String(reading));
+    retryRead.textContent = reading ? 'Loading Likes…' : readMessage ? 'Retry' : 'Reload Likes';
+  }
+  async function load(append = false) {
+    if (append && (reading || !cursor)) return;
     const request = ++boardRequest;
-    readMessage = 'Loading Likes…';
-    status.textContent = readMessage;
+    const selected = selectedCollection();
+    reading = true;
+    retryAppend = append;
+    readMessage = append ? 'Loading more Likes…' : 'Loading Likes…';
+    updateReadState();
     try {
-      const [items, groups] = await Promise.all([api.list(), api.listCollections()]);
-      if (request !== boardRequest) return;
-      publicItems = items;
+      const [page, groups] = await Promise.all([
+        api.listPage({ collection: selected, cursor: append ? cursor : null }),
+        append ? Promise.resolve(collections) : api.listCollections(),
+      ]);
+      if (request !== boardRequest || !root.isConnected) return;
       collections = groups;
+      cursor = page.nextCursor;
       loaded = true;
+      reading = false;
       readMessage = '';
-      renderCollections();
-      renderMemberships();
-      renderBoard();
+      if (append) {
+        const seen = new Set(publicItems.map(item => item.id));
+        const additions = page.items.filter(item => !seen.has(item.id));
+        publicItems.push(...additions);
+        board.append(...additions.map(itemCard));
+        hasAppendedPage = true;
+        updateReadState();
+      } else {
+        publicItems = page.items;
+        hasAppendedPage = false;
+        renderCollections();
+        renderMemberships();
+        renderBoard();
+      }
     } catch (error) {
-      if (request === boardRequest) {
-        readMessage = `${error.message} Use Retry to reload the board.`;
-        status.textContent = readMessage;
+      if (request === boardRequest && root.isConnected) {
+        reading = false;
+        readMessage = `${error.message} Use Retry to ${append ? 'load more' : 'reload the board'}.`;
+        updateReadState();
       }
     }
   }
@@ -543,7 +592,8 @@ document.addEventListener('astro:page-load', () => {
       if (request === draftRequest && token) draftStatus.textContent = `${error.message} Use Reload drafts to try again.`;
     }
   }
-  root.querySelector('#retry-read').addEventListener('click', load);
+  retryRead.addEventListener('click', () => { if (!reading) load(readMessage ? retryAppend : false); });
+  more.addEventListener('click', () => load(true));
   root.querySelector('#retry-drafts').addEventListener('click', loadDrafts);
   root.querySelector('#new-item').addEventListener('click', () => {
     if (busy) return;
