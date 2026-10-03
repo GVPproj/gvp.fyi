@@ -1,4 +1,4 @@
-import { createLikesAPI, renderItem, webURL } from '../lib/likes.js';
+import { createLikesAPI, renderItem, textItemTitle, webURL } from '../lib/likes.js';
 
 document.addEventListener('astro:page-load', () => {
   const root = document.querySelector('#likes');
@@ -23,7 +23,17 @@ document.addEventListener('astro:page-load', () => {
   const draft = save.querySelector('[name=draft]');
   const deleteButton = root.querySelector('#delete-item');
   const confirmation = root.querySelector('#delete-confirmation');
-  const fields = ['url', 'title', 'description', 'commentary'];
+  const fields = ['url', 'title', 'description', 'commentary', 'body', 'attribution'];
+  const typeInput = save.querySelector('[name=type]');
+  function updateItemType() {
+    const textItem = ['quote', 'note'].includes(typeInput.value);
+    root.querySelector('#text-fields').hidden = !textItem;
+    save.querySelector('[name=body]').required = textItem;
+    save.querySelector('[name=title]').required = !textItem;
+    root.querySelector('#fetch-preview').hidden = textItem;
+    invalidatePreview();
+  }
+  typeInput.addEventListener('change', updateItemType);
   const previewStatus = root.querySelector('#preview-status');
   const urlInput = save.querySelector('[name=url]');
   const assetInput = save.querySelector('[name=asset]');
@@ -78,7 +88,7 @@ document.addEventListener('astro:page-load', () => {
     save.querySelector(`[name=${name}]`).addEventListener('input', () => { preview.overrides[name] = true; });
   }
   async function fetchPreview() {
-    if (busy || !token) return;
+    if (busy || !token || typeInput.value) return;
     const request = ++preview.request;
     const url = urlInput.value;
     const session = token;
@@ -128,13 +138,19 @@ document.addEventListener('astro:page-load', () => {
   urlInput.addEventListener('input', invalidatePreview);
   urlInput.addEventListener('paste', event => {
     const text = event.clipboardData?.getData('text/plain')?.trim();
-    if (busy || !token || !webURL(text)) return;
+    if (busy || !token || typeInput.value || !webURL(text)) return;
     event.preventDefault();
     urlInput.value = text;
     invalidatePreview();
     fetchPreview();
   });
   root.querySelector('#fetch-preview').addEventListener('click', fetchPreview);
+  function restoreCardFocus(opener, itemId, selector) {
+    const replacement = [...root.querySelectorAll('[data-item-id]')]
+      .find(card => card.dataset.itemId === itemId)?.querySelector(selector);
+    const target = opener?.isConnected ? opener : replacement ?? root.querySelector('#retry-read');
+    target.focus();
+  }
   const viewer = root.querySelector('#image-viewer');
   const viewerImage = viewer.querySelector('img');
   const viewerStatus = viewer.querySelector('[role=status]');
@@ -151,10 +167,7 @@ document.addEventListener('astro:page-load', () => {
     viewerRequest++;
     viewerImage.removeAttribute('src');
     viewerImage.alt = '';
-    const replacement = [...root.querySelectorAll('[data-item-id]')]
-      .find(card => card.dataset.itemId === viewerItemId)?.querySelector('.image-card');
-    const focusTarget = viewerOpener?.isConnected ? viewerOpener : replacement ?? root.querySelector('#retry-read');
-    focusTarget.focus();
+    restoreCardFocus(viewerOpener, viewerItemId, '.image-card');
   });
   async function openAsset(item, opener) {
     const pdf = /\.pdf$/i.test(item.asset);
@@ -191,6 +204,39 @@ document.addEventListener('astro:page-load', () => {
     }
   }
 
+  const reader = root.querySelector('#text-reader');
+  let readerOpener, readerItemId;
+  reader.querySelector('button').addEventListener('click', () => reader.close());
+  reader.addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    const controls = [...reader.querySelectorAll('button, a[href]')];
+    const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+  reader.addEventListener('close', () => {
+    for (const node of reader.querySelectorAll('h2, .text-body, .text-attribution')) node.textContent = '';
+    reader.querySelector('a').removeAttribute('href');
+    reader.querySelector('a').hidden = true;
+    restoreCardFocus(readerOpener, readerItemId, '.text-card');
+    readerOpener = null;
+    readerItemId = null;
+  });
+  function openText(item, opener) {
+    readerOpener = opener;
+    readerItemId = item.id;
+    reader.querySelector('h2').textContent = textItemTitle(item);
+    reader.querySelector('.text-body').textContent = item.body ?? '';
+    reader.querySelector('.text-attribution').textContent = item.attribution ?? '';
+    const source = reader.querySelector('a');
+    const url = webURL(item.url);
+    source.hidden = !url;
+    if (url) source.href = url;
+    else source.removeAttribute('href');
+    reader.showModal();
+    reader.scrollTop = 0;
+  }
+
   function previewSaveData() {
     const removeAsset = removeAssetInput.checked;
     // Resolve the file and its attribution together; latest metadata is independent.
@@ -223,12 +269,14 @@ document.addEventListener('astro:page-load', () => {
     deleteButton.hidden = true;
     confirmation.hidden = true;
     save.reset();
+    typeInput.value = '';
+    updateItemType();
     draft.checked = false;
     renderMemberships();
     root.querySelector('#editor-title').textContent = 'Save an item';
   }
   function itemCard(item) {
-    const card = renderItem(document, item, { assetURL: api.assetURL(item), openAsset });
+    const card = renderItem(document, item, { assetURL: api.assetURL(item), openAsset, openText });
     card.dataset.itemId = item.id;
     if (token) {
       const edit = document.createElement('button');
@@ -247,13 +295,15 @@ document.addEventListener('astro:page-load', () => {
         deleteButton.hidden = false;
         confirmation.hidden = true;
         for (const field of fields) save.querySelector(`[name=${field}]`).value = item[field] ?? '';
+        typeInput.value = item.type ?? '';
+        updateItemType();
         draft.checked = !item.published;
         memberships = new Set(item.collections ?? []);
         renderMemberships();
         root.querySelector('#editor-title').textContent = 'Edit item';
         saveStatus.textContent = '';
         root.querySelector('.owner-tools').open = true;
-        save.querySelector('[name=url]').focus();
+        save.querySelector(typeInput.value ? '[name=body]' : '[name=url]').focus();
       });
       card.append(edit);
     }
@@ -396,7 +446,7 @@ document.addEventListener('astro:page-load', () => {
   function setBusy(value) {
     busy = value;
     if (value) invalidatePreview();
-    for (const control of root.querySelectorAll('.owner-tools input, .owner-tools textarea, .owner-tools button, #likes-board button')) control.disabled = value;
+    for (const control of root.querySelectorAll('.owner-tools input, .owner-tools textarea, .owner-tools select, .owner-tools button, #likes-board button')) control.disabled = value;
   }
   function updateAuth() {
     auth.hidden = !!token;
@@ -495,6 +545,7 @@ document.addEventListener('astro:page-load', () => {
     if (busy) return;
     token = '';
     if (viewer.open) viewer.close();
+    if (reader.open) reader.close();
     draftRequest++;
     draftItems = [];
     drafts.replaceChildren();

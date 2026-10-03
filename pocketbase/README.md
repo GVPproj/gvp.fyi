@@ -1,6 +1,6 @@
 # Likes backend — live and verified
 
-Pending additive changes: [Ticket 02 rollout](ticket-02-rollout.md) (commentary), [Ticket 03 rollout](ticket-03-rollout.md) (named collections), and [Ticket 04 rollout](ticket-04-rollout.md) (protected images/PDFs; migration **and runtime hooks** required), and [Ticket 05 rollout](ticket-05-rollout.md) (URL previews; custom Go executable **and migration** required). Deploy their migrations before the corresponding frontend; the production status below does not claim these changes are live.
+Pending additive changes: [Ticket 02 rollout](ticket-02-rollout.md) (commentary), [Ticket 03 rollout](ticket-03-rollout.md) (named collections), and [Ticket 04 rollout](ticket-04-rollout.md) (protected images/PDFs; migration **and runtime hooks** required), and [Ticket 05 rollout](ticket-05-rollout.md) (URL previews; custom Go executable **and migration** required). Also pending: [Ticket 06 rollout](ticket-06-rollout.md) (quotes and notes; new migration **and updated runtime hook** required). Deploy their migrations before the corresponding frontend; the production status below does not claim these changes are live.
 
 ## Production status (2026-10-02)
 

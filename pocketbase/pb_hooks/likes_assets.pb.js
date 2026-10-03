@@ -22,7 +22,23 @@ onRecordValidate((e) => {
     e.next();
     return;
   }
-  if (!e.record.getString('url') && !e.record.getString('asset') && e.record.getUploadedFiles('asset').length === 0) {
+  const textItem = ['quote', 'note'].includes(e.record.getString('type'));
+  if (textItem && (e.record.getString('asset') || e.record.getUploadedFiles('asset').length > 0)) {
+    throw new BadRequestError('Invalid collection item.', {
+      asset: new ValidationError('validation_asset', 'Quotes and notes cannot have an asset.'),
+    });
+  }
+  if (textItem && !e.record.getString('body').trim()) {
+    throw new BadRequestError('Invalid collection item.', {
+      body: new ValidationError('validation_required', 'Provide quote or note text.'),
+    });
+  }
+  if (!textItem && !e.record.getString('title').trim()) {
+    throw new BadRequestError('Invalid collection item.', {
+      title: new ValidationError('validation_required', 'Provide a title.'),
+    });
+  }
+  if (!textItem && !e.record.getString('url') && !e.record.getString('asset') && e.record.getUploadedFiles('asset').length === 0) {
     throw new BadRequestError('Invalid collection item.', {
       url: new ValidationError('validation_required', 'Provide a destination URL or an asset.'),
     });

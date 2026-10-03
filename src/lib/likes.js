@@ -85,16 +85,20 @@ export function createLikesAPI(base, fetcher = fetch) {
         body: JSON.stringify({ identity: email, password }),
       });
     },
-    save(token, { url = '', title, description = '', commentary = '', published = true, collections, asset, existingAsset, removeAsset = false, previewProvenance }, id) {
+    save(token, { url = '', title = '', type = '', body: text = '', attribution = '', description = '', commentary = '', published = true, collections, asset, existingAsset, removeAsset = false, previewProvenance }, id) {
       const upload = asset instanceof Blob;
       if (upload && (!asset.size || asset.size > 10 * 1024 * 1024 || !/\.(jpe?g|png|gif|webp|pdf)$/i.test(asset.name))) {
         throw new Error('Choose a non-empty JPEG, PNG, GIF, WebP or PDF, no larger than 10 MiB.');
       }
       const safeURL = url.trim() ? webURL(url) : '';
       if (safeURL === null) throw new Error('Enter a full http:// or https:// URL without credentials.');
-      if (!safeURL && !upload && !(existingAsset && !removeAsset)) throw new Error('Enter a URL or choose an image or PDF.');
-      if (!title.trim()) throw new Error('Enter a title.');
-      const fields = { url: safeURL, title: title.trim(), description: description.trim(), commentary: commentary.trim(), published,
+      const textItem = type === 'quote' || type === 'note';
+      if (type && !textItem) throw new Error('Choose a supported item type.');
+      if (textItem && !text.trim()) throw new Error('Enter text for your quote or personal note.');
+      if (textItem && (upload || (existingAsset && !removeAsset))) throw new Error('Remove the upload before saving a text item.');
+      if (!textItem && !safeURL && !upload && !(existingAsset && !removeAsset)) throw new Error('Enter a URL or choose an image or PDF.');
+      if (!textItem && !title.trim()) throw new Error('Enter a title.');
+      const fields = { url: safeURL, title: title.trim(), type, body: text.trim(), attribution: attribution.trim(), description: description.trim(), commentary: commentary.trim(), published,
         ...(collections !== undefined && { collections }), ...(previewProvenance !== undefined && { previewProvenance }),
         ...(removeAsset && !upload && { asset: '' }) };
       let body = JSON.stringify(fields);
@@ -111,24 +115,34 @@ export function createLikesAPI(base, fetcher = fetch) {
   };
 }
 
-export function renderItem(document, item, { assetURL, openAsset } = {}) {
+export function textItemTitle(item) {
+  return item.title || (item.type === 'quote' ? 'Quote' : 'Personal note');
+}
+
+export function renderItem(document, item, { assetURL, openAsset, openText } = {}) {
   const card = document.createElement('li');
   const url = webURL(item.url);
   const asset = webURL(assetURL);
   const pdf = asset && /\.pdf$/i.test(item.asset);
   const image = asset && !pdf;
-  const interactive = image || (asset && !item.published);
+  const textItem = item.type === 'quote' || item.type === 'note';
+  const label = textItemTitle(item);
+  const interactive = textItem || image || (asset && !item.published);
   const destination = asset || url;
   const link = document.createElement(interactive ? 'button' : destination ? 'a' : 'div');
   if (interactive) {
     link.type = 'button';
-    link.className = 'image-card';
-    link.setAttribute('aria-label', `${image ? 'View image' : 'Open PDF'}: ${item.title}`);
-    link.addEventListener('click', () => openAsset?.(item, link));
+    link.className = textItem ? 'text-card' : 'image-card';
+    const accessibleTitle = item.title || (item.body ?? '').replace(/\s+/g, ' ').trim().slice(0, 80) || label;
+    link.setAttribute('aria-label', textItem ? `Read ${item.type}: ${accessibleTitle}` : `${image ? 'View image' : 'Open PDF'}: ${item.title}`);
+    link.addEventListener('click', () => textItem ? openText?.(item, link) : openAsset?.(item, link));
   } else if (destination) { link.href = destination; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
   const preview = document.createElement('div');
   preview.className = 'like-preview';
-  if (image && item.published) {
+  if (textItem) {
+    preview.classList.add('text-preview');
+    preview.textContent = (item.body ?? '').slice(0, 400) + ((item.body?.length ?? 0) > 400 ? '…' : '');
+  } else if (image && item.published) {
     const img = document.createElement('img');
     img.src = asset;
     img.alt = '';
@@ -136,9 +150,9 @@ export function renderItem(document, item, { assetURL, openAsset } = {}) {
     preview.append(img);
   } else preview.textContent = asset ? pdf ? 'PDF document' : 'Image (private)' : url ? new URL(url).hostname : 'Link unavailable';
   const title = document.createElement('h2');
-  title.textContent = item.title;
+  title.textContent = textItem ? label : item.title;
   const description = document.createElement('p');
-  description.textContent = item.description;
+  description.textContent = textItem ? item.attribution ?? '' : item.description;
   link.append(preview, title, description);
   card.append(link);
   if (asset && url) {

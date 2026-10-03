@@ -19,7 +19,7 @@ const hooks = fileURLToPath(new URL('../pocketbase/pb_hooks/', import.meta.url))
 const migrations = fileURLToPath(new URL('../pocketbase/pb_migrations/', import.meta.url));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function start(t, { migrate = true } = {}) {
+async function start(t, { migrate = true, beforeText = false } = {}) {
   assert.match(execFileSync(binary, ['--version'], { encoding: 'utf8' }), /version 0\.40\.4\s*$/);
   const dir = await mkdtemp(path.join(tmpdir(), 'likes-pocketbase-'));
   let child;
@@ -34,7 +34,9 @@ async function start(t, { migrate = true } = {}) {
     await rm(dir, { recursive: true, force: true });
   });
   await mkdir(path.join(dir, 'migrations'));
-  if (migrate) await cp(migrations, path.join(dir, 'migrations'), { recursive: true });
+  if (migrate) await cp(migrations, path.join(dir, 'migrations'), {
+    recursive: true, filter: (source) => !beforeText || !source.endsWith('1782000000_text_items.js'),
+  });
   // Runtime validation must be exercised as deployed, not just the schema.
   await cp(hooks, path.join(dir, 'hooks'), { recursive: true });
   const socket = net.createServer();
@@ -436,6 +438,145 @@ for (const name of ['likes_owners', 'likes_items']) {
     assert.equal((await request(`collections/${otherName}`, { token: adminToken })).status, 404);
   });
 }
+
+test('text migration preserves existing links, uploads, timestamps and restrictions', {
+  skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
+}, async (t) => {
+  const { request, adminToken: token, dir, restart } = await start(t, { beforeText: true });
+  const records = 'collections/likes_items/records';
+  const link = await request(records, { method: 'POST', token,
+    body: { title: 'Existing link', url: 'https://example.com', commentary: 'Keep commentary', published: false } });
+  const asset = await request(records, { method: 'POST', token, body: upload() });
+  assert.equal(link.status, 200);
+  assert.equal(asset.status, 200);
+  await cp(path.join(migrations, '1782000000_text_items.js'), path.join(dir, 'migrations/1782000000_text_items.js'));
+  await restart();
+  for (const original of [link.data, asset.data]) {
+    const result = await request(`${records}/${original.id}`, { token });
+    assert.equal(result.status, 200);
+    assert.deepEqual(result.data, { ...original, type: '', body: '', attribution: '' });
+    assert.equal((await request(`${records}/${original.id}`, { method: 'PATCH', token, body: { title: '' } })).status, 400);
+  }
+  assert.equal((await request(`${records}/${link.data.id}`)).status, 404);
+  assert.deepEqual((await request(records)).data.items.map((item) => item.id), [asset.data.id]);
+  assert.equal((await request(`${records}/${link.data.id}`, { method: 'PATCH', token, body: { url: '' } })).status, 400);
+  assert.equal((await request(`${records}/${asset.data.id}`, { method: 'PATCH', token, body: { asset: '' } })).status, 400);
+});
+
+test('quote and note HTTP contract', {
+  skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
+}, async (t) => {
+  const { request, adminToken } = await start(t);
+  const password = randomBytes(24).toString('hex');
+  async function login(id, email) {
+    assert.equal((await request('collections/likes_owners/records', { method: 'POST', token: adminToken,
+      body: { id, email, password, passwordConfirm: password } })).status, 200);
+    const auth = await request('collections/likes_owners/auth-with-password', { method: 'POST', body: { identity: email, password } });
+    assert.equal(auth.status, 200);
+    return auth.data.token;
+  }
+  const token = await login(OWNER_ID, 'text-owner@example.test');
+  const records = 'collections/likes_items/records';
+  const save = (body, id, writer = token) => request(id ? `${records}/${id}` : records,
+    { method: id ? 'PATCH' : 'POST', token: writer, body });
+  await t.test('both types isolate drafts and preserve newest-saved order across publication, editing and deletion', async () => {
+    const other = await login('otherowner00001', 'other-text@example.test');
+    for (const type of ['quote', 'note']) {
+      const older = await save({ type, body: 'Private original', published: false });
+      assert.equal(older.status, 200);
+      const id = older.data.id;
+      const route = `${records}/${id}`;
+      const list = `${records}?${new URLSearchParams({ filter: `id = "${id}"` })}`;
+      assert.equal((await request(route, { token })).data.body, 'Private original');
+      assert.equal((await request(list, { token })).data.totalItems, 1);
+      for (const denied of [undefined, other]) {
+        assert.equal((await request(route, { token: denied })).status, 404);
+        assert.equal((await request(list, { token: denied })).data.totalItems, 0);
+        assert.equal((await request(records, { method: 'POST', token: denied, body: { type, body: 'Denied' } })).status, 400);
+        assert.equal((await request(route, { method: 'PATCH', token: denied, body: { published: true, body: 'Denied' } })).status, 404);
+        assert.equal((await request(route, { method: 'DELETE', token: denied })).status, 404);
+      }
+      await pause(1100);
+      const newer = await save({ type, body: 'Newer', published: true });
+      assert.equal(newer.status, 200);
+      const published = await save({ published: true, body: 'Edited text', attribution: 'Author' }, id);
+      assert.equal(published.status, 200);
+      assert.equal(published.data.created, older.data.created);
+      assert.ok(Date.parse(published.data.updated) > Date.parse(older.data.updated));
+      assert.equal((await request(route)).data.body, 'Edited text');
+      const ordered = `${records}?${new URLSearchParams({ filter: `id = "${id}" || id = "${newer.data.id}"`, sort: '-created' })}`;
+      assert.deepEqual((await request(ordered)).data.items.map((item) => item.id), [newer.data.id, id]);
+      for (const denied of [undefined, other]) {
+        assert.equal((await request(route, { method: 'PATCH', token: denied, body: { body: 'Denied' } })).status, 404);
+        assert.equal((await request(route, { method: 'DELETE', token: denied })).status, 404);
+      }
+      assert.equal((await save({ published: false }, id)).status, 200);
+      assert.equal((await request(route)).status, 404);
+      assert.equal((await request(list, { token: other })).data.totalItems, 0);
+      assert.equal((await request(route, { method: 'DELETE', token })).status, 204);
+      assert.equal((await request(route, { token })).status, 404);
+      assert.equal((await request(list, { token })).data.totalItems, 0);
+      assert.equal((await request(`${records}/${newer.data.id}`, { method: 'DELETE', token })).status, 204);
+    }
+  });
+  await t.test('text types reject new and retained assets, including type conversions', async () => {
+    const asset = await save(upload());
+    assert.equal(asset.status, 200);
+    for (const type of ['quote', 'note']) {
+      const item = await save({ type, body: 'Text' });
+      assert.equal(item.status, 200);
+      for (const writer of [token, adminToken]) {
+        for (const id of [undefined, item.data.id]) {
+          const rejected = await save(upload(png, 'text.png', { type, body: 'Text' }), id, writer);
+          assert.equal(rejected.status, 400);
+          assert.ok(rejected.data.data.asset);
+        }
+        assert.equal((await save({ type, body: 'Text' }, asset.data.id, writer)).status, 400);
+      }
+      assert.equal((await request(`${records}/${asset.data.id}`)).data.asset, asset.data.asset);
+      assert.equal((await save({ type: '' }, item.data.id)).status, 400, 'Legacy items still need title and URL/asset');
+    }
+    const converted = await save({ type: 'quote', body: 'Converted', asset: '' }, asset.data.id);
+    assert.equal(converted.status, 200);
+    assert.equal(converted.data.asset, '');
+    assert.equal(converted.data.created, asset.data.created);
+  });
+  await t.test('text validation rejects empty bodies, oversized fields and unsafe sources atomically', async () => {
+    for (const type of ['quote', 'note']) {
+      const created = await save({ type, body: 'Keep this text', published: false });
+      assert.equal(created.status, 200);
+      for (const writer of [token, adminToken]) {
+        for (const [field, value] of [['body', ''], ['body', ' \n\t'], ['body', 'x'.repeat(100001)],
+          ['attribution', 'x'.repeat(1001)], ['title', 'x'.repeat(501)], ['type', 'article'],
+          ...['javascript:alert(1)', 'data:text/html,hello', 'ftp://example.com', '//example.com', 'https://user:pass@example.com'].map((url) => ['url', url])]) {
+          for (const id of [undefined, created.data.id]) {
+            const invalid = await save({ type, title: 'Valid', url: 'https://example.com', body: 'Keep this text', [field]: value }, id, writer);
+            assert.equal(invalid.status, 400, `${type} ${field}: ${JSON.stringify(invalid)}`);
+            assert.ok(invalid.data.data[field]);
+          }
+        }
+      }
+      assert.equal((await request(`${records}/${created.data.id}`, { token })).data.body, 'Keep this text');
+      assert.equal((await save({ url: 'http://example.com/source' }, created.data.id)).status, 200);
+      assert.equal((await save({ url: '' }, created.data.id)).status, 200);
+    }
+  });
+  await t.test('both text types save without a title or destination and preserve literal long text', async () => {
+    for (const type of ['quote', 'note']) {
+      const body = '<script>alert(1)</script>\n' + 'x'.repeat(99974);
+      const result = await save({ type, body, published: true });
+      assert.equal(result.status, 200, JSON.stringify(result));
+      const item = (await request(`${records}/${result.data.id}`)).data;
+      assert.equal(item.type, type);
+      assert.equal(item.body, body);
+      assert.equal(item.title, '');
+      assert.equal(item.url, '');
+      assert.equal(item.attribution, '');
+      assert.equal(item.asset, '');
+      assert.equal((await save({ attribution: 'a'.repeat(1000), url: 'https://example.com/source', title: 'Optional' }, item.id)).status, 200);
+    }
+  });
+});
 
 // All asset assertions use the real HTTP API, including file downloads.
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQAQAAAAB+XjmZAAAAPklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4NndAAAfVRSv0AAAAASUVORK5CYII=', 'base64');

@@ -26,7 +26,7 @@ Keep `pnpm dev` running while viewing the site. The port is fixed so the proxy c
 
 ## Likes
 
-`/likes` reads published links, images, and PDFs from PocketBase in the browser; saves do not require a rebuild. `/links` retains a static-host-compatible redirect.
+`/likes` reads published links, images, PDFs, quotes, and personal notes from PocketBase in the browser; saves do not require a rebuild. `/links` retains a static-host-compatible redirect.
 
 Owners can create, rename, and delete named collections and choose zero or several memberships in the item editor. Visitors browse All or one collection using shareable `/likes?collection=<record-id>` URLs. Renaming preserves these URLs; deleted or unknown collections show an unavailable state with an All link. Deleting a collection requires confirmation and never deletes items. Collection names are public, but membership never makes a draft public.
 
@@ -43,7 +43,7 @@ pnpm build
 # Include the real PocketBase authorization tests (upgrade target: version 0.40.4):
 POCKETBASE_BINARY=/absolute/path/to/pocketbase pnpm test
 # Run real-browser Likes navigation and upload/viewer regressions (otherwise skipped):
-PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js tests/likes-previews-browser.test.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js tests/likes-previews-browser.test.js tests/likes-text-browser.test.js
 ```
 
 The browser regressions start temporary loopback Astro dev servers, mock PocketBase HTTP at `https://pb.example`, and block other external requests. They use `playwright-core` with an existing Chromium executable (for example `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` or `chrome-linux64/chrome`); no browser download or production backend is needed.
@@ -55,6 +55,8 @@ Owners can upload one JPEG, PNG, GIF, WebP, or PDF per item, up to **10 MiB (10,
 Assets belong directly to their PocketBase item, not to Git or the static build. Draft originals and thumbnails are protected by the item’s view rule. Files already downloaded while published cannot be made secret retroactively. Deploy the backend migration **and hooks before the frontend**; see [`pocketbase/ticket-04-rollout.md`](pocketbase/ticket-04-rollout.md) for storage, cleanup, limits, and verification.
 
 Pasting a URL in the owner editor fetches a suggested title, description, and preview image; you can also request a preview explicitly. Review or override the suggestions before saving. Fetch failures never prevent manual entry or saving, and a late response does not replace explicit edits. Preview images are held locally until Save, then copied into the same protected PocketBase storage as uploads; full pages are never archived. Fetched source attribution is stored separately from owner overrides. This requires the custom Go backend and additive migration described in [`pocketbase/ticket-05-rollout.md`](pocketbase/ticket-05-rollout.md); it is not yet deployed.
+
+Choose **Quote** or **Personal note** in the editor to save plain text without a destination URL or title. Attribution and source URLs are optional; text is limited to 100,000 characters. Text items use bounded square previews and open a scrollable on-site reader, with Escape/Close dismissal and keyboard focus returned to the card. HTML is displayed as text, not executed. Drafting, publishing, collections, editing, and confirmed permanent deletion work as for other items. Text items cannot have an upload; remove the existing upload before converting one. Deploy the migration and hooks in [`pocketbase/ticket-06-rollout.md`](pocketbase/ticket-06-rollout.md) before this frontend; deployment is pending.
 
 Nord colors and semantic color variables live in `src/styles/global.css`. The portrait respects reduced-motion preferences.
 

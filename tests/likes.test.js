@@ -88,6 +88,7 @@ test('save creates drafts and edits all fields with authenticated PATCH', async 
     assert.equal(request.headers.Authorization, 'owner-token');
     assert.deepEqual(JSON.parse(request.body), {
       url: 'https://example.com/', title: 'Edited', description: 'Summary', commentary: 'My thoughts', published: false,
+      type: '', body: '', attribution: '',
     });
   }
   assert.equal(fields.title, ' Edited ');
