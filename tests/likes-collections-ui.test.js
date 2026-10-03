@@ -7,6 +7,7 @@ test('owner manages collections and optional memberships without deleting items'
   let groups = [], records = [{ ...items[0] }], deletionCount = 0, fail = false;
   globalThis.fetch = async (url, options) => {
     if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
+    if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     const isGroup = url.includes('likes_collections');
     if (options.method) {
       assert.equal(options.headers.Authorization, 'owner');
@@ -87,6 +88,7 @@ test('creating a collection during the initial read replaces the superseded read
   let finishInitialRead, reads = 0, groups = [];
   globalThis.fetch = async (url, options) => {
     if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
+    if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     if (url.includes('likes_collections')) {
       if (options.method === 'POST') {
         groups = [{ id: 'collection00001', name: JSON.parse(options.body).name }];

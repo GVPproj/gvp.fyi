@@ -7,6 +7,7 @@ async function editor(t) {
   const state = { items: [], failSave: false, failDelete: false, failRead: false, deletes: 0, saveErrorStatus: 500 };
   globalThis.fetch = async (url, options = {}) => {
     if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
+    if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     const id = new URL(url).pathname.split('/').at(-1);
     if (options.method === 'DELETE') {
       state.deletes++;

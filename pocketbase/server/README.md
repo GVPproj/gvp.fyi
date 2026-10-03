@@ -1,6 +1,6 @@
 # Likes URL preview extension
 
-Custom PocketBase executable pinned to **v0.40.4**; requires **Go 1.27+** (Go toolchain auto-download works). Registers JS hooks, JS migrations, the migration CLI, static files, and `POST /api/likes/preview`. Existing hooks/migrations are **not embedded**: ship the full existing backend directories, including hooks for other consumers. Upstream self-update is deliberately absent because it would replace this extension.
+Custom PocketBase executable pinned to **v0.40.4**; requires **Go 1.27+** (Go toolchain auto-download works). Registers JS hooks, JS migrations, the migration CLI, static files, `POST /api/likes/preview`, and the owner-only `POST /api/likes/duplicates` ([comparison policy and rollout](../ticket-07-rollout.md)). Existing hooks/migrations are **not embedded**: ship the full existing backend directories, including hooks for other consumers. Upstream self-update is deliberately absent because it would replace this extension.
 
 ## Build / deploy
 

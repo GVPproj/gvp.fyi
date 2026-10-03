@@ -7,6 +7,7 @@ test('board states, owner save, failed-save retention, and sign out', async t =>
   let items = [], failRead = false, failSave = false;
   globalThis.fetch = async (url, options) => {
     if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
+    if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     if (options.method === 'POST') {
       if (failSave) return new Response('', { status: 403 });
       items = [{ id: 'saved', ...JSON.parse(options.body) }];

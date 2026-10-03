@@ -36,6 +36,53 @@ document.addEventListener('astro:page-load', () => {
   typeInput.addEventListener('change', updateItemType);
   const previewStatus = root.querySelector('#preview-status');
   const urlInput = save.querySelector('[name=url]');
+  const duplicateReview = root.querySelector('#duplicate-review');
+  const duplicateItems = root.querySelector('#duplicate-items');
+  let duplicateRequest = 0, duplicateURL = '';
+  function clearDuplicates() {
+    duplicateRequest++;
+    duplicateURL = '';
+    duplicateItems.replaceChildren();
+    duplicateReview.hidden = true;
+  }
+  function showDuplicates(items, url) {
+    duplicateURL = url;
+    duplicateItems.replaceChildren(...items.map(item => {
+      const row = document.createElement('li');
+      const heading = document.createElement('h4');
+      heading.textContent = textItemTitle(item);
+      const detail = document.createElement('p');
+      detail.textContent = [item.published ? 'Published' : 'Draft', item.type || 'Link / image / PDF',
+        item.created, `ID: ${item.id}`, item.url, item.body, item.attribution, item.description,
+        item.commentary, item.asset, (item.collections ?? []).map(id => collections.find(group => group.id === id)?.name ?? id).join(', ')].filter(Boolean).join('\n');
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.textContent = 'Open existing item';
+      open.addEventListener('click', () => openEditor(item));
+      row.append(heading, detail, open);
+      return row;
+    }));
+    duplicateReview.hidden = false;
+  }
+  async function checkPastedURL() {
+    clearDuplicates();
+    if (editing) return;
+    const request = duplicateRequest, session = token, url = urlInput.value;
+    const current = () => request === duplicateRequest && session === token && url === urlInput.value;
+    saveStatus.textContent = 'Checking for existing items…';
+    try {
+      const result = await api.duplicates(session, url);
+      if (!current()) return;
+      if (result.items.length) showDuplicates(result.items, url);
+      saveStatus.textContent = result.items.length ? 'Already in Likes. Open an existing item or choose Save another.' : '';
+    } catch (error) {
+      if (current()) saveStatus.textContent = `${error.message} Could not check existing items. Try Save item to check again; your fields are kept.`;
+    }
+  }
+  root.querySelector('#save-another').addEventListener('click', () => {
+    if (!busy && !editing && !duplicateReview.hidden && duplicateURL === urlInput.value && save.reportValidity()) submitItem(true);
+  });
+  urlInput.addEventListener('input', clearDuplicates);
   const assetInput = save.querySelector('[name=asset]');
   const removeAssetInput = save.querySelector('[name=removeAsset]');
   const previewImage = root.querySelector('#preview-image');
@@ -138,10 +185,11 @@ document.addEventListener('astro:page-load', () => {
   urlInput.addEventListener('input', invalidatePreview);
   urlInput.addEventListener('paste', event => {
     const text = event.clipboardData?.getData('text/plain')?.trim();
-    if (busy || !token || typeInput.value || !webURL(text)) return;
+    if (busy || !token || !webURL(text)) return;
     event.preventDefault();
     urlInput.value = text;
     invalidatePreview();
+    checkPastedURL();
     fetchPreview();
   });
   root.querySelector('#fetch-preview').addEventListener('click', fetchPreview);
@@ -261,6 +309,7 @@ document.addEventListener('astro:page-load', () => {
     imageStatus.textContent = '';
   }
   function resetEditor() {
+    clearDuplicates();
     resetPreview();
     editing = null;
     existingAsset = '';
@@ -275,6 +324,29 @@ document.addEventListener('astro:page-load', () => {
     renderMemberships();
     root.querySelector('#editor-title').textContent = 'Save an item';
   }
+  function openEditor(item) {
+    if (busy) return;
+    clearDuplicates();
+    resetPreview(item.previewProvenance);
+    preview.protectedMetadata = new Set(['title', 'description'].filter(name => item[name]));
+    editing = item.id;
+    existingAsset = item.asset ?? '';
+    assetInput.value = '';
+    removeAssetInput.checked = false;
+    root.querySelector('#current-asset').textContent = existingAsset ? `Current upload: ${existingAsset}` : '';
+    deleteButton.hidden = false;
+    confirmation.hidden = true;
+    for (const field of fields) save.querySelector(`[name=${field}]`).value = item[field] ?? '';
+    typeInput.value = item.type ?? '';
+    updateItemType();
+    draft.checked = !item.published;
+    memberships = new Set(item.collections ?? []);
+    renderMemberships();
+    root.querySelector('#editor-title').textContent = 'Edit item';
+    saveStatus.textContent = '';
+    root.querySelector('.owner-tools').open = true;
+    save.querySelector(typeInput.value ? '[name=body]' : '[name=url]').focus();
+  }
   function itemCard(item) {
     const card = renderItem(document, item, { assetURL: api.assetURL(item), openAsset, openText });
     card.dataset.itemId = item.id;
@@ -283,28 +355,7 @@ document.addEventListener('astro:page-load', () => {
       edit.type = 'button';
       edit.textContent = 'Edit';
       edit.disabled = busy;
-      edit.addEventListener('click', () => {
-        if (busy) return;
-        resetPreview(item.previewProvenance);
-        preview.protectedMetadata = new Set(['title', 'description'].filter(name => item[name]));
-        editing = item.id;
-        existingAsset = item.asset ?? '';
-        save.querySelector('[name=asset]').value = '';
-        save.querySelector('[name=removeAsset]').checked = false;
-        root.querySelector('#current-asset').textContent = existingAsset ? `Current upload: ${existingAsset}` : '';
-        deleteButton.hidden = false;
-        confirmation.hidden = true;
-        for (const field of fields) save.querySelector(`[name=${field}]`).value = item[field] ?? '';
-        typeInput.value = item.type ?? '';
-        updateItemType();
-        draft.checked = !item.published;
-        memberships = new Set(item.collections ?? []);
-        renderMemberships();
-        root.querySelector('#editor-title').textContent = 'Edit item';
-        saveStatus.textContent = '';
-        root.querySelector('.owner-tools').open = true;
-        save.querySelector(typeInput.value ? '[name=body]' : '[name=url]').focus();
-      });
+      edit.addEventListener('click', () => openEditor(item));
       card.append(edit);
     }
     return card;
@@ -555,15 +606,29 @@ document.addEventListener('astro:page-load', () => {
     authStatus.textContent = 'Signed out.';
     updateAuth();
   });
-  save.addEventListener('submit', async event => {
+  save.addEventListener('submit', event => {
     event.preventDefault();
+    submitItem(false);
+  });
+  async function submitItem(allowDuplicate) {
     if (busy || !token) return;
     const published = !draft.checked;
     const data = { ...Object.fromEntries(new FormData(save)), published, collections: [...memberships],
       ...previewSaveData(), existingAsset };
+    // Any earlier paste lookup must not repaint after this submission.
+    duplicateRequest++;
     setBusy(true);
     saveStatus.textContent = 'Saving…';
     try {
+      if (!editing && data.url.trim() && !allowDuplicate) {
+        clearDuplicates();
+        const result = await api.duplicates(token, data.url);
+        if (result.items.length) {
+          showDuplicates(result.items, data.url);
+          saveStatus.textContent = 'Already in Likes. Open an existing item or choose Save another.';
+          return;
+        }
+      }
       const item = await api.save(token, data, editing);
       reconcileItem(item.id, item);
       resetEditor();
@@ -571,7 +636,7 @@ document.addEventListener('astro:page-load', () => {
       await Promise.all([load(), loadDrafts()]);
     } catch (error) { saveStatus.textContent = `${error.message} Your fields have been kept. Save was not confirmed; reload the board and drafts before retrying to check for a completed save.`; }
     finally { setBusy(false); }
-  });
+  }
   updateAuth();
   load();
 });

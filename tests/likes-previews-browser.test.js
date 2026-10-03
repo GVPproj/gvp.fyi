@@ -34,6 +34,7 @@ async function setup(t, result = metadata()) {
       if (url.pathname === '/api/collections/likes_owners/auth-with-password' && method === 'POST') {
         return route.fulfill({ json: { token: ownerToken, record: { id: 'likesowner00001', collectionName: 'likes_owners' } } });
       }
+      if (url.pathname === '/api/likes/duplicates' && method === 'POST') return route.fulfill({ json: { items: [] } });
       if (url.pathname === '/api/likes/preview' && method === 'POST') {
         state.previews.push({ body: request.postDataJSON(), authorization: request.headers().authorization });
         arrived.resolve();

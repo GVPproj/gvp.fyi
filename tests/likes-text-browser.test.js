@@ -20,6 +20,7 @@ async function setup(t, initial = []) {
     if (url.pathname.includes('auth-with-password')) return route.fulfill({ json: {
       token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' },
     } });
+    if (url.pathname === '/api/likes/duplicates' && request.method() === 'POST') return route.fulfill({ json: { items: [] } });
     if (url.pathname.includes('likes_collections')) return route.fulfill({ json: { items: [], totalPages: 1 } });
     if (request.method() === 'GET') {
       const draft = url.searchParams.get('filter') === 'published=false';

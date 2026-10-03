@@ -24,6 +24,12 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
           <label>Attribution (optional) <input name="attribution" maxlength="1000" /></label>
         </div>
         <label>Destination / source URL (optional for uploads and text) <input name="url" type="url" placeholder="https://" maxlength="2048" /></label>
+        <div id="duplicate-review" role="region" aria-labelledby="duplicate-heading" hidden>
+          <h3 id="duplicate-heading">Already in Likes</h3>
+          <p>Open an existing item to reuse it and change its named collections, or deliberately save a separate item with your current fields.</p>
+          <ul id="duplicate-items"></ul>
+          <button id="save-another" type="button">Save another</button>
+        </div>
         <button id="fetch-preview" type="button">Fetch URL preview</button>
         <p id="preview-status" role="status"></p>
         <div id="preview-metadata-review" hidden>
@@ -111,6 +117,8 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
   #likes label { display: block; margin-block: .75rem; }
   #likes input, #likes textarea, #likes select { display: block; width: 100%; }
   #likes input[type="checkbox"] { display: inline-block; width: auto; }
+  #duplicate-items { padding-left: 1.25rem; overflow-wrap: anywhere; }
+  #duplicate-items p { white-space: pre-wrap; }
   #drafts-board { list-style: none; padding: 0; }
   #drafts-board li { margin-block: 1rem; }
   #drafts-board .like-preview { display: none; }

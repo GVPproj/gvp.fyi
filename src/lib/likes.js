@@ -39,6 +39,14 @@ export function createLikesAPI(base, fetcher = fetch) {
     return items;
   }
   return {
+    duplicates(token, value) {
+      const url = webURL(value);
+      if (!url) throw new Error('Enter a full http:// or https:// URL without credentials.');
+      return request('likes/duplicates', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
+        body: JSON.stringify({ url }),
+      });
+    },
     preview(token, value) {
       const url = webURL(value);
       if (!url) throw new Error('Enter a full http:// or https:// URL without credentials.');

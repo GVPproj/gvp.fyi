@@ -19,6 +19,7 @@ async function setup(t, initial = []) {
       if (url.pathname === '/api/collections/likes_owners/auth-with-password' && method === 'POST') {
         return route.fulfill({ json: { token: ownerToken, record: { id: 'likesowner00001', collectionName: 'likes_owners' } } });
       }
+      if (url.pathname === '/api/likes/duplicates' && method === 'POST') return route.fulfill({ json: { items: [] } });
       if (url.pathname === '/api/files/token' && method === 'POST') {
         state.tokens.push(request.headers().authorization);
         return route.fulfill({ json: { token: `short-file-token-${state.tokens.length}` } });

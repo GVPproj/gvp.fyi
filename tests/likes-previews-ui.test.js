@@ -18,6 +18,7 @@ async function editor(t, items = []) {
   const state = { items, previews: [], writes: [], failSave: false };
   globalThis.fetch = async (url, options = {}) => {
     if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
+    if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     if (url.includes('preview')) {
       assert.equal(options.headers.Authorization, 'owner');
       return new Promise(resolve => state.previews.push({ body: JSON.parse(options.body), resolve }));
