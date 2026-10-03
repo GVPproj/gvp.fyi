@@ -19,6 +19,22 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
       <form id="save-link" hidden>
         <h2 id="editor-title">Save an item</h2>
         <label>Destination / source URL (optional for uploads) <input name="url" type="url" placeholder="https://" maxlength="2048" /></label>
+        <button id="fetch-preview" type="button">Fetch URL preview</button>
+        <p id="preview-status" role="status"></p>
+        <div id="preview-metadata-review" hidden>
+          <p>Fetched suggestions (your edited or existing metadata is kept):</p>
+          <dl>
+            <dt>Title</dt><dd id="preview-title"></dd>
+            <dt>Description</dt><dd id="preview-description"></dd>
+          </dl>
+        </div>
+        <div id="preview-image-review" hidden>
+          <img id="preview-image" alt="Fetched image for review" />
+          <p>Review only. Your current upload is kept unless you choose this image.</p>
+          <button id="use-preview-image" type="button">Use fetched image</button>
+          <button id="discard-preview-image" type="button">Discard fetched image</button>
+        </div>
+        <p id="preview-image-status" role="status"></p>
         <label>Image or PDF <input name="asset" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" aria-describedby="upload-limits" /></label>
         <p id="upload-limits">JPEG, PNG, GIF, WebP or PDF; maximum 10 MiB. Uploaded only when you save. Selecting a file replaces the current upload.</p>
         <p id="current-asset"></p>
@@ -102,6 +118,7 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
   #likes-board .image-card { display: block; width: 100%; padding: 0; text-align: left; background: none; border: 0; }
   #image-viewer { max-width: 95vw; max-height: 95vh; color: var(--nord6); background: var(--nord0); border: 1px solid var(--nord3); }
   #image-viewer::backdrop { background: rgb(0 0 0 / .8); }
+  #preview-image { display: block; max-width: 100%; max-height: 16rem; object-fit: contain; }
   #image-viewer img { display: block; max-width: 85vw; max-height: 75vh; object-fit: contain; margin: auto; }
   #likes-board a:hover h2 { text-decoration: underline; }
   #likes-board h2 { font-size: 1rem; font-weight: 400; margin: .75rem 0 .25rem; overflow-wrap: anywhere; }

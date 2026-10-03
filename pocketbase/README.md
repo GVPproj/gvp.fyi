@@ -1,6 +1,6 @@
 # Likes backend — live and verified
 
-Pending additive changes: [Ticket 02 rollout](ticket-02-rollout.md) (commentary), [Ticket 03 rollout](ticket-03-rollout.md) (named collections), and [Ticket 04 rollout](ticket-04-rollout.md) (protected images/PDFs; migration **and runtime hooks** required). Deploy their migrations before the corresponding frontend; the production status below does not claim these changes are live.
+Pending additive changes: [Ticket 02 rollout](ticket-02-rollout.md) (commentary), [Ticket 03 rollout](ticket-03-rollout.md) (named collections), and [Ticket 04 rollout](ticket-04-rollout.md) (protected images/PDFs; migration **and runtime hooks** required), and [Ticket 05 rollout](ticket-05-rollout.md) (URL previews; custom Go executable **and migration** required). Deploy their migrations before the corresponding frontend; the production status below does not claim these changes are live.
 
 ## Production status (2026-10-02)
 
@@ -62,7 +62,7 @@ Only `likes_owners` record **`likesowner00001`** (15 characters) may mutate Like
 
 The owner must create that record administratively with a private email and password of at least 12 characters. Use this ordinary record to sign into `/likes`, **not a `_superusers` account**. Do not send passwords or admin tokens to an agent or commit them.
 
-The initial production deployment saves published links; text renders safely and destinations are restricted to HTTP(S) without embedded credentials. Draft editing, named collections, and protected uploads are implemented locally with the pending rollout steps above. URL preview fetching remains a later ticket.
+The initial production deployment saves published links; text renders safely and destinations are restricted to HTTP(S) without embedded credentials. Draft editing, named collections, and protected uploads are implemented locally with the pending rollout steps above. URL preview fetching is implemented locally with a custom Go extension; it remains undeployed pending the Ticket 05 rollout.
 
 ## Optional follow-up checks
 

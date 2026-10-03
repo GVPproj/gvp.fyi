@@ -15,6 +15,10 @@ export function createLikesAPI(base, fetcher = fetch) {
     catch { throw new Error('Cannot reach Likes. Check your connection and try again.'); }
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) throw new Error('Sign in with the owner account and try again.');
+      if (path === 'likes/preview') {
+        if (response.status === 429) throw new Error('Too many preview requests. Wait a minute or save manually.');
+        throw new Error('Preview unavailable for this URL. Enter metadata manually or try again.');
+      }
       if (response.status === 413) throw new Error('Upload too large. Maximum file size is 10 MiB.');
       if (response.status === 400) {
         const error = await response.json().catch(() => ({}));
@@ -35,6 +39,14 @@ export function createLikesAPI(base, fetcher = fetch) {
     return items;
   }
   return {
+    preview(token, value) {
+      const url = webURL(value);
+      if (!url) throw new Error('Enter a full http:// or https:// URL without credentials.');
+      return request('likes/preview', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token },
+        body: JSON.stringify({ url }),
+      });
+    },
     assetURL(item, fileToken = '') {
       if (!origin || !item.asset) return null;
       const path = [item.id, item.asset].map(encodeURIComponent).join('/');
@@ -73,7 +85,7 @@ export function createLikesAPI(base, fetcher = fetch) {
         body: JSON.stringify({ identity: email, password }),
       });
     },
-    save(token, { url = '', title, description = '', commentary = '', published = true, collections, asset, existingAsset, removeAsset = false }, id) {
+    save(token, { url = '', title, description = '', commentary = '', published = true, collections, asset, existingAsset, removeAsset = false, previewProvenance }, id) {
       const upload = asset instanceof Blob;
       if (upload && (!asset.size || asset.size > 10 * 1024 * 1024 || !/\.(jpe?g|png|gif|webp|pdf)$/i.test(asset.name))) {
         throw new Error('Choose a non-empty JPEG, PNG, GIF, WebP or PDF, no larger than 10 MiB.');
@@ -83,12 +95,13 @@ export function createLikesAPI(base, fetcher = fetch) {
       if (!safeURL && !upload && !(existingAsset && !removeAsset)) throw new Error('Enter a URL or choose an image or PDF.');
       if (!title.trim()) throw new Error('Enter a title.');
       const fields = { url: safeURL, title: title.trim(), description: description.trim(), commentary: commentary.trim(), published,
-        ...(collections !== undefined && { collections }), ...(removeAsset && !upload && { asset: '' }) };
+        ...(collections !== undefined && { collections }), ...(previewProvenance !== undefined && { previewProvenance }),
+        ...(removeAsset && !upload && { asset: '' }) };
       let body = JSON.stringify(fields);
       const headers = { Authorization: token };
       if (upload) {
         body = new FormData();
-        for (const [key, value] of Object.entries(fields)) body.append(key, Array.isArray(value) ? JSON.stringify(value) : String(value));
+        for (const [key, value] of Object.entries(fields)) body.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
         body.append('asset', asset);
       } else headers['Content-Type'] = 'application/json';
       return request(`collections/likes_items/records${id ? `/${encodeURIComponent(id)}` : ''}`, {

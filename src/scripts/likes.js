@@ -1,4 +1,4 @@
-import { createLikesAPI, renderItem } from '../lib/likes.js';
+import { createLikesAPI, renderItem, webURL } from '../lib/likes.js';
 
 document.addEventListener('astro:page-load', () => {
   const root = document.querySelector('#likes');
@@ -24,6 +24,117 @@ document.addEventListener('astro:page-load', () => {
   const deleteButton = root.querySelector('#delete-item');
   const confirmation = root.querySelector('#delete-confirmation');
   const fields = ['url', 'title', 'description', 'commentary'];
+  const previewStatus = root.querySelector('#preview-status');
+  const urlInput = save.querySelector('[name=url]');
+  const assetInput = save.querySelector('[name=asset]');
+  const removeAssetInput = save.querySelector('[name=removeAsset]');
+  const previewImage = root.querySelector('#preview-image');
+  const imageReview = root.querySelector('#preview-image-review');
+  const imageStatus = root.querySelector('#preview-image-status');
+  function previewSession(provenance = null, request = 0) {
+    return {
+      request, candidate: null, selected: null,
+      provenance: provenance ? structuredClone(provenance) : null,
+      protectedMetadata: new Set(),
+      overrides: { title: false, description: false, image: false, ...provenance?.overrides },
+    };
+  }
+  let preview = previewSession();
+  function clearCandidateImage() {
+    preview.candidate = null;
+    previewImage.removeAttribute('src');
+    imageReview.hidden = true;
+  }
+  root.querySelector('#use-preview-image').addEventListener('click', () => {
+    if (busy || !preview.candidate) return;
+    preview.selected = preview.candidate;
+    assetInput.value = '';
+    removeAssetInput.checked = false;
+    preview.overrides.image = false;
+    imageStatus.textContent = 'Fetched image selected. It will upload when you save.';
+  });
+  root.querySelector('#discard-preview-image').addEventListener('click', () => {
+    if (busy) return;
+    preview.selected = null;
+    clearCandidateImage();
+    preview.overrides.image = true;
+    imageStatus.textContent = 'Fetched image discarded. Current upload choice kept.';
+  });
+  assetInput.addEventListener('change', () => {
+    preview.selected = null;
+    preview.overrides.image = true;
+    if (assetInput.files?.length) removeAssetInput.checked = false;
+    imageStatus.textContent = 'Your upload choice will be used, not the fetched image.';
+  });
+  removeAssetInput.addEventListener('change', () => {
+    preview.overrides.image = true;
+    if (removeAssetInput.checked) {
+      preview.selected = null;
+      assetInput.value = '';
+      imageStatus.textContent = 'Current upload will be removed when you save.';
+    } else imageStatus.textContent = '';
+  });
+  for (const name of ['title', 'description']) {
+    save.querySelector(`[name=${name}]`).addEventListener('input', () => { preview.overrides[name] = true; });
+  }
+  async function fetchPreview() {
+    if (busy || !token) return;
+    const request = ++preview.request;
+    const url = urlInput.value;
+    const session = token;
+    const current = () => request === preview.request && url === urlInput.value && session === token;
+    previewStatus.textContent = 'Fetching preview… You can still edit and save.';
+    try {
+      const result = await api.preview(session, url);
+      if (!current()) return;
+      for (const name of ['title', 'description']) {
+        const field = save.querySelector(`[name=${name}]`);
+        if (!preview.protectedMetadata.has(name) && !preview.overrides[name] && (!field.value || field.value === preview.provenance?.fetched[name])) field.value = result[name] ?? '';
+        else preview.overrides[name] = true;
+      }
+      root.querySelector('#preview-metadata-review').hidden = !['title', 'description'].some(name => preview.overrides[name]);
+      for (const name of ['title', 'description']) root.querySelector(`#preview-${name}`).textContent = result[name] ?? '';
+      const { sourceURL, finalURL, fetchedAt, title, description } = result;
+      preview.provenance = { assetSource: preview.provenance?.assetSource ?? null,
+        fetched: { sourceURL, finalURL, fetchedAt, title, description, image: null } };
+      clearCandidateImage();
+      if (preview.selected || assetInput.files?.length || existingAsset) preview.overrides.image = true;
+      if (result.image) {
+        const { sourceURL, finalURL, name, type, base64 } = result.image;
+        preview.provenance.fetched.image = { sourceURL, finalURL, name, type };
+        // Never load an upstream image URL into the DOM. The backend returns bounded bytes.
+        if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(type)) throw new Error('Preview image type is unsupported.');
+        const bytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+        preview.candidate = {
+          file: new File([bytes], name, { type }),
+          source: { sourceURL, finalURL, name, type, fetchedAt, pageURL: result.finalURL },
+        };
+        previewImage.src = `data:${type};base64,${base64}`;
+        imageReview.hidden = false;
+        preview.overrides.image = true; // Not adopted until the owner explicitly chooses it.
+      }
+      if (preview.selected) imageStatus.textContent = preview.candidate
+        ? 'Previously selected image is kept. Choose “Use fetched image” to replace it with this preview.'
+        : 'Previously selected image is kept; this fetch did not provide a replacement.';
+      previewStatus.textContent = `Preview fetched. ${result.warning || 'Review the metadata before saving.'}`;
+    } catch (error) {
+      if (current()) previewStatus.textContent = `${error.message} You can still enter metadata and save.`;
+    }
+  }
+  function invalidatePreview() {
+    preview.request++;
+    previewStatus.textContent = '';
+  }
+  urlInput.addEventListener('input', invalidatePreview);
+  urlInput.addEventListener('paste', event => {
+    const text = event.clipboardData?.getData('text/plain')?.trim();
+    if (busy || !token || !webURL(text)) return;
+    event.preventDefault();
+    urlInput.value = text;
+    invalidatePreview();
+    fetchPreview();
+  });
+  root.querySelector('#fetch-preview').addEventListener('click', fetchPreview);
   const viewer = root.querySelector('#image-viewer');
   const viewerImage = viewer.querySelector('img');
   const viewerStatus = viewer.querySelector('[role=status]');
@@ -80,7 +191,31 @@ document.addEventListener('astro:page-load', () => {
     }
   }
 
+  function previewSaveData() {
+    const removeAsset = removeAssetInput.checked;
+    // Resolve the file and its attribution together; latest metadata is independent.
+    const adopted = removeAsset ? null : preview.selected ?? (assetInput.files?.[0]
+      ? { file: assetInput.files[0], source: null }
+      : { file: undefined, source: existingAsset ? preview.provenance?.assetSource ?? null : null });
+    return {
+      asset: adopted?.file, removeAsset,
+      previewProvenance: preview.provenance ? {
+        fetched: preview.provenance.fetched,
+        assetSource: adopted?.source ?? null,
+        overrides: { ...preview.overrides },
+      } : null,
+    };
+  }
+  function resetPreview(provenance = null) {
+    invalidatePreview();
+    preview = previewSession(provenance, preview.request);
+    root.querySelector('#preview-metadata-review').hidden = true;
+    for (const name of ['title', 'description']) root.querySelector(`#preview-${name}`).textContent = '';
+    clearCandidateImage();
+    imageStatus.textContent = '';
+  }
   function resetEditor() {
+    resetPreview();
     editing = null;
     existingAsset = '';
     root.querySelector('#current-asset').textContent = '';
@@ -102,6 +237,8 @@ document.addEventListener('astro:page-load', () => {
       edit.disabled = busy;
       edit.addEventListener('click', () => {
         if (busy) return;
+        resetPreview(item.previewProvenance);
+        preview.protectedMetadata = new Set(['title', 'description'].filter(name => item[name]));
         editing = item.id;
         existingAsset = item.asset ?? '';
         save.querySelector('[name=asset]').value = '';
@@ -258,6 +395,7 @@ document.addEventListener('astro:page-load', () => {
   }
   function setBusy(value) {
     busy = value;
+    if (value) invalidatePreview();
     for (const control of root.querySelectorAll('.owner-tools input, .owner-tools textarea, .owner-tools button, #likes-board button')) control.disabled = value;
   }
   function updateAuth() {
@@ -371,8 +509,7 @@ document.addEventListener('astro:page-load', () => {
     if (busy || !token) return;
     const published = !draft.checked;
     const data = { ...Object.fromEntries(new FormData(save)), published, collections: [...memberships],
-      asset: save.querySelector('[name=asset]').files?.[0], existingAsset,
-      removeAsset: save.querySelector('[name=removeAsset]').checked };
+      ...previewSaveData(), existingAsset };
     setBusy(true);
     saveStatus.textContent = 'Saving…';
     try {

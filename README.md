@@ -36,20 +36,25 @@ PocketBase 0.40.4 and the Likes collections are deployed; owner sign-in/save and
 
 ```sh
 pnpm test
+pnpm check
 pnpm build
+# Secure preview fetcher and owner endpoint (Go 1.27+):
+(cd pocketbase/server && go test ./...)
 # Include the real PocketBase authorization tests (upgrade target: version 0.40.4):
 POCKETBASE_BINARY=/absolute/path/to/pocketbase pnpm test
 # Run real-browser Likes navigation and upload/viewer regressions (otherwise skipped):
-PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js
+PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chrome node --test tests/likes-navigation.test.js tests/likes-assets-browser.test.js tests/likes-previews-browser.test.js
 ```
 
 The browser regressions start temporary loopback Astro dev servers, mock PocketBase HTTP at `https://pb.example`, and block other external requests. They use `playwright-core` with an existing Chromium executable (for example `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` or `chrome-linux64/chrome`); no browser download or production backend is needed.
 
-Tests cover safe rendering, browser states and save failures, and (with the binary supplied) real anonymous/owner/non-owner API permissions, protected uploads, file cleanup, and ordering in a disposable database. They never connect to production. URL preview enrichment belongs to a later ticket; links currently use square hostname placeholders.
+Tests cover safe rendering, browser states and save failures, and (with the binary supplied) real anonymous/owner/non-owner API permissions, protected uploads, file cleanup, and ordering in a disposable database. They never connect to production. URL preview fixtures cover safe fetching, editor overrides, failures, and stale responses. Links without an image retain square hostname placeholders.
 
 Owners can upload one JPEG, PNG, GIF, WebP, or PDF per item, up to **10 MiB (10,485,760 bytes)**. The title is required; uploads need no destination URL. The optional URL credits a source, and description/commentary provide text. Images fit square previews without cropping and open an on-site viewer (Escape or Close to dismiss); PDFs open the stored file in a new tab. The editor retains the current upload unless you replace it or explicitly remove it. Selecting a file alone uploads nothing; Cancel clears the local selection. A failed save retains edits; if the connection drops, reload the board/drafts before retrying because the server may have completed the save.
 
 Assets belong directly to their PocketBase item, not to Git or the static build. Draft originals and thumbnails are protected by the item’s view rule. Files already downloaded while published cannot be made secret retroactively. Deploy the backend migration **and hooks before the frontend**; see [`pocketbase/ticket-04-rollout.md`](pocketbase/ticket-04-rollout.md) for storage, cleanup, limits, and verification.
+
+Pasting a URL in the owner editor fetches a suggested title, description, and preview image; you can also request a preview explicitly. Review or override the suggestions before saving. Fetch failures never prevent manual entry or saving, and a late response does not replace explicit edits. Preview images are held locally until Save, then copied into the same protected PocketBase storage as uploads; full pages are never archived. Fetched source attribution is stored separately from owner overrides. This requires the custom Go backend and additive migration described in [`pocketbase/ticket-05-rollout.md`](pocketbase/ticket-05-rollout.md); it is not yet deployed.
 
 Nord colors and semantic color variables live in `src/styles/global.css`. The portrait respects reduced-motion preferences.
 

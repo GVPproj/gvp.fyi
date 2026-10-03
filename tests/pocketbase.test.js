@@ -480,6 +480,33 @@ test('asset record and file HTTP contract', {
     assert.equal((await request(`backups/${key}`, { method: 'DELETE', token: adminToken })).status, 204);
     return names.filter((name) => name.startsWith('storage/') && !name.endsWith('/')).sort();
   }
+  await t.test('reviewed URL preview bytes and provenance save atomically with protected asset lifecycle', async () => {
+    const api = createLikesAPI(base);
+    const previewProvenance = { fetched: { sourceURL: 'https://example.com/source', finalURL: 'https://example.com/final',
+      fetchedAt: '2026-10-01T00:00:00Z', title: 'Fetched title', description: 'Fetched description',
+      image: { sourceURL: 'https://example.com/image.png', finalURL: 'https://example.com/image.png', name: 'preview.png', type: 'image/png' } },
+      overrides: { title: true, description: false, image: false },
+      assetSource: { sourceURL: 'https://example.com/image.png', finalURL: 'https://example.com/image.png', name: 'preview.png',
+        type: 'image/png', fetchedAt: '2026-10-01T00:00:00Z', pageURL: 'https://example.com/final' } };
+    const before = await storedFiles();
+    const item = await api.save(token, { url: 'https://example.com/source', title: 'Owner title', description: 'Fetched description',
+      published: false, asset: new File([png], 'preview.png', { type: 'image/png' }), previewProvenance });
+    assert.deepEqual(item.previewProvenance, previewProvenance);
+    assert.ok([403, 404].includes((await fetch(fileURL(item))).status));
+    const ft = await api.fileToken(token);
+    assert.deepEqual(Buffer.from(await (await fetch(fileURL(item, `?token=${ft.token}`))).arrayBuffer()), png);
+    await restart();
+    const persisted = await request(`${records}/${item.id}`, { token });
+    assert.equal(persisted.data.title, 'Owner title');
+    assert.deepEqual(persisted.data.previewProvenance, previewProvenance);
+    assert.equal((await save({ published: true }, item.id)).status, 200);
+    assert.deepEqual((await request(`${records}/${item.id}`)).data.previewProvenance, previewProvenance);
+    assert.equal((await fetch(fileURL(item, '?thumb=400x400'))).status, 200);
+    assert.equal((await save({ asset: '' }, item.id)).status, 200);
+    assert.deepEqual(await storedFiles(), before, 'Removing a copied preview removes original and thumbnail');
+    assert.equal((await request(`${records}/${item.id}`)).data.url, 'https://example.com/source');
+    await api.remove(token, item.id);
+  });
   let image;
   await t.test('standalone image upload returns one filename and is publicly downloadable', async () => {
     const result = await save(upload());
