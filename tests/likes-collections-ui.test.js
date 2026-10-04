@@ -1,16 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { likesBrowser, settle } from './helpers/likes-browser.js';
+import { likesBrowser, settle, login, logout, ownerToken } from './helpers/likes-browser.js';
 
 test('owner manages collections and optional memberships without deleting items', async t => {
   const { document, window } = await likesBrowser(t);
   let groups = [], records = [{ ...items[0] }], deletionCount = 0, fail = false;
   globalThis.fetch = async (url, options) => {
-    if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
     if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     const isGroup = url.includes('likes_collections');
     if (options.method) {
-      assert.equal(options.headers.Authorization, 'owner');
+      assert.equal(options.headers.Authorization, ownerToken);
       if (fail) return new Response(null, { status: 403 });
       if (isGroup && options.method === 'DELETE') {
         deletionCount++;
@@ -34,7 +33,7 @@ test('owner manages collections and optional memberships without deleting items'
   await settle();
   const submit = async form => { form.dispatchEvent(new window.Event('submit', { cancelable: true })); await settle(); };
   assert.equal(document.querySelector('#collection-tools').hidden, true);
-  await submit(document.querySelector('#owner-login'));
+  await login();
   assert.equal(document.querySelector('#collection-tools').hidden, false);
   const create = document.querySelector('#create-collection');
   for (const name of ['Reading', 'Research']) {
@@ -53,9 +52,14 @@ test('owner manages collections and optional memberships without deleting items'
   fail = true;
   await submit(rename);
   assert.equal(rename.querySelector('input').value, 'Renamed');
-  assert.match(document.querySelector('#collection-status').textContent, /owner/);
+  assert.equal(document.querySelector('#collection-tools').hidden, true);
+  assert.equal(document.querySelector('#session-expired').hidden, false);
+  assert.match(document.querySelector('#session-expired').textContent, /Sign in again/);
   fail = false;
-  await submit(rename);
+  await login();
+  const retryRename = document.querySelector('#collection-list form');
+  retryRename.querySelector('input').value = 'Renamed';
+  await submit(retryRename);
   assert.equal(window.location.href, shareURL);
   assert.equal(document.querySelector('#collection-filters [aria-current]').textContent, 'Renamed');
   assert.equal(document.querySelectorAll('#likes-board li').length, 1);
@@ -80,7 +84,7 @@ test('owner manages collections and optional memberships without deleting items'
   remaining.dispatchEvent(new window.Event('change'));
   await submit(save);
   assert.deepEqual(records[0].collections, []);
-  document.querySelector('#sign-out').click();
+  logout();
   assert.equal(document.querySelector('#collection-tools').hidden, true);
 });
 
@@ -88,7 +92,6 @@ test('creating a collection during the initial read replaces the superseded read
   const { document, window } = await likesBrowser(t);
   let finishInitialRead, reads = 0, groups = [];
   globalThis.fetch = async (url, options) => {
-    if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
     if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     if (url.includes('likes_collections')) {
       if (options.method === 'POST') {
@@ -104,7 +107,7 @@ test('creating a collection during the initial read replaces the superseded read
   await import('../src/scripts/likes.js?collections-loading');
   document.dispatchEvent(new window.Event('astro:page-load'));
   const submit = async form => { form.dispatchEvent(new window.Event('submit', { cancelable: true })); await settle(); };
-  await submit(document.querySelector('#owner-login'));
+  await login();
   document.querySelector('#create-collection input').value = 'New collection';
   await submit(document.querySelector('#create-collection'));
   finishInitialRead(Response.json({ items: [], totalPages: 1 }));

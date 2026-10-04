@@ -1,25 +1,40 @@
 import { createLikesAPI, renderItem, textItemTitle, webURL } from '../lib/likes.js';
+import { getSession, clearSession, RECOVERY_KEY } from '../lib/session.js';
 
 document.addEventListener('astro:page-load', () => {
   const root = document.querySelector('#likes');
   if (!root || root.dataset.bound) return;
   root.dataset.bound = 'true';
-  // Tokens and private records stay in this page's memory, never storage.
-  let token = '', editing = null, existingAsset = '', busy = false;
+  let token = getSession(), editing = null, existingAsset = '', busy = false;
   let publicItems = [], draftItems = [], boardRequest = 0, draftRequest = 0;
   let collections = [], loaded = false, memberships = new Set(), readMessage = '';
   const window = document.defaultView;
   const selectedCollection = () => new URL(window.location.href).searchParams.get('collection') ?? '';
+  let sessionGeneration = 0;
   const api = createLikesAPI(root.dataset.endpoint);
+  // Guard the authenticated API boundary; public reads and URL helpers are unaffected.
+  for (const method of ['duplicates', 'preview', 'fileToken', 'listDrafts', 'remove', 'save', 'saveCollection', 'removeCollection']) {
+    const request = api[method];
+    api[method] = async (...args) => {
+      const session = token, generation = sessionGeneration;
+      if (!session) throw new Error('Sign in with the owner account and try again.');
+      try {
+        const result = await request(...args);
+        if (generation !== sessionGeneration) throw new Error('Session changed; request result ignored.');
+        return result;
+      } catch (error) {
+        // Network and validation failures keep both authentication and the editor.
+        if (generation === sessionGeneration && session === token && [401, 403].includes(error.status)) clearSession('expired');
+        throw error;
+      }
+    };
+  }
   const board = root.querySelector('#likes-board');
   const status = root.querySelector('#read-status');
   const more = root.querySelector('#load-more');
   const retryRead = root.querySelector('#retry-read');
   let cursor = null, reading = false, retryAppend = false, hasAppendedPage = false;
-  const auth = root.querySelector('#owner-login');
   const save = root.querySelector('#save-link');
-  const logout = root.querySelector('#sign-out');
-  const authStatus = root.querySelector('#auth-status');
   const saveStatus = root.querySelector('#save-status');
   const drafts = root.querySelector('#drafts-board');
   const draftStatus = root.querySelector('#draft-status');
@@ -206,6 +221,7 @@ document.addEventListener('astro:page-load', () => {
   const viewerImage = viewer.querySelector('img');
   const viewerStatus = viewer.querySelector('[role=status]');
   let viewerRequest = 0, viewerOpener, viewerItemId;
+  const privateWindows = new Set();
   viewer.querySelector('button').addEventListener('click', () => viewer.close());
   // The close button is the viewer's only focusable control.
   viewer.addEventListener('keydown', event => {
@@ -226,7 +242,10 @@ document.addEventListener('astro:page-load', () => {
     const request = ++viewerRequest;
     // Open synchronously to retain the browser's user-gesture permission.
     const tab = pdf ? window.open('about:blank', '_blank') : null;
-    if (tab) tab.opener = null;
+    if (tab) {
+      tab.opener = null;
+      if (!item.published) privateWindows.add(tab);
+    }
     if (!pdf) {
       viewerOpener = opener;
       viewerItemId = item.id;
@@ -241,7 +260,14 @@ document.addEventListener('astro:page-load', () => {
       const url = api.assetURL(item, fileToken);
       if (pdf) {
         if (!tab) throw new Error('Allow popups to open the PDF in a new tab.');
-        tab.location.href = url;
+        // Retain a same-origin shell with no opener. Navigating the window itself
+        // cross-origin would prevent reliably closing it during local logout.
+        tab.document.title = item.title || 'Private PDF';
+        const frame = tab.document.createElement('iframe');
+        frame.title = item.title || 'Private PDF';
+        frame.src = url;
+        frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0';
+        tab.document.body.replaceChildren(frame);
       } else {
         viewerImage.onload = () => { viewerStatus.textContent = ''; };
         viewerImage.onerror = () => { viewerStatus.textContent = 'Image could not load. Close and reopen to try again.'; };
@@ -327,8 +353,9 @@ document.addEventListener('astro:page-load', () => {
     renderMemberships();
     root.querySelector('#editor-title').textContent = 'Save an item';
   }
-  function openEditor(item) {
-    if (busy) return;
+  function openEditor(item, recovering = false) {
+    if (busy || !token) return;
+    if (!recovering) clearRecovery();
     clearDuplicates();
     resetPreview(item.previewProvenance);
     preview.protectedMetadata = new Set(['title', 'description'].filter(name => item[name]));
@@ -383,10 +410,12 @@ document.addEventListener('astro:page-load', () => {
   async function mutateCollection(action, success) {
     if (busy || !token) return;
     setBusy(true);
+    const session = token, generation = sessionGeneration;
     const message = root.querySelector('#collection-status');
     message.textContent = 'Saving collection…';
     try {
       const result = await action();
+      if (session !== token) return;
       boardRequest++;
       draftRequest++;
       success(result);
@@ -396,8 +425,8 @@ document.addEventListener('astro:page-load', () => {
       renderBoard();
       message.textContent = 'Collection saved.';
       await Promise.all([load(), loadDrafts()]);
-    } catch (error) { message.textContent = `${error.message} Your collection changes were not confirmed. Retry or reload to check.`; }
-    finally { setBusy(false); }
+    } catch (error) { if (generation === sessionGeneration) message.textContent = `${error.message} Your collection changes were not confirmed. Retry or reload to check.`; }
+    finally { if (generation === sessionGeneration) setBusy(false); }
   }
   function renderCollections() {
     root.querySelector('#collection-list').replaceChildren(...collections.map(collection => {
@@ -515,10 +544,8 @@ document.addEventListener('astro:page-load', () => {
     for (const control of root.querySelectorAll('.owner-tools input, .owner-tools textarea, .owner-tools select, .owner-tools button, #likes-board button')) control.disabled = value;
   }
   function updateAuth() {
-    auth.hidden = !!token;
+    root.querySelector('.owner-tools').hidden = !token;
     save.hidden = !token;
-    logout.hidden = !token;
-    root.querySelector('#reauthenticate').hidden = !token;
     root.querySelector('#draft-tools').hidden = !token;
     root.querySelector('#collection-tools').hidden = !token;
     renderBoard();
@@ -597,6 +624,7 @@ document.addEventListener('astro:page-load', () => {
   root.querySelector('#retry-drafts').addEventListener('click', loadDrafts);
   root.querySelector('#new-item').addEventListener('click', () => {
     if (busy) return;
+    clearRecovery();
     resetEditor();
     saveStatus.textContent = '';
   });
@@ -610,51 +638,134 @@ document.addEventListener('astro:page-load', () => {
     if (busy || !token || !editing || confirmation.hidden) return;
     setBusy(true);
     saveStatus.textContent = 'Deleting…';
+    const session = token, id = editing, generation = sessionGeneration;
     try {
-      await api.remove(token, editing);
-      reconcileItem(editing);
+      await api.remove(session, id);
+      if (session !== token) return;
+      reconcileItem(id);
+      clearRecovery();
       resetEditor();
       saveStatus.textContent = 'Permanently deleted.';
       await Promise.all([load(), loadDrafts()]);
-    } catch (error) { saveStatus.textContent = `${error.message} Your fields have been kept. Deletion was not confirmed; retry or reload to check.`; }
-    finally { setBusy(false); }
+    } catch (error) { if (generation === sessionGeneration) saveStatus.textContent = `${error.message} Your fields have been kept. Deletion was not confirmed; retry or reload to check.`; }
+    finally { if (generation === sessionGeneration) setBusy(false); }
   });
-  root.querySelector('#reauthenticate').addEventListener('click', () => {
-    if (busy) return;
-    auth.hidden = false;
-    authStatus.textContent = 'Sign in again. Your item edits will be kept.';
-    auth.querySelector('[name=email]').focus();
+  let recoveryGeneration = 0, recoveryBackup = null, recoveryUpload = null;
+  const recoveryStatus = root.querySelector('#recovery-status');
+  const downloadRecovery = root.querySelector('#download-recovery');
+  downloadRecovery.addEventListener('click', async () => {
+    await recoveryWrite;
+    if (!recoveryBackup) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(recoveryBackup)], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'unsaved-like.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
-  auth.addEventListener('submit', async event => {
-    event.preventDefault();
-    if (busy) return;
-    const data = new FormData(auth);
-    setBusy(true);
-    authStatus.textContent = 'Signing in…';
+  function clearRecovery() {
+    recoveryGeneration++;
+    recoveryBackup = null;
+    recoveryUpload = null;
+    downloadRecovery.hidden = true;
+    recoveryStatus.textContent = '';
+    try { window.sessionStorage.removeItem(RECOVERY_KEY); } catch { /* Storage may be unavailable. */ }
+  }
+  let recoveryWrite = Promise.resolve();
+  function preserveEditor() {
+    if (!token) return;
+    const generation = ++recoveryGeneration;
+    const data = { id: editing, asset: existingAsset, type: typeInput.value,
+      published: !draft.checked, collections: [...memberships], ...Object.fromEntries(fields.map(name => [name, save.querySelector(`[name=${name}]`).value])),
+      removeAsset: removeAssetInput.checked, previewProvenance: previewSaveData().previewProvenance };
+    const file = previewSaveData().asset;
+    if (file && recoveryUpload?.file === file) data.upload = recoveryUpload.data;
+    recoveryBackup = data;
+    const write = () => {
+      try {
+        window.sessionStorage.setItem(RECOVERY_KEY, JSON.stringify(data));
+        recoveryStatus.textContent = '';
+        downloadRecovery.hidden = true;
+      } catch {
+        recoveryStatus.textContent = 'Browser storage is full or unavailable. Download your unsaved edit backup before leaving; automatic recovery may be incomplete. The backup contains private editor contents.';
+        downloadRecovery.hidden = false;
+      }
+    };
+    write();
+    if (file && !data.upload) {
+      recoveryWrite = file.arrayBuffer().then(buffer => {
+        // An explicit logout/discard must not be undone by this asynchronous read.
+        if (generation !== recoveryGeneration) return;
+        data.upload = { name: file.name, type: file.type, bytes: Array.from(new Uint8Array(buffer)) };
+        recoveryUpload = { file, data: data.upload };
+        write();
+      }).catch(() => {});
+    }
+  }
+  function restoreEditor() {
+    if (!token) return;
     try {
-      const result = await api.login(data.get('email'), data.get('password'));
-      if (result.record?.id !== 'likesowner00001' || result.record?.collectionName !== 'likes_owners') throw new Error('Sign in with the owner account and try again.');
-      token = result.token;
-      auth.reset();
-      authStatus.textContent = 'Signed in.';
-      updateAuth();
-      await loadDrafts();
-    } catch (error) { authStatus.textContent = error.message; }
-    finally { setBusy(false); }
+      const data = JSON.parse(window.sessionStorage.getItem(RECOVERY_KEY) || 'null');
+      if (!data) return;
+      openEditor(data, true);
+      deleteButton.hidden = !editing;
+      removeAssetInput.checked = !!data.removeAsset;
+      if (data.upload) {
+        const file = new File([new Uint8Array(data.upload.bytes)], data.upload.name, { type: data.upload.type });
+        preview.selected = { file, source: data.previewProvenance?.assetSource ?? null };
+        recoveryUpload = { file, data: data.upload };
+      }
+      saveStatus.textContent = 'Unsaved edit restored. Review it before saving.';
+    } catch { clearRecovery(); }
+  }
+  root.querySelector('#session-expired a').addEventListener('click', async event => {
+    event.preventDefault();
+    await recoveryWrite;
+    window.location.assign('/login');
   });
-  logout.addEventListener('click', () => {
-    if (busy) return;
-    token = '';
-    if (viewer.open) viewer.close();
-    if (reader.open) reader.close();
-    draftRequest++;
-    draftItems = [];
-    drafts.replaceChildren();
-    draftStatus.textContent = '';
-    resetEditor();
-    saveStatus.textContent = '';
-    authStatus.textContent = 'Signed out.';
+  window.addEventListener('pagehide', () => {
+    for (const tab of privateWindows) tab.close();
+    privateWindows.clear();
+    try { if (root.isConnected && token && window.sessionStorage.getItem(RECOVERY_KEY)) preserveEditor(); } catch { /* Storage may be unavailable. */ }
+  });
+  document.addEventListener('owner-session-expiring', () => { if (root.isConnected) preserveEditor(); });
+  document.addEventListener('owner-session-change', event => {
+    if (!root.isConnected) return;
+    const next = getSession();
+    if (event.detail?.reason === 'reconcile' && next === token) {
+      if (!next) {
+        try {
+          if (!window.sessionStorage.getItem(RECOVERY_KEY)) {
+            clearRecovery();
+            root.querySelector('#session-expired').hidden = true;
+          }
+        } catch { clearRecovery(); root.querySelector('#session-expired').hidden = true; }
+      }
+      return;
+    }
+    sessionGeneration++;
+    if (event.detail?.reason === 'logout' || (event.detail?.reason === 'reconcile' && !next)) clearRecovery();
+    token = next;
+    if (!token) {
+      if (viewer.open) viewer.close();
+      if (reader.open) reader.close();
+      for (const tab of privateWindows) tab.close();
+      privateWindows.clear();
+      viewerRequest++;
+      draftRequest++;
+      draftItems = [];
+      drafts.replaceChildren();
+      draftStatus.textContent = '';
+      resetEditor();
+      setBusy(false);
+      saveStatus.textContent = '';
+      root.querySelector('#create-collection').reset();
+      root.querySelector('#collection-status').textContent = '';
+      renderCollections();
+    }
+    root.querySelector('#session-expired').hidden = event.detail?.reason !== 'expired';
     updateAuth();
+    if (token) { restoreEditor(); loadDrafts(); }
   });
   save.addEventListener('submit', event => {
     event.preventDefault();
@@ -662,6 +773,7 @@ document.addEventListener('astro:page-load', () => {
   });
   async function submitItem(allowDuplicate) {
     if (busy || !token) return;
+    const session = token, generation = sessionGeneration;
     const published = !draft.checked;
     const data = { ...Object.fromEntries(new FormData(save)), published, collections: [...memberships],
       ...previewSaveData(), existingAsset };
@@ -672,21 +784,26 @@ document.addEventListener('astro:page-load', () => {
     try {
       if (!editing && data.url.trim() && !allowDuplicate) {
         clearDuplicates();
-        const result = await api.duplicates(token, data.url);
+        const result = await api.duplicates(session, data.url);
+        if (session !== token) return;
         if (result.items.length) {
           showDuplicates(result.items, data.url);
           saveStatus.textContent = 'Already in Likes. Open an existing item or choose Save another.';
           return;
         }
       }
-      const item = await api.save(token, data, editing);
+      const item = await api.save(session, data, editing);
+      if (session !== token) return;
       reconcileItem(item.id, item);
+      clearRecovery();
       resetEditor();
       saveStatus.textContent = published ? 'Published.' : 'Saved as draft.';
       await Promise.all([load(), loadDrafts()]);
-    } catch (error) { saveStatus.textContent = `${error.message} Your fields have been kept. Save was not confirmed; reload the board and drafts before retrying to check for a completed save.`; }
-    finally { setBusy(false); }
+    } catch (error) { if (generation === sessionGeneration) saveStatus.textContent = `${error.message} Your fields have been kept. Save was not confirmed; reload the board and drafts before retrying to check for a completed save.`; }
+    finally { if (generation === sessionGeneration) setBusy(false); }
   }
   updateAuth();
+  restoreEditor();
   load();
+  loadDrafts();
 });

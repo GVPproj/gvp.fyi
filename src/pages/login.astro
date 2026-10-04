@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
+---
+
+<Layout title="Owner sign in" clientRouter={false}>
+  <section id="login-page" data-endpoint={endpoint} aria-labelledby="login-heading">
+    <h1 id="login-heading">Owner sign in</h1>
+    <form id="owner-login" aria-describedby="auth-status" method="post">
+      <label>Email <input name="email" type="email" autocomplete="username" required /></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
+      <button type="submit">Sign in</button>
+    </form>
+    <p id="auth-status" role="alert" aria-atomic="true" tabindex="-1"></p>
+    <noscript><p>JavaScript is required to sign in.</p></noscript>
+  </section>
+</Layout>

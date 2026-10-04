@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { likesBrowser, settle } from './helpers/likes-browser.js';
+import { likesBrowser, settle, login, logout, ownerToken } from './helpers/likes-browser.js';
 
 async function setup(t) {
   const { document, window } = await likesBrowser(t);
@@ -10,9 +10,8 @@ async function setup(t) {
   ], writes: [], lookup: null };
   globalThis.fetch = async (value, options = {}) => {
     const url = new URL(value);
-    if (url.pathname.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
     if (url.pathname.endsWith('/duplicates')) {
-      assert.equal(options.headers.Authorization, 'owner');
+      assert.equal(options.headers.Authorization, ownerToken);
       if (state.lookup) return state.lookup();
       return Response.json({ items: state.items.filter(item => item.url === JSON.parse(options.body).url) });
     }
@@ -29,7 +28,7 @@ async function setup(t) {
   document.dispatchEvent(new window.Event('astro:page-load'));
   const find = selector => document.querySelector(selector);
   const submit = async selector => { find(selector).dispatchEvent(new window.Event('submit', { cancelable: true })); await settle(); };
-  await submit('#owner-login');
+  await login();
   find('[name=url]').value = 'https://example.com/';
   find('[name=title]').value = 'Unsaved new title';
   return { state, find, submit, window };
@@ -49,7 +48,7 @@ test('pasting a source URL checks duplicates for text items and ignores stale pr
   let resolve;
   state.lookup = () => new Promise(done => { resolve = done; });
   paste();
-  find('#sign-out').click();
+  logout();
   resolve(Response.json({ items: state.items }));
   await settle();
   assert.equal(find('#duplicate-review').hidden, true);
@@ -61,9 +60,12 @@ test('failed duplicate lookup keeps fields and blocks creation until a successfu
   state.lookup = () => new Response(null, { status: 403 });
   await submit('#save-link');
   assert.equal(state.writes.length, 0);
-  assert.equal(find('[name=title]').value, 'Unsaved new title');
-  assert.match(find('#save-status').textContent, /Sign in.*fields have been kept/);
+  assert.equal(find('#save-link').hidden, true);
+  assert.equal(find('#session-expired').hidden, false);
+  assert.match(find('#session-expired').textContent, /Sign in again.*recover your unsaved edit/);
   state.lookup = null;
+  await login();
+  assert.equal(find('[name=title]').value, 'Unsaved new title');
   find('[name=url]').value = 'https://different.example/';
   await submit('#save-link');
   assert.equal(state.writes.length, 1);

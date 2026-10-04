@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { likesBrowser, settle } from './helpers/likes-browser.js';
+import { likesBrowser, settle, login, logout, ownerToken } from './helpers/likes-browser.js';
 
 const metadata = (extra = {}) => ({ sourceURL: 'https://example.com/', finalURL: 'https://example.com/article',
   fetchedAt: '2026-01-01T00:00:00Z', title: 'Fetched title', description: 'Fetched description', image: null, warning: '', ...extra });
@@ -17,10 +17,9 @@ async function editor(t, items = []) {
   };
   const state = { items, previews: [], writes: [], failSave: false };
   globalThis.fetch = async (url, options = {}) => {
-    if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
     if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     if (url.includes('preview')) {
-      assert.equal(options.headers.Authorization, 'owner');
+      assert.equal(options.headers.Authorization, ownerToken);
       return new Promise(resolve => state.previews.push({ body: JSON.parse(options.body), resolve }));
     }
     if (options.method === 'POST' || options.method === 'PATCH') {
@@ -39,7 +38,7 @@ async function editor(t, items = []) {
   const find = selector => document.querySelector(selector);
   const submit = async selector => { find(selector).dispatchEvent(new window.Event('submit', { cancelable: true })); await settle(); };
   const input = (name, value) => { const field = find(`[name=${name}]`); field.value = value; field.dispatchEvent(new window.Event('input')); };
-  await submit('#owner-login');
+  await login();
   return { state, find, submit, input, window };
 }
 
@@ -71,13 +70,13 @@ test('pasting a URL fetches automatically and outdated completions cannot change
   await settle();
   assert.equal(find('[name=title]').value, '');
   for (const action of ['switch', 'cancel', 'signout', 'save']) {
-    if (action === 'save') await submit('#owner-login');
+    if (action === 'save') await login();
     input('url', 'https://example.com/');
     find('#fetch-preview').click();
     const pending = state.previews.at(-1);
     if (action === 'switch') find('#likes-board button').click();
     if (action === 'cancel') find('#new-item').click();
-    if (action === 'signout') find('#sign-out').click();
+    if (action === 'signout') logout();
     if (action === 'save') {
       input('title', 'Manual save');
       state.failSave = true;
@@ -224,8 +223,8 @@ test('switching items, cancel and sign out clear adopted files and their attribu
     if (action === 'switch') find('#likes-board button').click();
     if (action === 'cancel') find('#new-item').click();
     if (action === 'signout') {
-      find('#sign-out').click();
-      await submit('#owner-login');
+      logout();
+      await login();
     }
     input('title', 'Manual item');
     await submit('#save-link');

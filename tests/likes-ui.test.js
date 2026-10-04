@@ -1,12 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { likesBrowser, settle } from './helpers/likes-browser.js';
+import { likesBrowser, settle, login, logout } from './helpers/likes-browser.js';
 
 test('board states, owner save, failed-save retention, and sign out', async t => {
   const { document, window } = await likesBrowser(t);
   let items = [], failRead = false, failSave = false;
   globalThis.fetch = async (url, options) => {
-    if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
     if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     if (options.method === 'POST') {
       if (failSave) return new Response('', { status: 403 });
@@ -28,8 +27,7 @@ test('board states, owner save, failed-save retention, and sign out', async t =>
   await settle();
   assert.match(document.querySelector('#read-status').textContent, /connection.*Retry/);
   failRead = false;
-  document.querySelector('#owner-login').dispatchEvent(new window.Event('submit', { cancelable: true }));
-  await settle();
+  await login();
   const save = document.querySelector('#save-link');
   assert.equal(save.hidden, false);
   save.querySelector('[name=url]').value = 'https://example.com';
@@ -38,14 +36,17 @@ test('board states, owner save, failed-save retention, and sign out', async t =>
   failSave = true;
   save.dispatchEvent(new window.Event('submit', { cancelable: true }));
   await settle();
-  assert.equal(save.querySelector('[name=title]').value, 'My like');
-  assert.match(document.querySelector('#save-status').textContent, /fields have been kept/);
+  assert.equal(save.hidden, true, 'Rejected authentication hides private editor contents');
+  assert.equal(document.querySelector('#session-expired').hidden, false);
+  assert.match(document.querySelector('#session-expired').textContent, /recover your unsaved edit/);
   failSave = false;
+  await login();
+  assert.equal(save.querySelector('[name=title]').value, 'My like');
   save.dispatchEvent(new window.Event('submit', { cancelable: true }));
   await settle();
   assert.equal(document.querySelector('#likes-board h2').textContent, 'My like');
   assert.equal(save.querySelector('[name=title]').value, '');
-  document.querySelector('#sign-out').click();
+  logout();
   assert.equal(save.hidden, true);
-  assert.equal(document.querySelector('#owner-login').hidden, false);
+  assert.equal(document.querySelector('#owner-login'), null);
 });

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 // Agreed seams: native editor interactions and the external HTTP contract.
-const ownerToken = 'preview-owner-token';
+import { ownerToken, login, logout } from './helpers/owner-session.js';
 const sourceURL = 'https://source.example/article';
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==', 'base64');
 const metadata = () => ({
@@ -75,11 +75,7 @@ async function setup(t, result = metadata()) {
   });
   t.after(() => assert.deepEqual(state.unexpected, [], 'Every external request must use a controlled HTTP fixture'));
   await page.goto(`${base}/likes`);
-  await page.locator('.owner-tools summary').click();
-  await page.locator('#owner-login [name=email]').fill('owner@example.test');
-  await page.locator('#owner-login [name=password]').fill('owner-password');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.locator('#save-link').waitFor({ state: 'visible' });
+  await login(page);
   async function paste() {
     await page.evaluate(text => navigator.clipboard.writeText(text), sourceURL);
     await page.locator('#save-link [name=url]').focus();
@@ -101,7 +97,7 @@ async function setup(t, result = metadata()) {
 
 async function save(page) {
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('#save-status').textContent === 'Published.');
+  await page.waitForFunction(() => document.querySelector('#save-status').textContent === 'Published.' && !document.querySelector('#save-link [name=title]').disabled);
 }
 
 test('native URL paste fetches automatically; owner edits survive loading and preview image becomes a durable multipart asset', browserOptions, async t => {
@@ -156,7 +152,8 @@ for (const action of ['cancel', 'sign out']) {
   test(`${action} ignores a late preview response, including image bytes and provenance`, browserOptions, async t => {
     const { page, state, paste, release } = await setup(t);
     await paste();
-    await page.getByRole('button', { name: action === 'cancel' ? 'Cancel / new item' : 'Sign out', exact: true }).click();
+    if (action === 'cancel') await page.getByRole('button', { name: 'Cancel / new item', exact: true }).click();
+    else await logout(page);
     await release();
     for (const name of ['url', 'title', 'description']) {
       assert.equal(await page.locator(`#save-link [name=${name}]`).inputValue(), '', `${name} stays cleared`);
@@ -167,10 +164,7 @@ for (const action of ['cancel', 'sign out']) {
     assert.deepEqual(state.writes, [], 'Late completion cannot save anything');
     if (action === 'sign out') {
       assert.equal(await page.locator('#save-link').isVisible(), false);
-      await page.locator('#owner-login [name=email]').fill('owner@example.test');
-      await page.locator('#owner-login [name=password]').fill('owner-password');
-      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-      await page.locator('#save-link').waitFor({ state: 'visible' });
+      await login(page);
     }
     await page.locator('#save-link [name=url]').fill('https://manual.example/new');
     await page.locator('#save-link [name=title]').fill('New manual item');

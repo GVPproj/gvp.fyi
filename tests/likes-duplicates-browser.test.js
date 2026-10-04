@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ownerToken, login, logout } from './helpers/owner-session.js';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 const url = 'https://example.com/shared';
@@ -17,12 +18,12 @@ async function setup(t) {
     if (target.origin === base) return route.continue();
     assert.equal(target.origin, 'https://pb.example', 'No unexpected external requests');
     if (target.pathname.includes('auth-with-password')) return route.fulfill({ json: {
-      token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' },
+      token: ownerToken, record: { id: 'likesowner00001', collectionName: 'likes_owners' },
     } });
     if (target.pathname === '/api/likes/preview') return route.fulfill({ json: { url: request.postDataJSON().url, title: '', description: '' } });
     if (target.pathname === '/api/likes/duplicates') {
       assert.equal(request.method(), 'POST');
-      assert.equal(request.headers().authorization, 'owner');
+      assert.equal(request.headers().authorization, ownerToken);
       const data = request.postDataJSON();
       state.lookups.push(data);
       return route.fulfill({ status: state.lookupStatus, json: { items: state.items.filter(item => item.url === data.url) } });
@@ -44,11 +45,7 @@ async function setup(t) {
     return route.fulfill({ json: item });
   });
   await page.goto(`${base}/likes`);
-  await page.locator('.owner-tools summary').click();
-  await page.locator('[name=email]').fill('owner@example.test');
-  await page.locator('[name=password]').fill('owner-password');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.locator('#save-link').waitFor();
+  await login(page);
   return { page, state };
 }
 
@@ -84,7 +81,7 @@ test('URL edits and sign-out remove private duplicate results', browserOptions, 
   assert.equal(await page.locator('#duplicate-review').isVisible(), false);
   assert.equal(await page.locator('#duplicate-items').textContent(), '');
   await review(page);
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await logout(page);
   assert.equal(await page.locator('#duplicate-review').isVisible(), false);
   assert.equal(await page.locator('#duplicate-items').textContent(), '');
   assert.equal(await page.locator('[name=commentary]').inputValue(), '');
@@ -104,9 +101,18 @@ for (const status of [401, 403, 500]) {
     await page.getByLabel('Research', { exact: true }).check();
     await page.locator('[name=draft]').check();
     await page.getByRole('button', { name: 'Save item', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#save-status').textContent.includes('fields have been kept'));
+    if (status === 401 || status === 403) await page.locator('#session-expired').waitFor();
+    else await page.waitForFunction(() => document.querySelector('#save-status').textContent.includes('fields have been kept'));
     assert.deepEqual(state.lookups.at(-1), { url });
     assert.deepEqual(state.writes, []);
+    if (status === 401 || status === 403) {
+      assert.equal(await page.locator('#save-link').isVisible(), false);
+      await page.locator('#session-expired a[href="/login"]').waitFor();
+      await login(page);
+      assert.deepEqual(state.writes, [], 'Reauthentication restores fields without saving');
+    } else {
+      assert.equal(await page.locator('#save-link').isVisible(), true, 'Server errors must not log out the owner');
+    }
     for (const [name, value] of Object.entries({ url, title: 'Keep title', body: 'Keep my quotation', attribution: 'Keep attribution', commentary: 'Keep commentary' })) {
       assert.equal(await page.locator(`[name=${name}]`).inputValue(), value);
     }

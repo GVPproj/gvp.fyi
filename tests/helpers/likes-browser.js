@@ -1,5 +1,10 @@
 import { parseHTML } from 'linkedom';
 import { readFile } from 'node:fs/promises';
+import { establishSession, clearSession } from '../../src/lib/session.js';
+import { ownerAuth } from './owner-session.js';
+export { ownerToken } from './owner-session.js';
+export const login = async () => { establishSession(ownerAuth); await settle(); };
+export const logout = () => clearSession();
 
 export const settle = () => new Promise(resolve => setTimeout(resolve, 15));
 
@@ -9,7 +14,17 @@ export async function likesBrowser(t, initialURL = 'https://site.example/likes')
   const { document, window } = parseHTML(`<html><body>${markup}</body></html>`);
   document.querySelector('#likes').dataset.endpoint = 'https://pb.example';
   const original = { document: globalThis.document, fetch: globalThis.fetch, FormData: globalThis.FormData,
-    location: globalThis.location, history: globalThis.history };
+    location: globalThis.location, history: globalThis.history, window: globalThis.window,
+    CustomEvent: globalThis.CustomEvent, sessionStorage: globalThis.sessionStorage };
+  const stored = new Map();
+  window.sessionStorage = {
+    getItem: key => stored.get(String(key)) ?? null,
+    setItem: (key, value) => stored.set(String(key), String(value)),
+    removeItem: key => stored.delete(String(key)),
+    clear: () => stored.clear(),
+    key: index => [...stored.keys()][index] ?? null,
+    get length() { return stored.size; },
+  };
   const entries = [initialURL];
   let index = 0;
   window.location = new URL(initialURL);
@@ -21,8 +36,8 @@ export async function likesBrowser(t, initialURL = 'https://site.example/likes')
     back() { if (index > 0) { window.location = new URL(entries[--index]); window.dispatchEvent(new window.Event('popstate')); } },
     forward() { if (index + 1 < entries.length) { window.location = new URL(entries[++index]); window.dispatchEvent(new window.Event('popstate')); } },
   };
-  t.after(() => Object.assign(globalThis, original));
-  globalThis.document = document;
+  t.after(() => { clearSession(); Object.assign(globalThis, original); });
+  Object.assign(globalThis, { document, window, CustomEvent: window.CustomEvent, sessionStorage: window.sessionStorage });
   // Linkedom does not supply browser FormData or form.reset(). Honor disabled
   // controls and unchecked checkboxes so mutation tests exercise native semantics.
   globalThis.FormData = class {

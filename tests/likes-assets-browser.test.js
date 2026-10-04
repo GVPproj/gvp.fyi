@@ -3,7 +3,7 @@ import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 // Public seams only: native browser controls and external PocketBase HTTP.
-const ownerToken = 'current-owner-token';
+import { ownerToken, login, logout } from './helpers/owner-session.js';
 const image = { name: 'landscape.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==', 'base64') };
 const record = (overrides = {}) => ({ id: 'asset0000000001', collectionName: 'likes_items', title: 'Landscape', url: '', description: '', commentary: '', collections: [], published: true, asset: 'landscape_abc.png', ...overrides });
 
@@ -62,13 +62,23 @@ async function setup(t, initial = []) {
   return { page, state };
 }
 
-async function login(page) {
-  await page.locator('.owner-tools summary').click();
-  await page.locator('#owner-login [name=email]').fill('owner@example.test');
-  await page.locator('#owner-login [name=password]').fill('owner-password');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.locator('#save-link').waitFor({ state: 'visible' });
+for (const action of ['logout', 'navigation']) {
+  test(`${action} closes an application-opened private PDF viewer`, browserOptions, async t => {
+    const { page } = await setup(t, [record({ published: false, asset: 'private.pdf' })]);
+    await login(page);
+    const opened = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'Open PDF: Landscape', exact: true }).click();
+    const viewer = await opened;
+    await viewer.locator('iframe[src^="https://pb.example/api/files/"]').waitFor();
+    assert.equal(await viewer.evaluate(() => window.opener), null);
+    const closed = viewer.waitForEvent('close');
+    if (action === 'logout') await logout(page);
+    else await page.goto(new URL('/', page.url()).href);
+    await closed;
+    assert.equal(viewer.isClosed(), true);
+  });
 }
+
 async function saved(page) {
   await page.waitForFunction(() => /^(Published\.|Saved as draft\.)$/.test(document.querySelector('#save-status').textContent));
 }

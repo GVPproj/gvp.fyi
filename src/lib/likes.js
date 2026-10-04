@@ -14,7 +14,11 @@ export function createLikesAPI(base, fetcher = fetch) {
     try { response = await fetcher(`${origin}/api/${path}`, options); }
     catch { throw new Error('Cannot reach Likes. Check your connection and try again.'); }
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) throw new Error('Sign in with the owner account and try again.');
+      if (response.status === 401 || response.status === 403) {
+        const error = new Error('Sign in with the owner account and try again.');
+        error.status = response.status;
+        throw error;
+      }
       if (path === 'likes/preview') {
         if (response.status === 429) throw new Error('Too many preview requests. Wait a minute or save manually.');
         throw new Error('Preview unavailable for this URL. Enter metadata manually or try again.');
@@ -98,6 +102,9 @@ export function createLikesAPI(base, fetcher = fetch) {
       return request(`collections/likes_items/records/${encodeURIComponent(id)}`, {
         method: 'DELETE', headers: { Authorization: token },
       });
+    },
+    refresh(token) {
+      return request('collections/likes_owners/auth-refresh', { method: 'POST', headers: { Authorization: token } });
     },
     login(email, password) {
       return request('collections/likes_owners/auth-with-password', {

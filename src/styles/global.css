@@ -94,3 +94,52 @@ h1 {
   font-size: 28px;
 }
 
+#owner-session[hidden] { display: none; }
+
+#owner-session {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 20;
+}
+
+#owner-session button,
+#login-page button,
+#login-page input {
+  font: inherit;
+  color: var(--color-foreground);
+  background: var(--nord1);
+  border: 1px solid var(--nord3);
+  border-radius: 0.25rem;
+  padding: 0.4rem 0.7rem;
+}
+
+#owner-session button { cursor: pointer; }
+#owner-session > button { font-size: 12px; }
+
+#owner-session-menu {
+  position: fixed;
+  inset: auto max(0.75rem, env(safe-area-inset-right)) calc(3.5rem + env(safe-area-inset-bottom)) auto;
+  margin: 0;
+  padding: 0.5rem;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  border: 1px solid var(--nord3);
+  border-radius: 0.25rem;
+}
+
+#owner-session button:focus-visible,
+#login-page :focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+#login-page { width: min(100%, 24rem); }
+#owner-login { display: grid; gap: 1rem; margin-block: 1.5rem; }
+#owner-login label { display: grid; gap: 0.25rem; text-align: left; }
+#login-page input { width: 100%; min-width: 0; }
+#auth-status { overflow-wrap: anywhere; }
+
+/* Leave space for the fixed session tab without covering the last page control. */
+body:has(#owner-session:not([hidden])) main { padding-bottom: 4.5rem; }
+

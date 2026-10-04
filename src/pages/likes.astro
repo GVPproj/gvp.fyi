@@ -6,16 +6,13 @@ const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
 <Layout title="Likes" wide clientRouter={false}>
   <section id="likes" data-endpoint={endpoint}>
     <h1>Likes</h1>
-    <details class="owner-tools">
-      <summary>Owner sign in / edit Likes</summary>
-      <form id="owner-login">
-        <label>Email <input name="email" type="email" autocomplete="username" required /></label>
-        <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
-        <button>Sign in</button>
-      </form>
-      <p id="auth-status" role="status"></p>
-      <button id="sign-out" type="button" hidden>Sign out</button>
-      <button id="reauthenticate" type="button" hidden>Sign in again (keep edits)</button>
+    <div id="session-expired" role="alert" hidden>
+      <p>Your session expired. <a href="/login">Sign in again</a> to recover your unsaved edit.</p>
+      <p id="recovery-status"></p>
+      <button id="download-recovery" type="button" hidden>Download unsaved edit backup</button>
+    </div>
+    <details class="owner-tools" hidden>
+      <summary>Edit Likes</summary>
       <form id="save-link" hidden>
         <h2 id="editor-title">Save an item</h2>
         <label>Item type <select name="type"><option value="">Link / image / PDF</option><option value="quote">Quote</option><option value="note">Personal note</option></select></label>

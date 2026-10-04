@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ownerToken, login } from './helpers/owner-session.js';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 async function setup(t, initial = []) {
@@ -18,7 +19,7 @@ async function setup(t, initial = []) {
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname.includes('auth-with-password')) return route.fulfill({ json: {
-      token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' },
+      token: ownerToken, record: { id: 'likesowner00001', collectionName: 'likes_owners' },
     } });
     if (url.pathname === '/api/likes/duplicates' && request.method() === 'POST') return route.fulfill({ json: { items: [] } });
     if (url.pathname.includes('likes_collections')) return route.fulfill({ json: { items: [], totalPages: 1 } });
@@ -41,13 +42,6 @@ async function setup(t, initial = []) {
   await page.goto(`${base}/likes`);
   await page.locator('#read-status').filter({ hasText: 'Loading' }).waitFor({ state: 'hidden' });
   return { page, state };
-}
-async function login(page) {
-  await page.locator('.owner-tools summary').click();
-  await page.locator('[name=email]').fill('owner@example.test');
-  await page.locator('[name=password]').fill('owner-password');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await page.locator('#save-link').waitFor();
 }
 async function save(page) {
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
@@ -85,11 +79,13 @@ for (const type of ['quote', 'note']) {
     assert.equal(layout.overflowX, false, 'Long unbroken text wraps on mobile');
     await page.keyboard.press('Escape');
     await viewer.waitFor({ state: 'hidden' });
+    await page.waitForFunction(() => document.querySelector('#text-reader .text-body').textContent === '');
     assert.equal(await trigger.evaluate(node => node === document.activeElement), true);
     await trigger.click();
     await close.click();
     await viewer.waitFor({ state: 'hidden' });
     assert.equal(await trigger.evaluate(node => node === document.activeElement), true);
+    await page.waitForFunction(() => document.querySelector('#text-reader .text-body').textContent === '');
     assert.equal(await page.locator('#text-reader .text-body').textContent(), '', 'Closing releases reader content');
   });
 }
@@ -169,7 +165,10 @@ test('reader returns focus to a refreshed card and sign-out clears private text'
   await login(page);
   await page.locator('#drafts-board .text-card').click();
   assert.equal(await page.locator('#text-reader .text-body').textContent(), 'Private words');
-  await page.locator('#sign-out').dispatchEvent('click');
+  // A modal reader makes page chrome inert; dispatch logout without closing it
+  // so the session transition itself must erase the private viewer.
+  await page.getByRole('button', { name: 'Logged In', exact: true }).dispatchEvent('click');
+  await page.getByRole('button', { name: 'Log out', exact: true }).dispatchEvent('click');
   await page.waitForFunction(() => !document.querySelector('#text-reader').open && !document.querySelector('#text-reader .text-body').textContent);
   assert.equal(await page.locator('#drafts-board li').count(), 0);
   assert.equal(await page.locator('[name=body]').inputValue(), '');

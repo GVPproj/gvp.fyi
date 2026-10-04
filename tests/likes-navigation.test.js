@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
+import { ownerResult, login } from './helpers/owner-session.js';
 
 test('Likes named filters survive refresh, Blog navigation, and browser Back/Forward', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
@@ -16,6 +17,8 @@ test('Likes named filters survive refresh, Blog navigation, and browser Back/For
   await context.route('**/*', async (route) => {
     const url = new URL(route.request().url());
     if (url.origin === base) return route.continue();
+    if (url.origin === 'https://pb.example' && url.pathname.endsWith('/auth-with-password')) return route.fulfill({ json: ownerResult() });
+    if (url.searchParams.get('filter') === 'published=false') return route.fulfill({ json: { items: [], totalPages: 1 } });
     if (url.origin === 'https://pb.example' && route.request().method() === 'GET') {
       const records = url.pathname === '/api/collections/likes_collections/records' ? groups
         : url.pathname === '/api/collections/likes_items/records' ? items : null;
@@ -41,15 +44,16 @@ test('Likes named filters survive refresh, Blog navigation, and browser Back/For
   }
 
   await page.goto(namedURL(groups[0].id));
+  await login(page);
   await expectFilter('Music', ['Music find']);
   await page.reload();
   await expectFilter('Music', ['Music find']);
   // Unsaved input must survive local filter changes (no document reload).
-  await page.locator('.owner-tools summary').click();
-  await page.locator('#owner-login [name=email]').fill('owner@example.test');
+  await page.locator('.owner-tools').evaluate(element => { element.open = true; });
+  await page.locator('#save-link [name=title]').fill('Unsaved collection item');
   await page.locator('#collection-filters').getByRole('link', { name: 'Books', exact: true }).click();
   await expectFilter('Books', ['Book find']);
-  assert.equal(await page.locator('#owner-login [name=email]').inputValue(), 'owner@example.test');
+  assert.equal(await page.locator('#save-link [name=title]').inputValue(), 'Unsaved collection item');
   await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Blog', exact: true }).click();
   await expectBlog();
   await page.goBack();

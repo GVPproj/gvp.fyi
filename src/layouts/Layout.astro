@@ -29,6 +29,12 @@ const { title, wide = false, clientRouter = true } = Astro.props;
     <main class:list={{ 'likes-layout': wide }} aria-label={title ?? 'Graham Van Pelt'}>
       <slot />
     </main>
+    <aside id="owner-session" aria-label="Owner session" hidden>
+      <button type="button" popovertarget="owner-session-menu">Logged In</button>
+      <div id="owner-session-menu" popover>
+        <button id="owner-logout" type="button">Log out</button>
+      </div>
+    </aside>
   </body>
 </html>
 
@@ -37,4 +43,5 @@ const { title, wide = false, clientRouter = true } = Astro.props;
   // Keep Astro's initial astro:page-load event for Likes and shared components;
   // the router still requires page metadata to enable client-side navigation.
   import 'astro:transitions/client';
+  import '../scripts/session.js';
 </script>

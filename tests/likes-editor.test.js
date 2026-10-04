@@ -1,12 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { likesBrowser, settle } from './helpers/likes-browser.js';
+import { likesBrowser, settle, login, logout, ownerToken } from './helpers/likes-browser.js';
 
 async function editor(t) {
   const { document, window } = await likesBrowser(t);
   const state = { items: [], failSave: false, failDelete: false, failRead: false, deletes: 0, saveErrorStatus: 500 };
   globalThis.fetch = async (url, options = {}) => {
-    if (url.includes('auth-with-password')) return Response.json({ token: 'owner', record: { id: 'likesowner00001', collectionName: 'likes_owners' } });
     if (new URL(url).pathname === '/api/likes/duplicates' && options.method === 'POST') return Response.json({ items: [] });
     const id = new URL(url).pathname.split('/').at(-1);
     if (options.method === 'DELETE') {
@@ -24,14 +23,14 @@ async function editor(t) {
     if (state.failRead) throw new Error('offline');
     if (url.includes('/likes_collections/')) return Response.json({ items: [], totalPages: 1 });
     const draft = new URL(url).searchParams.get('filter') === 'published=false';
-    assert.ok(!draft || options.headers.Authorization === 'owner');
+    assert.ok(!draft || options.headers.Authorization === ownerToken);
     return Response.json({ items: state.items.filter(item => item.published !== draft), totalPages: 1 });
   };
   await import(`../src/scripts/likes.js?editor=${Date.now()}`);
   document.dispatchEvent(new window.Event('astro:page-load'));
   const find = selector => document.querySelector(selector);
   const submit = async selector => { find(selector).dispatchEvent(new window.Event('submit', { cancelable: true })); await settle(); };
-  await submit('#owner-login');
+  await login();
   return { state, find, submit };
 }
 
@@ -45,10 +44,11 @@ test('signing in again after authentication failure retains unsaved edits and se
   state.failSave = true;
   state.saveErrorStatus = 403;
   await submit('#save-link');
-  assert.match(find('#save-status').textContent, /Sign in.*fields have been kept/);
-  find('#reauthenticate').click();
-  assert.equal(find('#owner-login').hidden, false);
-  await submit('#owner-login');
+  assert.match(find('#session-expired').textContent, /Sign in again.*recover your unsaved edit/);
+  assert.equal(find('#owner-login'), null);
+  assert.equal(find('#session-expired').hidden, false);
+  assert.equal(find('#session-expired a').getAttribute('href'), '/login');
+  await login();
   assert.equal(find('[name=title]').value, 'Retained edit');
   state.failSave = false;
   await submit('#save-link');
@@ -141,7 +141,7 @@ test('owner saves a private draft, edits it, publishes, and returns it to draft'
   await submit('#save-link');
   assert.equal(find('#likes-board li'), null);
   assert.equal(find('#drafts-board h2').textContent, 'Published find');
-  find('#sign-out').click();
+  logout();
   assert.equal(find('#drafts-board li'), null);
   assert.equal(find('#draft-tools').hidden, true);
 });
