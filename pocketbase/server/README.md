@@ -1,6 +1,8 @@
 # Likes URL preview extension
 
-Custom PocketBase executable pinned to **v0.40.4**; requires **Go 1.27+** (Go toolchain auto-download works). Registers JS hooks, JS migrations, the migration CLI, static files, `POST /api/likes/preview`, and the owner-only `POST /api/likes/duplicates` ([comparison policy and rollout](../ticket-07-rollout.md)). Existing hooks/migrations are **not embedded**: ship the full existing backend directories, including hooks for other consumers. Upstream self-update is deliberately absent because it would replace this extension.
+Custom PocketBase executable pinned to **v0.40.4**; requires **Go 1.27+** (Go toolchain auto-download works). Registers JS hooks, JS migrations, the migration CLI, static files, `POST /api/likes/preview`, and the owner-only `POST /api/likes/duplicates` ([comparison policy](../contracts.md#repeated-url-lookup)). Existing hooks/migrations are **not embedded**: ship the full existing backend directories, including hooks for other consumers. Upstream self-update is deliberately absent because it would replace this extension.
+
+Backend additions 02–07 remain pending deployment per the recorded status; this document describes the local implementation, not verified live routes. See [deployment coordination and recovery](../README.md) for required migrations/hooks, shared-consumer safeguards and the explicitly historical production baseline. No deployment was performed during documentation cleanup.
 
 ## Build / deploy
 
@@ -51,7 +53,7 @@ Request JSON: `{"url":"https://example.com/article"}`. Success **200**, `Cache-C
 
 Missing metadata is a successful empty result with a warning. Image failure preserves text metadata and adds a generic warning. **400** means invalid JSON/URL (8 KiB request cap, 4096-byte URL cap); **422** means page retrieval failed; **429** means rate/concurrency admission failed. Errors have a generic `{message}` and never reflect upstream error bodies or resolver/dial errors. Saving a manually entered URL remains independent of fetching.
 
-There are **no database writes, temporary uploads, staged files, or archived HTML** in this endpoint. Frontend reviews/overrides metadata, decodes image bytes to a `File`, and submits it through the normal record asset save. Existing PocketBase asset hooks/storage own atomic save, protection and cleanup. Frontend separately persists provenance and prevents late fetches from overwriting explicit owner edits. Merely fetching or canceling cannot create orphan files.
+There are **no database writes, temporary uploads, staged files, or archived HTML** in this endpoint. Frontend reviews/overrides metadata, decodes image bytes to a `File`, and submits it through the normal record asset save. Existing PocketBase asset hooks/storage own atomic save, protection and cleanup. Frontend separately persists [provenance and adopted-image attribution](../contracts.md#preview-adoption-and-provenance) and prevents late fetches from overwriting explicit owner edits. Merely fetching or canceling cannot create orphan files.
 
 ## Security and resource policy
 
