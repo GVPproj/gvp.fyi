@@ -74,7 +74,7 @@ async function setup(t, result = metadata()) {
     return route.abort();
   });
   t.after(() => assert.deepEqual(state.unexpected, [], 'Every external request must use a controlled HTTP fixture'));
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   await login(page);
   async function paste() {
     await page.evaluate(text => navigator.clipboard.writeText(text), sourceURL);

@@ -12,7 +12,7 @@ export const ownerAuth = { ...ownerResult(), token: ownerToken };
 export async function login(page) {
   const previous = new URL(page.url());
   const base = previous.origin;
-  const likesURL = previous.pathname === '/likes' ? previous.href : `${base}/likes`;
+  const likesURL = previous.pathname === '/likes/manage' ? previous.href : `${base}/likes/manage`;
   await page.goto(`${base}/login`);
   await page.locator('#owner-login [name=email]').fill('owner@example.test');
   await page.locator('#owner-login [name=password]').fill('owner-password');

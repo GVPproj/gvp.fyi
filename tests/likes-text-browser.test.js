@@ -39,7 +39,7 @@ async function setup(t, initial = []) {
     state.items = [...state.items.filter(old => old.id !== item.id), item];
     return route.fulfill({ json: item });
   });
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   await page.locator('#read-status').filter({ hasText: 'Loading' }).waitFor({ state: 'hidden' });
   return { page, state };
 }

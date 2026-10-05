@@ -125,7 +125,7 @@ const items = [
 ].map(item => ({ ...item, url: 'https://example.com', description: '' }));
 
 test('direct collection URLs, All, and browser navigation retain saved ordering and multiple memberships', async t => {
-  const { document, window } = await likesBrowser(t, 'https://site.example/likes?collection=collection00001');
+  const { document, window } = await likesBrowser(t, 'https://site.example/likes/manage?collection=collection00001');
   let offline = false;
   globalThis.fetch = async url => {
     if (offline) throw new Error('offline');

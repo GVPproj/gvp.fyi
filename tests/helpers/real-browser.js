@@ -45,7 +45,8 @@ export async function realBrowser(t) {
   for (let attempt = 0; attempt < 200; attempt++) {
     if (spawnError || child.exitCode !== null) break;
     try {
-      if ((await fetch(`${base}/likes`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
+      // Probe the client editor: public /likes performs server-side backend requests.
+      if ((await fetch(`${base}/likes/manage`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 100));
   }

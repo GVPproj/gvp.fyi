@@ -21,7 +21,7 @@ async function setup(t) {
     }
     return route.fulfill({ json: { items: [], totalPages: 1 } });
   });
-  await browser.page.goto(`${browser.base}/likes`);
+  await browser.page.goto(`${browser.base}/likes/manage`);
   await login(browser.page);
   return { ...browser, state };
 }
@@ -74,7 +74,7 @@ test('a recovered upload survives subsequent navigation without dropping its byt
   await login(page);
   assert.equal(await page.locator('[name=title]').inputValue(), 'Recovered upload');
   await page.goto(`${base}/`);
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   await page.locator('#save-link').waitFor({ state: 'visible' });
   state.upload = null;
   await page.getByRole('button', { name: 'Save item', exact: true }).click();

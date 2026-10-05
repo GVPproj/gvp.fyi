@@ -44,7 +44,7 @@ async function setup(t) {
     state.items = [...state.items.filter(old => old.id !== id), item];
     return route.fulfill({ json: item });
   });
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   await login(page);
   return { page, state };
 }

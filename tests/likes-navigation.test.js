@@ -3,7 +3,7 @@ import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 import { ownerResult, login } from './helpers/owner-session.js';
 
-test('Likes named filters survive refresh, Blog navigation, and browser Back/Forward', browserOptions, async (t) => {
+test('Manage Likes named filters survive refresh, Blog navigation, and browser Back/Forward', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
   const unexpected = [];
   const groups = [{ id: 'music0000000001', name: 'Music' }, { id: 'books0000000001', name: 'Books' }];
@@ -27,15 +27,15 @@ test('Likes named filters survive refresh, Blog navigation, and browser Back/For
     unexpected.push(route.request().url());
     await route.abort();
   });
-  const namedURL = (id) => `${base}/likes?collection=${id}`;
+  const namedURL = (id) => `${base}/likes/manage?collection=${id}`;
   async function expectFilter(name, titles) {
-    await page.getByRole('heading', { name: 'Likes', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Manage Likes', exact: true }).waitFor();
     await page.locator('#collection-filters').getByRole('link', { name, exact: true }).and(
       page.locator('[aria-current="page"]'),
     ).waitFor();
     await page.waitForFunction((expected) => JSON.stringify([...document.querySelectorAll('#likes-board h2')]
       .map((heading) => heading.textContent)) === JSON.stringify(expected), titles);
-    assert.equal(new URL(page.url()).pathname, '/likes');
+    assert.equal(new URL(page.url()).pathname, '/likes/manage');
     assert.equal(new URL(page.url()).searchParams.get('collection'), groups.find((group) => group.name === name)?.id ?? null);
   }
   async function expectBlog() {
@@ -67,10 +67,13 @@ test('Likes named filters survive refresh, Blog navigation, and browser Back/For
   await expectFilter('Music', ['Music find']);
   await page.goForward();
   await expectFilter('Books', ['Book find']);
-  // Entering Likes from a router-enabled page must also initialize correctly.
   await page.goForward();
   await expectBlog();
-  await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Likes', exact: true }).click();
+  const likesNav = page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Likes', exact: true });
+  assert.equal(await likesNav.getAttribute('href'), '/likes', 'Main navigation still targets the public board');
+  // Scope this test to the editor: browser interception cannot mock the public
+  // board's server-side PocketBase requests. Back/Forward above covers the router.
+  await page.goto(`${base}/likes/manage`);
   await expectFilter('All', ['Music find', 'Book find', 'Ungrouped find']);
   assert.deepEqual(unexpected, [], 'No unmocked backend or external requests');
 });

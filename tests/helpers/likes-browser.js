@@ -8,13 +8,13 @@ export const logout = () => clearSession();
 
 export const settle = () => new Promise(resolve => setTimeout(resolve, 15));
 
-export async function likesBrowser(t, initialURL = 'https://site.example/likes') {
+export async function likesBrowser(t, initialURL = 'https://site.example/likes/manage') {
   const { document, window } = parseHTML(await renderedLikes(t));
   // Preserve this harness's board-only scope, using the rendered DOM rather
   // than route source. Layout metadata also has name="description", which
   // would otherwise collide with existing tests' editor field selectors.
   const likes = document.querySelector('#likes');
-  if (!likes) throw new Error('Astro-rendered /likes is missing #likes');
+  if (!likes) throw new Error('Astro-rendered /likes/manage is missing #likes');
   document.head.replaceChildren();
   document.body.replaceChildren(likes);
   likes.dataset.endpoint = 'https://pb.example';

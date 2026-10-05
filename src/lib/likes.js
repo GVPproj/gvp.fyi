@@ -82,6 +82,7 @@ export function createLikesAPI(base, fetcher = fetch) {
         method: 'DELETE', headers: { Authorization: token },
       });
     },
+    /** @param {{ collection?: string, cursor?: { created: string, id: string } | null }} [options] */
     async listPage({ collection = '', cursor = null } = {}) {
       const quote = value => JSON.stringify(String(value));
       let filter = 'published=true';

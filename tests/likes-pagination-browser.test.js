@@ -24,7 +24,7 @@ test('retrying an initial failure keeps usable keyboard focus during loading and
     await new Promise(resolve => { release = resolve; gateReady(); });
     return route.fulfill({ json: records([]) });
   });
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   const retry = page.getByRole('button', { name: 'Retry', exact: true });
   await retry.waitFor();
   const button = page.locator('#retry-read');
@@ -80,7 +80,7 @@ test('Load more preserves cards and scroll, retains button focus, and respects f
   });
 
   for (const moveFocus of [false, true]) {
-    await page.goto(`${base}/likes`);
+    await page.goto(`${base}/likes/manage`);
     await page.waitForFunction(() => document.querySelectorAll('#likes-board > li').length === 24
       && document.querySelector('#load-more').getAttribute('aria-disabled') === 'false');
     await page.evaluate(() => document.fonts.ready);

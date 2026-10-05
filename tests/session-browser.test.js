@@ -44,12 +44,13 @@ async function assertAnonymous(page) {
   assert.equal(await page.locator('a[href="/login"], #owner-login').count(), 0);
 }
 
-test('direct login rejects bad credentials/non-owner identity, redirects home on success, and is undiscoverable anonymously', browserOptions, async t => {
+test('direct login rejects bad credentials/non-owner identity, redirects home on success, and is linked only from management', browserOptions, async t => {
   const { page, base, state } = await setup(t);
-  for (const path of ['/', '/blog', '/likes']) {
+  // Editor routes use browser-mocked PocketBase; public /likes reads it on the server.
+  for (const path of ['/', '/blog', '/likes/manage']) {
     await page.goto(`${base}${path}`);
     assert.equal(await page.locator('#owner-login').count(), 0);
-    assert.equal(await page.locator('a[href="/login"]:visible').count(), 0);
+    assert.equal(await page.locator('a[href="/login"]:visible').count(), path === '/likes/manage' ? 1 : 0);
     assert.equal(await indicator(page).isVisible(), false);
   }
   await page.goto(`${base}/login`);
@@ -84,11 +85,11 @@ test('direct login rejects bad credentials/non-owner identity, redirects home on
 
 test('session survives full navigation/refresh; native popover supports keyboard dismissal and logout reconciles history', browserOptions, async t => {
   const { page, base, context } = await setup(t);
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   await login(page);
   assert.equal(await page.locator('#owner-login').count(), 0);
   await page.locator('#drafts-board').getByText('Private draft', { exact: true }).waitFor();
-  for (const path of ['/', '/blog', '/likes']) {
+  for (const path of ['/', '/blog', '/likes/manage']) {
     await page.goto(`${base}${path}`);
     await indicator(page).waitFor();
     await page.reload();
@@ -127,7 +128,7 @@ for (const cause of ['expiry', 'rejection']) {
     const { page, base, state } = await setup(t);
     await page.clock.install();
     if (cause === 'expiry') state.auth = ownerResult(Math.floor(Date.now() / 1000) + 120);
-    await page.goto(`${base}/likes`);
+    await page.goto(`${base}/likes/manage`);
     await login(page);
     await page.locator('#drafts-board').getByRole('button', { name: /edit/i }).click();
     await page.locator('[name=title]').fill('Unsaved private edit');
@@ -148,7 +149,7 @@ for (const cause of ['expiry', 'rejection']) {
     state.rejectLogin = true;
     await submitLogin(page);
     await page.locator('#auth-status').filter({ hasText: /failed|credentials|sign in/i }).waitFor();
-    await page.goto(`${base}/likes`);
+    await page.goto(`${base}/likes/manage`);
     assert.equal(await page.locator('#save-link').isVisible(), false);
     assert.equal(await page.locator('[name=body]').inputValue(), '', 'Recovery is not exposed anonymously');
     state.rejectLogin = false;
@@ -172,7 +173,7 @@ for (const cause of ['expiry', 'rejection']) {
 for (const cleanup of ['logout', 'discard']) {
   test(`explicit ${cleanup} clears saved recovery so later login cannot resurrect the edit`, browserOptions, async t => {
   const { page, base, state } = await setup(t);
-  await page.goto(`${base}/likes`);
+  await page.goto(`${base}/likes/manage`);
   await login(page);
   await page.locator('[name=title]').fill('Discard on logout');
   await page.locator('[name=url]').fill('https://example.com/private');

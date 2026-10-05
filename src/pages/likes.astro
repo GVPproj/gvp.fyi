@@ -1,32 +1,48 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import OwnerTools from '../components/likes/owner-tools/OwnerTools.astro';
 import PublishedItems from '../components/likes/PublishedItems.astro';
-import SessionRecovery from '../components/likes/SessionRecovery.astro';
-import TextReader from '../components/likes/TextReader.astro';
-import ImageViewer from '../components/likes/ImageViewer.astro';
-import '../styles/likes.css';
+import { createLikesAPI } from '../lib/likes.js';
 
-const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
+export const prerender = false;
+
+// Netlify Functions need this variable at runtime as well as at build time.
+const endpoint = process.env.PUBLIC_POCKETBASE_URL ?? import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
+const selectedCollection = Astro.url.searchParams.get('collection') ?? '';
+const afterCreated = Astro.url.searchParams.get('afterCreated');
+const afterId = Astro.url.searchParams.get('afterId');
+const cursor = afterCreated && afterId ? { created: afterCreated, id: afterId } : null;
+let items = [], collections = [], nextCursor = null, error = '';
+
+// Start uncached: publication changes should be reflected on the next request.
+Astro.response.headers.set('Cache-Control', 'no-store');
+const api = createLikesAPI(endpoint, (url, options) => fetch(url, {
+  ...options, signal: AbortSignal.timeout(8000),
+}));
+try {
+  const [page, groups] = await Promise.all([
+    api.listPage({ collection: selectedCollection, cursor }),
+    api.listCollections(),
+  ]);
+  items = page.items;
+  nextCursor = page.nextCursor;
+  collections = groups;
+} catch {
+  Astro.response.status = 503;
+  error = 'Likes is temporarily unavailable.';
+}
 ---
 
 <Layout title="Likes" wide clientRouter={false}>
-  <section id="likes" data-endpoint={endpoint}>
+  <section id="likes">
     <h1>Likes</h1>
-    <SessionRecovery />
-    <OwnerTools />
-    <PublishedItems />
-    <TextReader />
-    <ImageViewer />
+    <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} />
+    <p class="manage"><a href="/likes/manage">Manage Likes</a></p>
   </section>
 </Layout>
-
-<script>
-  import '../scripts/likes.js';
-</script>
 
 <style>
   :global(main.likes-layout) { justify-content: flex-start; text-align: left; max-width: 90rem; }
   #likes { width: 100%; }
-  #likes h1 { margin-bottom: 1rem; }
+  h1 { margin-bottom: 1rem; }
+  .manage { margin-top: 2rem; }
 </style>

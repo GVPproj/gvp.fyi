@@ -57,8 +57,8 @@ async function setup(t, initial = []) {
     await route.abort();
   });
   t.after(() => assert.deepEqual(state.unexpected, [], 'No unmocked external traffic'));
-  await page.goto(`${base}/likes`);
-  await page.getByRole('heading', { name: 'Likes', exact: true }).waitFor();
+  await page.goto(`${base}/likes/manage`);
+  await page.getByRole('heading', { name: 'Manage Likes', exact: true }).waitFor();
   return { page, state };
 }
 

@@ -66,7 +66,7 @@ async function render(t) {
       if (finished) throw spawnError ?? new Error(`Astro exited (${child.exitCode ?? child.signalCode})`);
       let response;
       try {
-        response = await fetchHTML(`http://127.0.0.1:${port}/likes`, {
+        response = await fetchHTML(`http://127.0.0.1:${port}/likes/manage`, {
           signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
         });
       } catch (error) {
@@ -78,7 +78,7 @@ async function render(t) {
         continue;
       }
       if (!response.ok) {
-        throw new Error(`GET /likes returned ${response.status}: ${await response.text()}`);
+        throw new Error(`GET /likes/manage returned ${response.status}: ${await response.text()}`);
       }
       return await response.text();
     }

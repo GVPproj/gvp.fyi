@@ -1,0 +1,33 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import OwnerTools from '../../components/likes/owner-tools/OwnerTools.astro';
+import ManagedItems from '../../components/likes/ManagedItems.astro';
+import SessionRecovery from '../../components/likes/SessionRecovery.astro';
+import TextReader from '../../components/likes/TextReader.astro';
+import ImageViewer from '../../components/likes/ImageViewer.astro';
+import '../../styles/likes.css';
+
+const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
+---
+
+<Layout title="Manage Likes" wide clientRouter={false}>
+  <section id="likes" data-endpoint={endpoint}>
+    <h1>Manage Likes</h1>
+    <p><a href="/likes">View public Likes</a> · <a href="/login">Owner sign in</a></p>
+    <SessionRecovery />
+    <OwnerTools />
+    <ManagedItems />
+    <TextReader />
+    <ImageViewer />
+  </section>
+</Layout>
+
+<script>
+  import '../../scripts/likes.js';
+</script>
+
+<style>
+  :global(main.likes-layout) { justify-content: flex-start; text-align: left; max-width: 90rem; }
+  #likes { width: 100%; }
+  #likes h1 { margin-bottom: 1rem; }
+</style>
