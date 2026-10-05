@@ -1,0 +1,16 @@
+---
+import ItemEditor from './ItemEditor.astro';
+import NamedCollectionManager from './NamedCollectionManager.astro';
+import DraftItems from './DraftItems.astro';
+---
+
+<details class="owner-tools" hidden>
+  <summary>Edit Likes</summary>
+  <ItemEditor />
+  <NamedCollectionManager />
+  <DraftItems />
+</details>
+
+<style>
+  .owner-tools { margin-bottom: 1.5rem; }
+</style>

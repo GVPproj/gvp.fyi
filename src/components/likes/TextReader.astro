@@ -1,0 +1,15 @@
+<dialog id="text-reader" aria-label="Text reader">
+  <button type="button" autofocus>Close text</button>
+  <h2></h2>
+  <div class="text-body"></div>
+  <p class="text-attribution"></p>
+  <a class="text-source" target="_blank" rel="noopener noreferrer" hidden>Source</a>
+</dialog>
+
+<style>
+  #text-reader { box-sizing: border-box; width: min(42rem, 95vw); max-height: 90dvh; overflow: auto; color: var(--nord6); background: var(--nord0); border: 1px solid var(--nord3); padding: 1.25rem; overflow-wrap: anywhere; }
+  #text-reader::backdrop { background: rgb(0 0 0 / .8); }
+  #text-reader > button { position: sticky; top: 0; }
+  #text-reader .text-body, #text-reader .text-attribution { white-space: pre-wrap; line-height: 1.65; }
+  #text-reader h2 { font-size: 1.25rem; }
+</style>

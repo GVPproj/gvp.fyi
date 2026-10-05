@@ -1,0 +1,57 @@
+<form id="save-link" hidden>
+  <h2 id="editor-title">Save an item</h2>
+  <label>Item type <select name="type"><option value="">Link / image / PDF</option><option value="quote">Quote</option><option value="note">Personal note</option></select></label>
+  <div id="text-fields" hidden>
+    <label>Text <textarea name="body" maxlength="100000" rows="10"></textarea></label>
+    <label>Attribution (optional) <input name="attribution" maxlength="1000" /></label>
+  </div>
+  <label>Destination / source URL (optional for uploads and text) <input name="url" type="url" placeholder="https://" maxlength="2048" /></label>
+  <div id="duplicate-review" role="region" aria-labelledby="duplicate-heading" hidden>
+    <h3 id="duplicate-heading">Already in Likes</h3>
+    <p>Open an existing item to reuse it and change its named collections, or deliberately save a separate item with your current fields.</p>
+    <ul id="duplicate-items"></ul>
+    <button id="save-another" type="button">Save another</button>
+  </div>
+  <button id="fetch-preview" type="button">Fetch URL preview</button>
+  <p id="preview-status" role="status"></p>
+  <div id="preview-metadata-review" hidden>
+    <p>Fetched suggestions (your edited or existing metadata is kept):</p>
+    <dl>
+      <dt>Title</dt><dd id="preview-title"></dd>
+      <dt>Description</dt><dd id="preview-description"></dd>
+    </dl>
+  </div>
+  <div id="preview-image-review" hidden>
+    {/* Native img: the browser assigns fetched preview bytes after rendering. */}
+    <img id="preview-image" alt="Fetched image for review" />
+    <p>Review only. Your current upload is kept unless you choose this image.</p>
+    <button id="use-preview-image" type="button">Use fetched image</button>
+    <button id="discard-preview-image" type="button">Discard fetched image</button>
+  </div>
+  <p id="preview-image-status" role="status"></p>
+  <label>Image or PDF <input name="asset" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" aria-describedby="upload-limits" /></label>
+  <p id="upload-limits">JPEG, PNG, GIF, WebP or PDF; maximum 10 MiB. Uploaded only when you save. Selecting a file replaces the current upload.</p>
+  <p id="current-asset"></p>
+  <label><input name="removeAsset" type="checkbox" /> Remove current upload (links still require a destination URL)</label>
+  <label>Title (optional for text items) <input name="title" required maxlength="300" /></label>
+  <label>Description <textarea name="description" maxlength="5000"></textarea></label>
+  <label>Commentary <textarea name="commentary" maxlength="10000"></textarea></label>
+  <fieldset><legend>Named collections (optional)</legend><div id="item-collections"></div></fieldset>
+  <label><input name="draft" type="checkbox" /> Save as draft (owner only)</label>
+  <p id="draft-warning">Returning a published item to draft hides it from future public reads. Previously downloaded or cached content cannot be made secret retroactively.</p>
+  <button>Save item</button>
+  <button id="new-item" type="button">Cancel / new item</button>
+  <button id="delete-item" type="button" hidden>Delete item…</button>
+  <div id="delete-confirmation" hidden>
+    <p>Delete this item? Deletion is permanent. There is no trash or undo.</p>
+    <button id="confirm-delete" type="button">Permanently delete</button>
+    <button id="cancel-delete" type="button">Keep item</button>
+  </div>
+</form>
+<p id="save-status" role="status"></p>
+
+<style>
+  #duplicate-items { padding-left: 1.25rem; overflow-wrap: anywhere; }
+  #duplicate-items :global(p) { white-space: pre-wrap; }
+  #preview-image { display: block; max-width: 100%; max-height: 16rem; object-fit: contain; }
+</style>

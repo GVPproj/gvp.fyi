@@ -1,0 +1,23 @@
+<noscript>Enable JavaScript to load the public Likes board.</noscript>
+<nav id="collection-filters" aria-label="Named collections"></nav>
+<ul id="likes-board" aria-label="Published likes"></ul>
+<button id="load-more" type="button" aria-controls="likes-board" hidden>Load more</button>
+<p id="read-status" role="status" tabindex="-1">Loading Likes…</p>
+<button id="retry-read" type="button" hidden>Retry</button>
+
+<style>
+  #load-more[aria-disabled="true"] { opacity: .6; cursor: default; }
+  #collection-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
+  #collection-filters :global([aria-current="page"]) { font-weight: bold; text-decoration: underline; }
+  #likes-board { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; }
+  /* Collection items are fetched and rendered client-side, including images. */
+  #likes-board :global(li) { min-width: 0; }
+  #likes-board :global(a) { display: block; color: inherit; text-decoration: none; }
+  #likes-board :global(.image-card), #likes-board :global(.text-card) { display: block; width: 100%; padding: 0; text-align: left; background: none; border: 0; }
+  #likes-board :global(a:hover h2) { text-decoration: underline; }
+  #likes-board :global(h2) { font-size: 1rem; font-weight: 400; margin: .75rem 0 .25rem; overflow-wrap: anywhere; }
+  #likes-board :global(p) { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }
+  #likes-board :global(.like-preview) { aspect-ratio: 1; background: var(--nord1); display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-wrap: anywhere; overflow: hidden; color: var(--nord4); }
+  #likes-board :global(.text-preview) { display: block; white-space: pre-wrap; line-height: 1.5; }
+  #likes-board :global(.like-preview img) { width: 100%; height: 100%; object-fit: contain; }
+</style>

@@ -1,0 +1,12 @@
+<dialog id="image-viewer" aria-label="Image viewer">
+  <button type="button" autofocus>Close image</button>
+  <p role="status"></p>
+  {/* Native img: src is assigned client-side, including protected asset URLs. */}
+  <img alt="" />
+</dialog>
+
+<style>
+  #image-viewer { max-width: 95vw; max-height: 95vh; color: var(--nord6); background: var(--nord0); border: 1px solid var(--nord3); }
+  #image-viewer::backdrop { background: rgb(0 0 0 / .8); }
+  #image-viewer img { display: block; max-width: 85vw; max-height: 75vh; object-fit: contain; margin: auto; }
+</style>

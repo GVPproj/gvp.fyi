@@ -1,0 +1,14 @@
+<div id="draft-tools" hidden>
+  <h2>Drafts — owner only</h2>
+  <p id="draft-status" role="status"></p>
+  <button id="retry-drafts" type="button">Reload drafts</button>
+  <ul id="drafts-board" aria-label="Draft likes"></ul>
+</div>
+
+<style>
+  #drafts-board { list-style: none; padding: 0; }
+  /* Collection-item descendants are created by the browser, not Astro. */
+  #drafts-board :global(li) { margin-block: 1rem; }
+  #drafts-board :global(.like-preview) { display: none; }
+  #drafts-board :global(p) { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>

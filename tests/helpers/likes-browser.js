@@ -1,5 +1,5 @@
 import { parseHTML } from 'linkedom';
-import { readFile } from 'node:fs/promises';
+import { renderedLikes } from './rendered-likes.js';
 import { establishSession, clearSession } from '../../src/lib/session.js';
 import { ownerAuth } from './owner-session.js';
 export { ownerToken } from './owner-session.js';
@@ -9,10 +9,15 @@ export const logout = () => clearSession();
 export const settle = () => new Promise(resolve => setTimeout(resolve, 15));
 
 export async function likesBrowser(t, initialURL = 'https://site.example/likes') {
-  const source = await readFile(new URL('../../src/pages/likes.astro', import.meta.url), 'utf8');
-  const markup = source.slice(source.indexOf('<section'), source.indexOf('</section>') + 10);
-  const { document, window } = parseHTML(`<html><body>${markup}</body></html>`);
-  document.querySelector('#likes').dataset.endpoint = 'https://pb.example';
+  const { document, window } = parseHTML(await renderedLikes(t));
+  // Preserve this harness's board-only scope, using the rendered DOM rather
+  // than route source. Layout metadata also has name="description", which
+  // would otherwise collide with existing tests' editor field selectors.
+  const likes = document.querySelector('#likes');
+  if (!likes) throw new Error('Astro-rendered /likes is missing #likes');
+  document.head.replaceChildren();
+  document.body.replaceChildren(likes);
+  likes.dataset.endpoint = 'https://pb.example';
   const original = { document: globalThis.document, fetch: globalThis.fetch, FormData: globalThis.FormData,
     location: globalThis.location, history: globalThis.history, window: globalThis.window,
     CustomEvent: globalThis.CustomEvent, sessionStorage: globalThis.sessionStorage };
