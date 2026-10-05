@@ -86,6 +86,7 @@ async function saved(page) {
 test('owner uploads a standalone image as multipart asset without a destination URL', browserOptions, async t => {
   const { page, state } = await setup(t);
   await login(page);
+  await page.locator('#open-item-editor').click();
   await page.locator('#save-link [name=title]').fill('Landscape');
   await page.locator('#save-link [name=asset]').setInputFiles(image);
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
@@ -197,6 +198,7 @@ test('editing an uploaded item retains its asset unless a replacement is selecte
   assert.equal(state.writes[0].method, 'PATCH');
   assert.equal(state.writes[0].body.has('asset'), false, 'Retaining a file must omit asset from the update');
   await page.getByRole('button', { name: 'View image: Retained landscape', exact: true }).waitFor();
+  await page.locator('#item-editor-dialog [data-close-dialog]').click();
   await page.locator('#likes-board').getByRole('button', { name: 'Edit', exact: true }).click();
   await page.locator('[name=asset]').setInputFiles({ ...image, name: 'replacement.png' });
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
@@ -215,6 +217,7 @@ test('server upload rejection keeps selected file and fields for retry; cancel c
   const { page, state } = await setup(t);
   await login(page);
   state.failWrite = true;
+  await page.locator('#open-item-editor').click();
   await page.locator('#save-link [name=title]').fill('Retry landscape');
   await page.locator('#save-link [name=commentary]').fill('Keep my commentary');
   await page.locator('[name=asset]').setInputFiles(image);
@@ -229,9 +232,10 @@ test('server upload rejection keeps selected file and fields for retry; cancel c
   await saved(page);
   assert.equal(state.writes.length, 2);
   assert.deepEqual(Buffer.from(await state.writes[1].body.get('asset').arrayBuffer()), image.buffer);
+  await page.locator('#item-editor-dialog [data-close-dialog]').click();
   await page.locator('#likes-board').getByRole('button', { name: 'Edit', exact: true }).click();
   await page.locator('[name=asset]').setInputFiles({ ...image, name: 'cancelled.png' });
-  await page.getByRole('button', { name: 'Cancel / new item', exact: true }).click();
+  await page.locator('#new-item').click();
   assert.equal(await page.locator('[name=asset]').evaluate(input => input.files.length), 0);
   assert.equal(await page.locator('#save-link [name=title]').inputValue(), '');
   assert.equal(await page.locator('#current-asset').textContent(), '');

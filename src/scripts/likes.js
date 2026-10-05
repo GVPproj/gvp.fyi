@@ -36,6 +36,28 @@ document.addEventListener('astro:page-load', () => {
   let cursor = null, reading = false, retryAppend = false, hasAppendedPage = false;
   const save = root.querySelector('#save-link');
   const saveStatus = root.querySelector('#save-status');
+  const editorDialog = root.querySelector('#item-editor-dialog');
+  const collectionsDialog = root.querySelector('#collections-dialog');
+  const openItemEditor = root.querySelector('#open-item-editor');
+  const openCollections = root.querySelector('#open-collections');
+  openItemEditor.addEventListener('click', () => {
+    if (!busy && token) editorDialog.showModal();
+  });
+  openCollections.addEventListener('click', () => {
+    if (!busy && token) collectionsDialog.showModal();
+  });
+  for (const [dialog, trigger] of [[editorDialog, openItemEditor], [collectionsDialog, openCollections]]) {
+    dialog.querySelector('[data-close-dialog]').addEventListener('click', () => {
+      if (!busy) dialog.close();
+    });
+    dialog.addEventListener('cancel', event => {
+      if (busy) event.preventDefault();
+    });
+    dialog.addEventListener('close', () => {
+      // Saving can replace the card that originally opened the editor.
+      if (token && (!document.activeElement || document.activeElement === document.body || dialog.contains(document.activeElement))) trigger.focus();
+    });
+  }
   const drafts = root.querySelector('#drafts-board');
   const draftStatus = root.querySelector('#draft-status');
   const draft = save.querySelector('[name=draft]');
@@ -374,8 +396,8 @@ document.addEventListener('astro:page-load', () => {
     renderMemberships();
     root.querySelector('#editor-title').textContent = 'Edit item';
     saveStatus.textContent = '';
-    root.querySelector('.owner-tools').open = true;
-    save.querySelector(typeInput.value ? '[name=body]' : '[name=url]').focus();
+    if (!editorDialog.open) editorDialog.showModal();
+    root.querySelector('#editor-title').focus();
   }
   function itemCard(item) {
     const card = renderItem(document, item, { assetURL: api.assetURL(item), openAsset, openText });
@@ -627,6 +649,7 @@ document.addEventListener('astro:page-load', () => {
     clearRecovery();
     resetEditor();
     saveStatus.textContent = '';
+    editorDialog.close();
   });
   deleteButton.addEventListener('click', () => {
     if (!busy && editing) confirmation.hidden = false;
@@ -747,6 +770,8 @@ document.addEventListener('astro:page-load', () => {
     if (event.detail?.reason === 'logout' || (event.detail?.reason === 'reconcile' && !next)) clearRecovery();
     token = next;
     if (!token) {
+      if (editorDialog.open) editorDialog.close();
+      if (collectionsDialog.open) collectionsDialog.close();
       if (viewer.open) viewer.close();
       if (reader.open) reader.close();
       for (const tab of privateWindows) tab.close();

@@ -12,3 +12,54 @@
 #likes :focus-visible { outline: 2px solid var(--nord8); outline-offset: 3px; }
 #likes [hidden] { display: none; }
 #likes button:disabled { opacity: .6; cursor: wait; }
+
+#likes .owner-toolbar, #likes .owner-dialog-actions {
+  display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem;
+}
+#likes .owner-dialog {
+  width: min(42rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: clamp(1rem, 4vw, 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--nord6);
+  background: var(--nord0);
+  border: 1px solid var(--nord3);
+  border-radius: 1rem;
+  box-shadow: 0 1.5rem 5rem #0008;
+}
+#likes .owner-dialog::backdrop { background: #111722bb; backdrop-filter: blur(4px); }
+#likes .owner-dialog[open] { animation: owner-dialog-enter .18s ease-out; }
+#likes .owner-dialog-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--nord3);
+}
+#likes .owner-dialog-header h2 { margin: 0; font-size: 1.4rem; }
+#likes .owner-dialog-header button { flex-shrink: 0; }
+#likes .owner-dialog form { max-width: none; }
+#likes .owner-dialog p { color: var(--nord4); font-size: .9rem; line-height: 1.6; }
+#likes .owner-dialog textarea { resize: vertical; min-height: 5rem; }
+#likes .owner-dialog fieldset {
+  min-width: 0; margin-block: 1.25rem; padding: .5rem 1rem;
+  border: 1px solid var(--nord3); border-radius: .5rem;
+}
+#likes .owner-dialog legend { padding-inline: .4rem; color: var(--nord8); }
+#likes .owner-dialog input[type="checkbox"] { accent-color: var(--nord8); }
+#likes .owner-dialog button:hover:not(:disabled), #likes .owner-toolbar button:hover:not(:disabled) { border-color: var(--nord8); }
+#likes .primary-action, #likes #open-item-editor {
+  background: var(--nord8); color: var(--nord0); border-color: var(--nord8); font-weight: 600;
+}
+#likes .owner-dialog-actions { padding-top: 1rem; border-top: 1px solid var(--nord3); }
+#likes #collection-list { list-style: none; padding: 0; }
+#likes #collection-list > li { padding-block: 1rem; border-top: 1px solid var(--nord3); }
+#likes .owner-dialog [role="status"] { overflow-wrap: anywhere; }
+html:has(.owner-dialog[open]) { overflow: hidden; }
+@keyframes owner-dialog-enter {
+  from { opacity: 0; transform: translateY(.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #likes .owner-dialog[open] { animation: none; }
+}

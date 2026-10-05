@@ -94,11 +94,13 @@ for (const type of ['quote', 'note']) {
   test(`${type} edits survive failed saves, drafts publish and return to private, and deletion requires confirmation`, browserOptions, async t => {
     const { page, state } = await setup(t);
     await login(page);
+    await page.locator('#open-item-editor').click();
     await page.getByLabel('Item type').selectOption(type);
     await page.getByLabel('Text', { exact: true }).fill('Private words');
     await page.locator('[name=draft]').check();
     await save(page);
     assert.equal(await page.locator('#likes-board li').count(), 0);
+    await page.locator('#item-editor-dialog [data-close-dialog]').click();
     await page.locator('#drafts-board').getByRole('button', { name: 'Edit', exact: true }).click();
     assert.equal(await page.getByLabel('Item type').inputValue(), type);
     assert.equal(await page.getByLabel('Text', { exact: true }).inputValue(), 'Private words');
@@ -113,6 +115,7 @@ for (const type of ['quote', 'note']) {
     await page.locator('[name=draft]').uncheck();
     await save(page);
     assert.equal(await page.locator('#drafts-board li').count(), 0);
+    await page.locator('#item-editor-dialog [data-close-dialog]').click();
     await page.locator('#likes-board .text-card').click();
     const source = page.locator('#text-reader').getByRole('link', { name: 'Source', exact: true });
     assert.equal(await source.getAttribute('href'), 'https://source.example/original');
@@ -123,6 +126,7 @@ for (const type of ['quote', 'note']) {
     await page.locator('[name=draft]').check();
     await save(page);
     assert.equal(await page.locator('#likes-board li').count(), 0);
+    await page.locator('#item-editor-dialog [data-close-dialog]').click();
     await page.locator('#drafts-board').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.getByRole('button', { name: 'Delete item…', exact: true }).click();
     assert.equal(state.items.length, 1);
@@ -177,6 +181,7 @@ test('reader returns focus to a refreshed card and sign-out clears private text'
 test('text editor rejects blank content and unsafe source URLs without losing text', browserOptions, async t => {
   const { page, state } = await setup(t);
   await login(page);
+  await page.locator('#open-item-editor').click();
   await page.getByLabel('Item type').selectOption('quote');
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
   assert.equal(await page.locator('[name=body]').evaluate(node => node.validity.valueMissing), true);
@@ -192,6 +197,7 @@ test('text editor rejects blank content and unsafe source URLs without losing te
 test('owner saves a quote without title or URL, then a personal note with optional title', browserOptions, async t => {
   const { page, state } = await setup(t);
   await login(page);
+  await page.locator('#open-item-editor').click();
   await page.getByLabel('Item type').selectOption('quote');
   await page.getByLabel('Text', { exact: true }).fill('A small observation.');
   await page.getByLabel('Attribution (optional)').fill('A writer');

@@ -49,8 +49,9 @@ test('Manage Likes named filters survive refresh, Blog navigation, and browser B
   await page.reload();
   await expectFilter('Music', ['Music find']);
   // Unsaved input must survive local filter changes (no document reload).
-  await page.locator('.owner-tools').evaluate(element => { element.open = true; });
+  await page.locator('#open-item-editor').click();
   await page.locator('#save-link [name=title]').fill('Unsaved collection item');
+  await page.locator('#item-editor-dialog [data-close-dialog]').click();
   await page.locator('#collection-filters').getByRole('link', { name: 'Books', exact: true }).click();
   await expectFilter('Books', ['Book find']);
   assert.equal(await page.locator('#save-link [name=title]').inputValue(), 'Unsaved collection item');

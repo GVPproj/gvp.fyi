@@ -54,6 +54,22 @@ export async function likesBrowser(t, initialURL = 'https://site.example/likes/m
     get(name) { return this.fields.find(([key]) => key === name)?.[1]; }
     [Symbol.iterator]() { return this.fields[Symbol.iterator](); }
   };
+  // Linkedom has no dialog API. Model open/close state and the queued close
+  // event here; real-browser tests cover focus, Escape, and modal inertness.
+  for (const dialog of document.querySelectorAll('dialog')) {
+    Object.defineProperty(dialog, 'open', {
+      get() { return this.hasAttribute('open'); },
+      set(value) { this.toggleAttribute('open', Boolean(value)); },
+    });
+    dialog.returnValue = '';
+    dialog.showModal = () => { dialog.open = true; };
+    dialog.close = value => {
+      if (!dialog.open) return;
+      if (value !== undefined) dialog.returnValue = String(value);
+      dialog.open = false;
+      setTimeout(() => dialog.dispatchEvent(new window.Event('close')), 0);
+    };
+  }
   // Linkedom's select.value lacks the native setter.
   for (const select of document.querySelectorAll('select')) {
     Object.defineProperty(select, 'value', {

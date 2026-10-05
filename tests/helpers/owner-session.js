@@ -19,13 +19,14 @@ export async function login(page) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL(`${base}/`);
   await page.goto(likesURL);
-  if (await page.locator('.owner-tools').getAttribute('open') === null) {
-    await page.locator('.owner-tools summary').click();
-  }
-  await page.locator('#save-link').waitFor({ state: 'visible' });
+  await page.locator('#open-item-editor').waitFor({ state: 'visible' });
 }
 
 export async function logout(page) {
+  // Native modals make the session controls inert; dismiss without discarding.
+  for (const dialog of await page.locator('dialog[open]:has([data-close-dialog])').all()) {
+    await dialog.locator('[data-close-dialog]').click();
+  }
   await page.getByRole('button', { name: 'Logged In', exact: true }).click();
   await page.getByRole('button', { name: 'Log out', exact: true }).click();
   await page.getByRole('button', { name: 'Logged In', exact: true }).waitFor({ state: 'hidden' });

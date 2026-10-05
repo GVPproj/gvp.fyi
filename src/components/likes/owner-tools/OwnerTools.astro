@@ -4,12 +4,27 @@ import NamedCollectionManager from './NamedCollectionManager.astro';
 import DraftItems from './DraftItems.astro';
 ---
 
-<details class="owner-tools" hidden>
-  <summary>Edit Likes</summary>
-  <ItemEditor />
-  <NamedCollectionManager />
+<section class="owner-tools" aria-label="Manage Likes" hidden>
+  <div class="owner-toolbar">
+    <button id="open-item-editor" type="button" aria-haspopup="dialog" aria-controls="item-editor-dialog">Save / edit an item</button>
+    <button id="open-collections" type="button" aria-haspopup="dialog" aria-controls="collections-dialog">Manage collections</button>
+  </div>
+  <dialog id="item-editor-dialog" class="owner-dialog" aria-labelledby="editor-title">
+    <header class="owner-dialog-header">
+      <h2 id="editor-title" tabindex="-1" autofocus>Save an item</h2>
+      <button type="button" data-close-dialog aria-label="Close item editor">Close</button>
+    </header>
+    <ItemEditor />
+  </dialog>
+  <dialog id="collections-dialog" class="owner-dialog" aria-labelledby="collections-title">
+    <header class="owner-dialog-header">
+      <h2 id="collections-title" tabindex="-1" autofocus>Named collections</h2>
+      <button type="button" data-close-dialog aria-label="Close collections">Close</button>
+    </header>
+    <NamedCollectionManager />
+  </dialog>
   <DraftItems />
-</details>
+</section>
 
 <style>
   .owner-tools { margin-bottom: 1.5rem; }

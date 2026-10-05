@@ -46,6 +46,7 @@ async function setup(t) {
   });
   await page.goto(`${base}/likes/manage`);
   await login(page);
+  await page.locator('#open-item-editor').click();
   return { page, state };
 }
 
@@ -109,6 +110,9 @@ for (const status of [401, 403, 500]) {
       assert.equal(await page.locator('#save-link').isVisible(), false);
       await page.locator('#session-expired a[href="/login"]').waitFor();
       await login(page);
+      if (!await page.locator('#item-editor-dialog').evaluate(dialog => dialog.open)) {
+        await page.locator('#open-item-editor').click();
+      }
       assert.deepEqual(state.writes, [], 'Reauthentication restores fields without saving');
     } else {
       assert.equal(await page.locator('#save-link').isVisible(), true, 'Server errors must not log out the owner');

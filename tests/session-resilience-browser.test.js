@@ -45,6 +45,7 @@ test('login validates existing authentication; rejection permits reauthenticatio
 
 test('storage failure offers the retained private edit as a downloadable backup without exposing the editor anonymously', browserOptions, async t => {
   const { page } = await setup(t);
+  await page.locator('#open-item-editor').click();
   await page.locator('[name=title]').fill('Irreplaceable unsaved text');
   await page.locator('[name=url]').fill('https://example.com');
   await page.evaluate(() => {
@@ -66,6 +67,7 @@ test('storage failure offers the retained private edit as a downloadable backup 
 test('a recovered upload survives subsequent navigation without dropping its bytes', browserOptions, async t => {
   const { page, base, state } = await setup(t);
   const bytes = Buffer.from('private upload fixture');
+  await page.locator('#open-item-editor').click();
   await page.locator('[name=title]').fill('Recovered upload');
   await page.locator('[name=asset]').setInputFiles({ name: 'private.png', mimeType: 'image/png', buffer: bytes });
   await page.getByRole('button', { name: 'Save item', exact: true }).click();
@@ -75,6 +77,9 @@ test('a recovered upload survives subsequent navigation without dropping its byt
   assert.equal(await page.locator('[name=title]').inputValue(), 'Recovered upload');
   await page.goto(`${base}/`);
   await page.goto(`${base}/likes/manage`);
+  if (!await page.locator('#item-editor-dialog').evaluate(dialog => dialog.open)) {
+    await page.locator('#open-item-editor').click();
+  }
   await page.locator('#save-link').waitFor({ state: 'visible' });
   state.upload = null;
   await page.getByRole('button', { name: 'Save item', exact: true }).click();

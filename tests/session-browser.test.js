@@ -160,6 +160,9 @@ for (const cause of ['expiry', 'rejection']) {
     assert.equal(await page.locator('[name=body]').inputValue(), 'Keep these private words');
     assert.equal(await page.locator('[name=draft]').isChecked(), true);
     assert.equal(state.writes.length, writes, 'Restoring must not save or publish');
+    if (!await page.locator('#item-editor-dialog').evaluate(dialog => dialog.open)) {
+      await page.locator('#open-item-editor').click();
+    }
     await page.getByRole('button', { name: 'Save item', exact: true }).click();
     await page.locator('#save-status').filter({ hasText: 'Saved as draft.' }).waitFor();
     assert.equal(state.writes.at(-1).method, 'PATCH', 'Recovery retains the selected item, not a new copy');
@@ -175,6 +178,7 @@ for (const cleanup of ['logout', 'discard']) {
   const { page, base, state } = await setup(t);
   await page.goto(`${base}/likes/manage`);
   await login(page);
+  await page.locator('#open-item-editor').click();
   await page.locator('[name=title]').fill('Discard on logout');
   await page.locator('[name=url]').fill('https://example.com/private');
   state.rejectSave = true;
@@ -183,7 +187,10 @@ for (const cleanup of ['logout', 'discard']) {
   await login(page);
   assert.equal(await page.locator('[name=title]').inputValue(), 'Discard on logout');
   if (cleanup === 'discard') {
-    await page.getByRole('button', { name: 'Cancel / new item', exact: true }).click();
+    if (!await page.locator('#item-editor-dialog').evaluate(dialog => dialog.open)) {
+      await page.locator('#open-item-editor').click();
+    }
+    await page.locator('#new-item').click();
     await page.reload();
     assert.equal(await page.locator('[name=title]').inputValue(), '', 'Discard must clear persisted recovery before logout');
   }

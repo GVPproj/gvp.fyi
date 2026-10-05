@@ -76,6 +76,7 @@ async function setup(t, result = metadata()) {
   t.after(() => assert.deepEqual(state.unexpected, [], 'Every external request must use a controlled HTTP fixture'));
   await page.goto(`${base}/likes/manage`);
   await login(page);
+  await page.locator('#open-item-editor').click();
   async function paste() {
     await page.evaluate(text => navigator.clipboard.writeText(text), sourceURL);
     await page.locator('#save-link [name=url]').focus();
@@ -140,6 +141,7 @@ test('native URL paste fetches automatically; owner edits survive loading and pr
       name: 'landscape.png', type: 'image/png', fetchedAt: '2026-06-19T12:00:00Z', pageURL: 'https://source.example/final' },
     overrides: { title: true, description: true, image: false },
   });
+  await page.locator('#item-editor-dialog [data-close-dialog]').click();
   const stored = page.locator('#likes-board img');
   await stored.scrollIntoViewIfNeeded();
   await stored.evaluate(img => img.decode());
@@ -152,7 +154,7 @@ for (const action of ['cancel', 'sign out']) {
   test(`${action} ignores a late preview response, including image bytes and provenance`, browserOptions, async t => {
     const { page, state, paste, release } = await setup(t);
     await paste();
-    if (action === 'cancel') await page.getByRole('button', { name: 'Cancel / new item', exact: true }).click();
+    if (action === 'cancel') await page.locator('#new-item').click();
     else await logout(page);
     await release();
     for (const name of ['url', 'title', 'description']) {
@@ -166,6 +168,7 @@ for (const action of ['cancel', 'sign out']) {
       assert.equal(await page.locator('#save-link').isVisible(), false);
       await login(page);
     }
+    await page.locator('#open-item-editor').click();
     await page.locator('#save-link [name=url]').fill('https://manual.example/new');
     await page.locator('#save-link [name=title]').fill('New manual item');
     await save(page);
