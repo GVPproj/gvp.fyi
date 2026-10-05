@@ -36,9 +36,13 @@ try {
   <section id="likes">
     <h1>Likes</h1>
     <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} />
-    <p class="manage"><a href="/likes/manage">Manage Likes</a></p>
+    <p id="manage-likes" class="manage" hidden><a href="/likes/manage">Manage Likes</a></p>
   </section>
 </Layout>
+
+<script>
+  import '../scripts/manage-likes-link.js';
+</script>
 
 <style>
   :global(main.likes-layout) { justify-content: flex-start; text-align: left; max-width: 90rem; }

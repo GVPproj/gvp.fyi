@@ -145,10 +145,19 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     assert.equal(document.querySelector('details blockquote').textContent, 'Every word of the quotation.');
     assert.equal(document.querySelectorAll('details > summary').length, 2);
     const image = document.querySelector('#likes-board img');
-    assert.equal(image.getAttribute('src'), `${endpoint}/api/files/likes_items/image/original%20image.png`);
-    assert.equal(image.closest('a').getAttribute('href'), image.getAttribute('src'));
+    const original = `${endpoint}/api/files/likes_items/image/original%20image.png`;
+    assert.equal(image.closest('a').getAttribute('href'), original);
+    const optimized = new URL(image.getAttribute('src'), 'http://site.test');
+    assert.equal(optimized.pathname, '/_image');
+    assert.equal(optimized.searchParams.get('href'), original);
+    assert.equal(optimized.searchParams.get('f'), 'webp');
+    assert.equal(optimized.searchParams.get('w'), '640');
+    assert.match(image.getAttribute('srcset'), /320w/);
+    assert.match(image.getAttribute('srcset'), /640w/);
+    assert.match(image.getAttribute('srcset'), /960w/);
+    assert.equal(image.getAttribute('loading'), 'lazy');
     assert.equal(document.querySelector('#likes-board script, #likes-board [onerror], a[href^="javascript:"]'), null);
-    assert.ok(links(document).some(link => link.getAttribute('href') === '/likes/manage'));
+    assert.ok(document.querySelector('a[href="/likes/manage"]').closest('[hidden]'), 'Manage Likes is hidden without an owner session');
     assert.equal(document.querySelector('input[type="password"], input[type="email"], dialog, #likes-editor'), null);
     assert.equal(document.querySelectorAll('#likes form, #likes button').length, 0);
     for (const script of document.querySelectorAll('script')) {

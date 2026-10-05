@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import { textItemTitle, webURL } from '../../lib/likes.js';
 
 interface Props {
@@ -35,7 +36,7 @@ const Destination = destination ? 'a' : 'div';
     ) : (
       <Destination href={destination || undefined} target={destination ? '_blank' : undefined} rel={destination ? 'noopener noreferrer' : undefined}>
         <div class="like-preview">
-          {asset && !pdf ? <img src={asset} alt="" loading="lazy" /> : asset ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
+          {asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="contain" format="webp" loading="lazy" /> : asset ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
         </div>
         <h2>{title}</h2>
         {item.description && <p>{item.description}</p>}
