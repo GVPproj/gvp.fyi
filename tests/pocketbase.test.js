@@ -412,6 +412,88 @@ test('named collections through the PocketBase REST interface', {
   });
 });
 
+test('collection overview: real PocketBase public totals, latest edits and empty multi-relations', {
+  skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
+}, async (t) => {
+  const { request, base, adminToken, dir, restart } = await start(t);
+  // Explicit dates are fixture-only: the deployed schema keeps native autodates.
+  await writeFile(path.join(dir, 'hooks/overview-fixtures.pb.js'), `
+    onRecordUpdateRequest((e) => {
+      if (e.hasSuperuserAuth() && e.requestInfo().body.fixtureUpdated) {
+        e.record.setRaw("created", new DateTime("2026-01-01 00:00:00.000Z"));
+        e.record.setRaw("updated", new DateTime(e.requestInfo().body.fixtureUpdated));
+      }
+      e.next();
+    }, "likes_items");
+  `);
+  await restart();
+  const api = createLikesAPI(base);
+  const groups = 'collections/likes_collections/records';
+  const records = 'collections/likes_items/records';
+  async function create(route, body) {
+    const result = await request(route, { method: 'POST', token: adminToken, body });
+    assert.equal(result.status, 200, JSON.stringify(result));
+    return result.data;
+  }
+  async function patch(id, body) {
+    const result = await request(`${records}/${id}`, { method: 'PATCH', token: adminToken, body });
+    assert.equal(result.status, 200, JSON.stringify(result));
+    return result.data;
+  }
+  const reading = await create(groups, { name: 'Reading' });
+  const empty = await create(groups, { name: 'Empty' });
+  const art = await create(groups, { name: 'Art' });
+  const drafts = await create(groups, { name: 'Drafts only' });
+  const older = '2026-02-01 00:00:00.000Z';
+  const recent = '2026-03-01 00:00:00.000Z';
+  const id = n => `overview${String(n).padStart(7, '0')}`;
+  async function seed(n, collections, updated, published = true) {
+    await create(records, { id: id(n), title: `Item ${n}`, url: `https://example.com/${n}`, collections, published });
+    const item = await patch(id(n), { fixtureUpdated: updated });
+    assert.equal(item.updated, updated, 'Fixture edit time must actually persist');
+    return item;
+  }
+  for (let n = 1; n <= 11; n++) {
+    await seed(n, n === 1 ? [reading.id, art.id] : [reading.id], n <= 2 ? recent : older);
+    await seed(n + 20, [], n <= 2 ? recent : older);
+  }
+  await seed(100, [reading.id, drafts.id], '2026-04-01 00:00:00.000Z', false);
+  await seed(101, [], '2026-04-01 00:00:00.000Z', false);
+  const rows = await api.listCollectionOverview();
+  assert.deepEqual(rows.map(row => [row.id, row.name]), [
+    [art.id, 'Art'], [drafts.id, 'Drafts only'], [empty.id, 'Empty'], [reading.id, 'Reading'], ['misc', 'Misc.'],
+  ]);
+  assert.deepEqual(rows.map(row => row.totalItems), [1, 0, 0, 11, 11]);
+  assert.deepEqual(rows.map(row => row.updated), [recent, null, null, recent, recent]);
+  assert.deepEqual(rows[3].items.map(item => item.id), [2, 1, 11, 10, 9, 8, 7, 6].map(id));
+  assert.deepEqual(rows[4].items.map(item => item.id), [22, 21, 31, 30, 29, 28, 27, 26].map(id));
+  assert.ok(rows.flatMap(row => row.items).every(item => item.published));
+  assert.ok(rows[4].items.every(item => item.collections.length === 0));
+  const miscPage = await api.listPage({ collection: 'misc' });
+  assert.deepEqual(miscPage.items.map(item => item.id), Array.from({ length: 11 }, (_, n) => id(31 - n)));
+  assert.equal(miscPage.nextCursor, null);
+
+  // A more recent draft edit and removal from a named collection are not row history.
+  await patch(id(1), { published: false });
+  await patch(id(2), { collections: [] });
+  const changed = await api.listCollectionOverview();
+  assert.deepEqual(changed[0], { id: art.id, name: 'Art', items: [], totalItems: 0, updated: null });
+  assert.equal(changed[3].totalItems, 9);
+  assert.equal(changed[3].updated, older);
+  assert.equal(changed[4].totalItems, 12);
+  assert.equal(changed[4].items[0].id, id(2));
+  assert.equal(changed[4].updated, changed[4].items[0].updated);
+
+  // Misc. is still present when every published item has a membership.
+  for (const n of [2, ...Array.from({ length: 11 }, (_, n) => n + 21)]) {
+    await patch(id(n), { collections: [reading.id] });
+  }
+  assert.deepEqual((await api.listCollectionOverview()).at(-1), {
+    id: 'misc', name: 'Misc.', items: [], totalItems: 0, updated: null,
+  });
+  assert.deepEqual(await api.listPage({ collection: 'misc' }), { items: [], nextCursor: null });
+});
+
 test('load more: real PocketBase keyset pagination', {
   skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
 }, async (t) => {

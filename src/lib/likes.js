@@ -6,6 +6,15 @@ export function webURL(value) {
   } catch { return null; }
 }
 
+// Reserved URL selector, not a PocketBase named-collection record ID.
+export const MISC_COLLECTION = 'misc';
+
+const quote = value => JSON.stringify(String(value));
+function publishedFilter(collection) {
+  if (collection === MISC_COLLECTION) return 'published=true && collections:length = 0';
+  return `published=true${collection ? ` && collections.id ?= ${quote(collection)}` : ''}`;
+}
+
 export function createLikesAPI(base, fetcher = fetch) {
   const origin = webURL(base)?.replace(/\/$/, '');
   async function request(path, options = {}) {
@@ -42,6 +51,9 @@ export function createLikesAPI(base, fetcher = fetch) {
     } while (page <= result.totalPages);
     return items;
   }
+  function listCollections() {
+    return listRecords('collections/likes_collections/records?sort=name,id');
+  }
   return {
     duplicates(token, value) {
       const url = webURL(value);
@@ -67,8 +79,28 @@ export function createLikesAPI(base, fetcher = fetch) {
     fileToken(token) {
       return request('files/token', { method: 'POST', headers: { Authorization: token } });
     },
-    listCollections() {
-      return listRecords('collections/likes_collections/records?sort=name,id');
+    listCollections,
+    async listCollectionOverview() {
+      const collections = [...await listCollections(), { id: MISC_COLLECTION, name: 'Misc.' }];
+      const rows = new Array(collections.length);
+      let next = 0;
+      async function worker() {
+        while (next < collections.length) {
+          const index = next++;
+          const { id, name } = collections[index];
+          const query = new URLSearchParams({
+            filter: publishedFilter(id), sort: '-updated,-id', perPage: '8', page: '1',
+          });
+          // Anonymous, bounded previews; PocketBase counts only published members.
+          const result = await request(`collections/likes_items/records?${query}`);
+          const items = result.items.slice(0, 8);
+          // Latest edit of a current published member, not membership history.
+          rows[index] = { id, name, items, totalItems: result.totalItems,
+            updated: items[0]?.updated || items[0]?.created || null };
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(4, collections.length) }, worker));
+      return rows;
     },
     saveCollection(token, name, id) {
       if (!name.trim()) throw new Error('Enter a collection name.');
@@ -84,9 +116,7 @@ export function createLikesAPI(base, fetcher = fetch) {
     },
     /** @param {{ collection?: string, cursor?: { created: string, id: string } | null }} [options] */
     async listPage({ collection = '', cursor = null } = {}) {
-      const quote = value => JSON.stringify(String(value));
-      let filter = 'published=true';
-      if (collection) filter += ` && collections.id ?= ${quote(collection)}`;
+      let filter = publishedFilter(collection);
       if (cursor) filter += ` && (created < ${quote(cursor.created)} || (created = ${quote(cursor.created)} && id < ${quote(cursor.id)}))`;
       // Look ahead by one without exposing totals or using shifting page offsets.
       const query = new URLSearchParams({ filter, sort: '-created,-id', perPage: '25', skipTotal: 'true' });

@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PublishedItems from '../components/likes/PublishedItems.astro';
-import { createLikesAPI } from '../lib/likes.js';
+import { createLikesAPI, MISC_COLLECTION } from '../lib/likes.js';
+import type { CollectionRow } from '../components/likes/CollectionRows.astro';
 
 export const prerender = false;
 
@@ -11,7 +12,10 @@ const selectedCollection = Astro.url.searchParams.get('collection') ?? '';
 const afterCreated = Astro.url.searchParams.get('afterCreated');
 const afterId = Astro.url.searchParams.get('afterId');
 const cursor = afterCreated && afterId ? { created: afterCreated, id: afterId } : null;
+// Preserve all-items pagination links shared before the overview was introduced.
+const isOverview = !selectedCollection && !cursor && Astro.url.searchParams.get('view') !== 'all';
 let items = [], collections = [], nextCursor = null, error = '';
+let overview: CollectionRow[] | null = isOverview ? [] : null;
 
 // Start uncached: publication changes should be reflected on the next request.
 Astro.response.headers.set('Cache-Control', 'no-store');
@@ -19,13 +23,18 @@ const api = createLikesAPI(endpoint, (url, options) => fetch(url, {
   ...options, signal: AbortSignal.timeout(8000),
 }));
 try {
-  const [page, groups] = await Promise.all([
-    api.listPage({ collection: selectedCollection, cursor }),
-    api.listCollections(),
-  ]);
-  items = page.items;
-  nextCursor = page.nextCursor;
-  collections = groups;
+  if (isOverview) {
+    overview = await api.listCollectionOverview();
+    collections = overview.filter(collection => collection.id !== MISC_COLLECTION);
+  } else {
+    const [page, groups] = await Promise.all([
+      api.listPage({ collection: selectedCollection, cursor }),
+      api.listCollections(),
+    ]);
+    items = page.items;
+    nextCursor = page.nextCursor;
+    collections = groups;
+  }
 } catch {
   Astro.response.status = 503;
   error = 'Likes is temporarily unavailable.';
@@ -35,7 +44,7 @@ try {
 <Layout title="Likes" wide clientRouter={false}>
   <section id="likes">
     <h1>Likes</h1>
-    <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} />
+    <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} {overview} />
     <p id="manage-likes" class="manage" hidden><a href="/likes/manage">Manage Likes</a></p>
   </section>
 </Layout>
