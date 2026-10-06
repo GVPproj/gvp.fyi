@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import netlify from '@astrojs/netlify';
+import mdx from '@astrojs/mdx';
 import { loadEnvFile } from 'node:process';
 
 try { loadEnvFile(); } catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -7,6 +8,12 @@ const pocketbase = process.env.PUBLIC_POCKETBASE_URL ? new URL(process.env.PUBLI
 
 export default defineConfig({
   site: 'https://gvp.fyi',
+  integrations: [mdx()],
+  markdown: {
+    shikiConfig: {
+      theme: 'nord',
+    },
+  },
   image: {
     remotePatterns: pocketbase ? [{
       protocol: pocketbase.protocol.slice(0, -1),

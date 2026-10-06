@@ -1,0 +1,54 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<Layout title={post.data.title}>
+  <article>
+    <header>
+      <a href="/blog/">← Blog</a>
+      <h1>{post.data.title}</h1>
+    </header>
+    <div class="post-body"><Content /></div>
+  </article>
+</Layout>
+
+<style>
+  article {
+    width: min(100%, 65ch);
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  a { color: var(--color-accent); }
+  h1 { margin-block: 1rem 2rem; }
+  .post-body { color: var(--color-foreground); }
+  .post-body :global(> * + *) { margin-block-start: 1.5rem; }
+  .post-body :global(.face) { margin-inline: auto; }
+  .post-body :global(code) { font-size: 0.95em; color: var(--color-accent); }
+  .post-body :global(pre) {
+    padding: 0.875rem 1.125rem;
+    border: 1px solid var(--nord2);
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+  }
+  .post-body :global(pre code) { font-size: inherit; color: inherit; }
+  .post-body :global(a) { color: var(--color-accent); }
+</style>

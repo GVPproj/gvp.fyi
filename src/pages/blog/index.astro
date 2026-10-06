@@ -1,0 +1,21 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+const posts = (await getCollection('blog')).sort((a, b) => a.data.title.localeCompare(b.data.title));
+---
+
+<Layout title="Blog">
+  <h1>Blog</h1>
+  <ul>
+    {posts.map((post) => (
+      <li><a href={`/blog/${post.id}/`}>{post.data.title}</a></li>
+    ))}
+  </ul>
+</Layout>
+
+<style>
+  ul { list-style: none; margin: 0; padding: 0; }
+  li + li { margin-block-start: 1rem; }
+  a { color: var(--color-accent); }
+</style>

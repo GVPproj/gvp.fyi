@@ -24,6 +24,24 @@ Keep `pnpm dev` running while viewing the site. The port is fixed so the proxy c
 - `pnpm build` generates static assets in `dist/` and the Netlify Function for `/likes`.
 - `pnpm dev` runs both static and on-demand routes locally. Use Netlify's local tooling or a Deploy Preview to verify the production function.
 
+## Blog
+
+Blog posts live in `src/content/blog/` as `.md` or `.mdx` files with a required `title` in YAML frontmatter. They appear automatically at `/blog/` (alphabetically by title), with the filename determining the post URL. Posts are prerendered; publishing changes requires a rebuild.
+
+Use MDX to embed Astro components alongside Markdown:
+
+```mdx
+---
+title: Drawing my face
+---
+
+import Face from '@src/components/Face.astro';
+
+<Face />
+
+Your Markdown here.
+```
+
 ## Likes
 
 `/likes` renders published links, images, PDFs, quotes, and personal notes in Astro on each request through a Netlify Function. Public browsing works without JavaScript; saves do not require a rebuild. All other pages remain prerendered. `/links` retains a static-host-compatible redirect.

@@ -1,16 +1,29 @@
 ---
 import Sig from './Sig.astro'
+import ChevronDown from './ChevronDown.astro'
 
 const path = Astro.url.pathname
 
 const links = [
-  { href: '/projects', label: 'Projects' },
+
   { href: '/likes', label: 'Likes' },
   { href: '/blog', label: 'Blog' },
 ].map((link) => ({
   ...link,
   match: (p: string) => p === link.href || p.startsWith(`${link.href}/`),
 }))
+
+const groups = [
+  { label: 'Music', id: 'music', children: ['Releases', 'Video', 'Film'] },
+  { label: 'Software', id: 'software', children: ['Projects', 'Utils'] },
+].map((group) => {
+  const children = group.children.map((label) => ({
+    label,
+    href: `/${label.toLowerCase()}`,
+    current: path === `/${label.toLowerCase()}` || path.startsWith(`/${label.toLowerCase()}/`),
+  }))
+  return { ...group, children, current: children.some((child) => child.current) }
+})
 ---
 
 <header class="site-header">
@@ -25,6 +38,20 @@ const links = [
 
   <nav class="desktop" aria-label="Main navigation">
     <ul>
+      {groups.map((group) => (
+        <li class="nav-group" style={`anchor-name: --${group.id}`}>
+          <button type="button" class:list={['group-toggle', { current: group.current }]} popovertarget={`${group.id}-menu`}>
+            {group.label}<ChevronDown />
+          </button>
+          <div id={`${group.id}-menu`} class="dropdown" popover style={`position-anchor: --${group.id}`}>
+            <ul>
+              {group.children.map((child) => (
+                <li><a href={child.href} class:list={{ current: child.current }} aria-current={child.current ? 'page' : undefined}>{child.label}</a></li>
+              ))}
+            </ul>
+          </div>
+        </li>
+      ))}
       {
         links.map((link) => (
           <li>
@@ -41,7 +68,7 @@ const links = [
   <!-- Native popover: light-dismiss, Escape, top layer and the ARIA wiring
        come free, and the menu works before JS loads — which the Radix
        dropdown it replaces did not. Accepted tradeoff: no focus trap, which
-       is fine for a bottom sheet of four links. -->
+       is fine for this navigation sheet. -->
   <button
     type="button"
     popovertarget="site-nav"
@@ -75,6 +102,18 @@ const links = [
           <span class="chev" aria-hidden="true">›</span>
         </a>
       </li>
+      {groups.map((group) => (
+        <li>
+          <details open={group.current}>
+            <summary class:list={{ current: group.current }}>{group.label}<ChevronDown /></summary>
+            <ul>
+              {group.children.map((child) => (
+                <li><a href={child.href} class:list={{ current: child.current }} aria-current={child.current ? 'page' : undefined}>{child.label}</a></li>
+              ))}
+            </ul>
+          </details>
+        </li>
+      ))}
       {
         links.map((link) => (
           <li>
@@ -104,7 +143,7 @@ const links = [
   // pop out of existence at the swap. Closing it here instead lets the exit
   // run on the slide-down transition the popover CSS already describes.
   document.addEventListener('astro:before-preparation', () => {
-    document.querySelector<HTMLElement>('#site-nav')?.hidePopover()
+    document.querySelectorAll<HTMLElement>('.site-header [popover]').forEach((menu) => menu.hidePopover())
   })
 
   // Brightens the pill's border once it's floating over content. The header
@@ -129,6 +168,7 @@ const links = [
     const desktop = window.matchMedia('(min-width: 48rem)')
     desktop.addEventListener('change', () => {
       if (desktop.matches) nav.hidePopover()
+      else document.querySelectorAll<HTMLElement>('.dropdown').forEach((menu) => menu.hidePopover())
     }, { signal: controller.signal })
     nav.addEventListener('beforetoggle', (e) => {
       document.documentElement.style.overflow =
@@ -215,7 +255,8 @@ const links = [
   }
 
   a:focus-visible,
-  button:focus-visible {
+  button:focus-visible,
+  summary:focus-visible {
     outline: 2px solid var(--colour-accent);
     outline-offset: 4px;
   }
@@ -224,11 +265,15 @@ const links = [
     color: var(--colour-text-base);
   }
 
-  nav a:hover {
+  nav a:hover,
+  .group-toggle:hover,
+  summary:hover {
     color: var(--colour-highlight);
   }
 
-  nav a.current {
+  nav a.current,
+  .group-toggle.current,
+  summary.current {
     color: var(--colour-accent);
   }
 
@@ -237,7 +282,7 @@ const links = [
     align-self: center;
   }
 
-  .desktop ul {
+  .desktop > ul {
     display: flex;
     align-items: center;
     gap: 1.75rem;
@@ -260,6 +305,75 @@ const links = [
     }
   }
 
+  .group-toggle,
+  summary {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+  }
+
+  .group-toggle {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--colour-text-base);
+    font: inherit;
+  }
+
+  .group-toggle :global(svg),
+  summary :global(svg) {
+    flex-shrink: 0;
+    transition: transform 180ms ease;
+  }
+
+  .nav-group:has(.dropdown:popover-open) .group-toggle :global(svg),
+  details[open] > summary :global(svg) {
+    transform: rotate(180deg);
+  }
+
+  summary { list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+
+  #site-nav details ul {
+    padding-inline-start: 1rem;
+    font-size: 1.125rem;
+  }
+
+  .dropdown {
+    /* Centered below the pill on browsers without CSS anchor positioning. */
+    position: fixed;
+    inset: 6rem 1rem auto;
+    width: max-content;
+    min-width: 10rem;
+    margin: 0 auto;
+    padding: 0.5rem;
+    border: 1px solid var(--ink-500);
+    border-radius: 0.75rem;
+    background: var(--colour-fill);
+    color: var(--colour-text-base);
+    box-shadow: 0 10px 30px -10px hsl(204 80% 6% / 0.7);
+    font: 500 1.125rem/1.5 var(--font-sans);
+  }
+
+  @supports (top: anchor(bottom)) {
+    .dropdown {
+      inset: auto;
+      top: anchor(bottom);
+      left: anchor(left);
+      margin: 1.5rem 0 0;
+      position-try-fallbacks: flip-inline;
+    }
+  }
+
+  .dropdown a {
+    display: block;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.25rem;
+  }
+
+  .dropdown a:hover { background: var(--colour-fill-muted); }
+
   .menu-toggle {
     padding-inline: 0.375rem;
     border: 0;
@@ -275,7 +389,7 @@ const links = [
   }
 
   /* Bottom sheet: pinned to the bottom edge, slides up from off-screen. */
-  [popover] {
+  #site-nav {
     inset: auto 0 0 0;
     width: 100%;
     max-width: none;
@@ -302,25 +416,25 @@ const links = [
       display 0.25s ease-out allow-discrete;
   }
 
-  [popover]:popover-open {
+  #site-nav:popover-open {
     opacity: 1;
     transform: none;
   }
 
   @starting-style {
-    [popover]:popover-open {
+    #site-nav:popover-open {
       opacity: 0;
       transform: translateY(100%);
     }
   }
 
-  [popover]::backdrop {
+  #site-nav::backdrop {
     background: hsl(204 80% 6% / 0.55);
     transition: background 0.25s ease-out;
   }
 
   @starting-style {
-    [popover]:popover-open::backdrop {
+    #site-nav:popover-open::backdrop {
       background: transparent;
     }
   }
@@ -333,18 +447,20 @@ const links = [
     background: var(--ink-500);
   }
 
-  [popover] ul {
+  #site-nav ul {
     font-family: var(--font-sans);
     font-size: 1.375rem;
     line-height: 1.75rem;
     font-weight: 500;
   }
 
-  [popover] li + li a {
+  #site-nav li + li > a,
+  #site-nav li + li > details {
     border-block-start: 1px solid var(--ink-700);
   }
 
-  [popover] a {
+  #site-nav a,
+  #site-nav summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -353,7 +469,7 @@ const links = [
 
   /* :active gives instant press feedback, replacing the old 0.8s
      flash-return-sleep sequence that ran before every navigation. */
-  [popover] a:active {
+  #site-nav a:active {
     color: var(--colour-highlight);
   }
 
@@ -380,6 +496,8 @@ const links = [
 
   @media (prefers-reduced-motion: reduce) {
     header,
+    .group-toggle :global(svg),
+    summary :global(svg),
     [popover],
     [popover]::backdrop {
       transition: none;
