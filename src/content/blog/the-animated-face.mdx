@@ -1,0 +1,87 @@
+---
+title: The animated face
+---
+
+import Face from "@src/components/Face.astro";
+
+<Face />
+
+## {frontmatter.title}
+
+This is a one-line drawing of my face, done by my partner <a href="https://sophiaburke.ca/" target="_blank" rel="noopener noreferrer">Sophia</a>.
+
+A single stroke drawing is easy to animate, since it can be converted to one SVG path and revealed with a CSS animation.
+
+Once we have the SVG (it's been a while so I can't remember which tool we used for this), setting `pathLength="1"` gives us a normalized value for the full path, rather than having to measure the length with JavaScript (`path.getTotalLength()`, but this way we are JS-free).
+
+`stroke-dasharray` takes a list of lengths, which alternate between dashes and gaps along the path, repeating until the path runs out. `stroke-dasharray: 1 1` gives us a dash of length 1 followed by a gap of length 1.
+
+`stroke-dashoffset` slides the dash pattern along the path before drawing starts. Because a dasharray is a repeating pattern, `stroke-dashoffset: 1` can shift the pattern by one to the gap, covering the path and hiding the dash.
+
+As the CSS animation changes the offset from 1 to 0 over four seconds, the dash gradually replaces the gap, revealing the drawing from start to finish.
+
+A nice challenge would be to build something similar out of multiple paths, managing the animation timings to get a similar 'see how it's drawn' effect.
+
+Here's the `Face.astro` component, with the long SVG path data omitted for readability.
+
+```astro
+---
+interface Props {
+  scale?: number
+}
+
+const { scale = 1 } = Astro.props
+const width = 300 * scale
+const height = Math.round((width * 500) / 350)
+---
+
+<svg
+  class="face"
+  viewBox="0 0 350 500"
+  role="img"
+  width={width}
+  height={height}
+>
+  <title>A one-line portrait of my face</title>
+  <path
+    pathLength="1"
+    d="…"
+    stroke="currentColor"
+    stroke-width="8"
+    stroke-linecap="round"
+    fill-opacity="0"
+  />
+</svg>
+
+<style>
+  .face {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100svh - 3rem);
+  }
+
+  .face path {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+    animation: draw-face 4s ease-out forwards;
+  }
+
+  @keyframes draw-face {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .face path {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+</style>
+```
+
+## Read more
+
+- [stroke-dasharray on MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dasharray)
+- [stroke-dashoffset on MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-dashoffset)

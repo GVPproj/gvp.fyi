@@ -9,6 +9,9 @@ const pocketbase = process.env.PUBLIC_POCKETBASE_URL ? new URL(process.env.PUBLI
 export default defineConfig({
   site: 'https://gvp.fyi',
   integrations: [mdx()],
+  redirects: {
+    '/blog/drawing-my-face/': '/blog/the-animated-face/',
+  },
   markdown: {
     shikiConfig: {
       theme: 'nord',
