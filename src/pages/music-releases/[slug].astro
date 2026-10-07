@@ -16,7 +16,7 @@ const streaming = [
   { label: 'Spotify', url: release.streaming?.spotify },
   { label: 'Apple Music', url: release.streaming?.apple },
   { label: 'Tidal', url: release.streaming?.tidal },
-];
+].filter(link => link.url);
 ---
 
 <Layout title={release.title}>
@@ -29,17 +29,17 @@ const streaming = [
     </header>
     <div class="release-media">
       <img src={release.artwork} alt={`${release.title} album cover`} width="700" height="700" />
-      <iframe
+      {release.album_id && <iframe
         title={`Bandcamp player — ${release.title} by ${release.artist}`}
         src={`https://bandcamp.com/EmbeddedPlayer/album=${release.album_id}/size=large/bgcol=2e3440/linkcol=88c0d0/artwork=none/transparent=true/`}
         height={release.player_height ?? 406}
         loading="lazy"
-      ></iframe>
+      ></iframe>}
     </div>
-    <nav aria-label="Listen to this release">
-      <a href={release.url}>Bandcamp</a>
-      {streaming.filter(link => link.url).map(link => <a href={link.url}>{link.label}</a>)}
-    </nav>
+    {release.url || streaming.length > 0 ? <nav aria-label="Listen to this release">
+      {release.url && <a href={release.url}>Bandcamp</a>}
+      {streaming.map(link => <a href={link.url}>{link.label}</a>)}
+    </nav> : <p>No listening link is currently available for this release.</p>}
     {release.about && <div class="description">
       {release.about.split(/\r?\n\s*\r?\n/).map(paragraph => <p>{paragraph}</p>)}
     </div>}

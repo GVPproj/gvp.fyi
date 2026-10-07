@@ -1,0 +1,162 @@
+[
+	{
+		"title": "Even In America",
+		"artist": "Miracle Fortress",
+		"release_date": "2014-09-16T07:00:00Z",
+		"artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/c0/4f/64/c04f6422-2545-f819-c223-cd8b302338cd/cover.jpg/1200x1200bb.jpg",
+		"tracks": [{ "title": "Even In America", "duration": 260.707, "track_num": 1 }],
+		"about": null,
+		"display_date": "2014, Secret City Records",
+		"streaming": { "apple": "https://music.apple.com/us/album/even-in-america-single/911392433" }
+	},
+	{
+		"title": "Let Me Be the 1",
+		"artist": "Miracle Fortress",
+		"release_date": "2014-09-09T07:00:00Z",
+		"artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/f6/38/ad/f638adb6-92fd-7a4e-390c-8957882e0266/cover.jpg/1200x1200bb.jpg",
+		"tracks": [{ "title": "Let Me Be The 1", "duration": 430.253, "track_num": 1 }],
+		"about": null,
+		"display_date": "2014, Secret City Records",
+		"streaming": { "apple": "https://music.apple.com/us/album/let-me-be-the-1-single/911397262" }
+	},
+	{
+		"title": "Here's To Feeling Good All the Time",
+		"artist": "Miracle Fortress",
+		"release_date": "2014-06-03T07:00:00Z",
+		"artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/ac/c0/a7/acc0a743-65e4-e49b-4e9e-03eab0bfd27b/cover.jpg/1200x1200bb.jpg",
+		"tracks": [{ "title": "Here's To Feeling Good All the Time", "duration": 271.08, "track_num": 1 }],
+		"about": null,
+		"display_date": "2014, Secret City Records",
+		"streaming": { "apple": "https://music.apple.com/us/album/heres-to-feeling-good-all-the-time-single/884097676" }
+	},
+	{
+		"title": "Everything Works - EP",
+		"display_title": "Everything Works EP",
+		"artist": "Miracle Fortress",
+		"release_date": "2011-12-11T08:00:00Z",
+		"artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/4b/34/6f/4b346fa7-c5d0-a24b-bea1-b2be969a7acd/5025425160035.png/1200x1200bb.jpg",
+		"tracks": [
+			{ "title": "Everything Works (Radio Edit)", "duration": 203.253, "track_num": 1 },
+			{ "title": "Everything Works", "duration": 241.213, "track_num": 2 },
+			{ "title": "Everything Works (Time & Space Machine Remix)", "duration": 399.787, "track_num": 3 },
+			{ "title": "Everything Works (Time & Space Machine Alternative Club Remix)", "duration": 397.795, "track_num": 4 }
+		],
+		"about": null,
+		"display_date": "2011, Secret City Records / Republic of Music",
+		"streaming": { "apple": "https://music.apple.com/gb/album/everything-works-ep/484646179" }
+	},
+	{
+		"title": "Was I the Wave?",
+		"artist": "Miracle Fortress",
+		"release_date": "26 Apr 2011 00:00:00 GMT",
+		"url": "https://miraclefortress.bandcamp.com/album/was-i-the-wave",
+		"album_id": 2176362726,
+		"art_id": 669685075,
+		"tracks": [
+			{ "title": "Awe", "duration": 153.0, "track_num": 1 },
+			{ "title": "Tracers", "duration": 288.72, "track_num": 2 },
+			{ "title": "Raw Spectacle", "duration": 361.187, "track_num": 3 },
+			{ "title": "Wave", "duration": 94.84, "track_num": 4 },
+			{ "title": "Spectre", "duration": 313.093, "track_num": 5 },
+			{ "title": "Everything Works", "duration": 241.213, "track_num": 6 },
+			{ "title": "Before", "duration": 100.453, "track_num": 7 },
+			{ "title": "Miscalculations", "duration": 327.547, "track_num": 8 },
+			{ "title": "Immanent Domain", "duration": 351.067, "track_num": 9 },
+			{ "title": "Until", "duration": 118.52, "track_num": 10 }
+		],
+		"about": "The second Miracle Fortress album moves toward electronic music. Graham Van Pelt wrote, arranged, performed, produced and engineered the record.",
+		"display_date": "2011, Secret City Records",
+		"streaming": { "apple": "https://music.apple.com/us/album/was-i-the-wave/859788356" }
+	},
+	{
+		"title": "Miscalculations",
+		"display_title": "Miscalculations (Promo)",
+		"artist": "Miracle Fortress",
+		"release_date": "2011",
+		"artwork_url": "/images/music-releases/miscalculations-promo.jpg",
+		"tracks": [
+			{ "title": "Miscalculations (Radio Edit)", "track_num": 1 },
+			{ "title": "Miscalculations (Album Version)", "track_num": 2 }
+		],
+		"about": "A UK promotional CD single with radio-edit and album versions of Miscalculations. The image shows the promotional disc; no sleeve artwork was recovered.",
+		"display_date": "2011, Secret City Records"
+	},
+	{
+		"title": "Raw Spectacle (Pantha du Prince Remix)",
+		"artist": "Miracle Fortress & Pantha du Prince",
+		"release_date": "2011",
+		"artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/5a/92/fb/5a92fbd4-141b-cb6b-c21e-8d3c7279b636/cover.jpg/1200x1200bb.jpg",
+		"tracks": [{ "title": "Raw Spectacle (Pantha du Prince Remix)", "duration": 375.147, "track_num": 1 }],
+		"about": "Pantha du Prince's remix of Raw Spectacle. Originally released through RCRD LBL in 2011; the listening link is the Secret City Records digital edition.",
+		"display_date": "2011, Secret City Records / RCRD LBL",
+		"streaming": { "apple": "https://music.apple.com/us/album/raw-spectacle-pantha-du-prince-remix-single/1365148367" }
+	},
+	{
+		"title": "Maybe Lately",
+		"artist": "Miracle Fortress",
+		"release_date": "2008",
+		"artwork_url": "/images/music-releases/maybe-lately.jpg",
+		"tracks": [
+			{ "title": "Maybe Lately", "track_num": 1 },
+			{ "title": "Hanky Panky Nohow", "track_num": 2 }
+		],
+		"about": "A 7-inch single released by Rough Trade, backed with Hanky Panky Nohow.",
+		"display_date": "2008, Rough Trade"
+	},
+	{
+		"title": "Five Roses",
+		"artist": "Miracle Fortress",
+		"release_date": "22 May 2007 00:00:00 GMT",
+		"url": "https://miraclefortress.bandcamp.com/album/five-roses",
+		"album_id": 3809650388,
+		"art_id": 255904965,
+		"tracks": [
+			{ "title": "Whirrs", "duration": 150.853, "track_num": 1 },
+			{ "title": "Have You Seen In Your Dreams", "duration": 181.347, "track_num": 2 },
+			{ "title": "Next Train", "duration": 256.493, "track_num": 3 },
+			{ "title": "Maybe Lately", "duration": 193.56, "track_num": 4 },
+			{ "title": "Beach Baby", "duration": 213.173, "track_num": 5 },
+			{ "title": "Hold Your Secrets to Your Heart", "duration": 215.013, "track_num": 6 },
+			{ "title": "Little Trees", "duration": 264.253, "track_num": 7 },
+			{ "title": "Poetaster", "duration": 234.973, "track_num": 8 },
+			{ "title": "Five Roses", "duration": 200.907, "track_num": 9 },
+			{ "title": "Blasphemy", "duration": 290.947, "track_num": 10 },
+			{ "title": "Fortune", "duration": 183.213, "track_num": 11 },
+			{ "title": "This Thing About You", "duration": 232.933, "track_num": 12 }
+		],
+		"about": "The debut Miracle Fortress album was written, performed, recorded and mixed by Graham Van Pelt at Montreal’s Friendship Cove. Its title refers to the Five Roses flour factory sign overlooking the neighbourhood.",
+		"display_date": "2007, Secret City Records",
+		"streaming": { "apple": "https://music.apple.com/us/album/five-roses/1101196452" }
+	},
+	{
+		"title": "Have You Seen In Your Dreams",
+		"artist": "Miracle Fortress",
+		"release_date": "2007-03-13",
+		"artwork_url": "/images/music-releases/have-you-seen-in-your-dreams.jpg",
+		"tracks": [
+			{ "title": "Have You Seen In Your Dreams", "track_num": 1 },
+			{ "title": "Hanky Panky Nohow", "track_num": 2 }
+		],
+		"about": "A 12-inch single released by Secret City Records, backed with Hanky Panky Nohow.",
+		"display_date": "2007, Secret City Records"
+	},
+	{
+		"title": "Poetaster",
+		"display_title": "Poetaster (Promo)",
+		"artist": "Miracle Fortress",
+		"release_date": "2007",
+		"artwork_url": "/images/music-releases/poetaster-promo.jpg",
+		"tracks": [{ "title": "Poetaster", "track_num": 1 }],
+		"about": "A one-track UK promotional CD single released by Rough Trade.",
+		"display_date": "2007, Rough Trade"
+	},
+	{
+		"title": "Watery Grave EP",
+		"artist": "Miracle Fortress",
+		"release_date": "2005",
+		"artwork_url": "/images/music-releases/watery-grave.jpg",
+		"tracks": [],
+		"about": "A self-released EP from winter 2005.",
+		"display_date": "Winter 2005, Self Released"
+	}
+]
