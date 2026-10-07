@@ -16,7 +16,7 @@ Once we have the SVG (it's been a while so I can't remember which tool we used f
 
 `stroke-dasharray` takes a list of lengths, which alternate between dashes and gaps along the path, repeating until the path runs out. `stroke-dasharray: 1 1` gives us a dash of length 1 followed by a gap of length 1.
 
-`stroke-dashoffset` slides the dash pattern along the path before drawing starts. Because a dasharray is a repeating pattern, `stroke-dashoffset: 1` can shift the pattern by one to the gap, covering the path and hiding the dash.
+`stroke-dashoffset` slides the dash pattern along the path before drawing starts. Because a dasharray is a repeating pattern, `stroke-dashoffset: 1` can shift the pattern by one to a gap, hiding the dash.
 
 As the CSS animation changes the offset from 1 to 0 over four seconds, the dash gradually replaces the gap, revealing the drawing from start to finish.
 
