@@ -1,0 +1,162 @@
+[
+	{
+		"title": "HBO",
+		"artist": "Think About Life",
+		"release_date": "2017-09-08",
+		"url": "https://thinkaboutlife.bandcamp.com/track/hbo",
+		"artwork_url": "https://f4.bcbits.com/img/a3326656923_16.jpg",
+		"tracks": [{ "title": "HBO", "duration": 275.461, "track_num": 1 }],
+		"about": "Recorded in 2010 and released in 2017 by Passovah Records. Available on the band's Bandcamp as a standalone track.",
+		"display_date": "2017, Passovah Records"
+	},
+	{
+		"title": "Family",
+		"display_title": "Family (Japanese Edition)",
+		"artist": "Think About Life",
+		"release_date": "2009-10",
+		"artwork_url": "/images/music-releases/family-japanese-edition.jpg",
+		"tracks": [
+			{ "title": "Johanna", "duration": 235, "track_num": 1 },
+			{ "title": "Havin My Baby", "duration": 208, "track_num": 2 },
+			{ "title": "Sweet Sixteen", "duration": 223, "track_num": 3 },
+			{ "title": "Young Hearts", "duration": 250, "track_num": 4 },
+			{ "title": "The Wizzard", "duration": 231, "track_num": 5 },
+			{ "title": "Set You On Fire", "duration": 217, "track_num": 6 },
+			{ "title": "Sofa Bed", "duration": 190, "track_num": 7 },
+			{ "title": "The Veldt", "duration": 283, "track_num": 8 },
+			{ "title": "Nueva Nueva", "duration": 197, "track_num": 9 },
+			{ "title": "Life of Crime", "duration": 345, "track_num": 10 },
+			{ "title": "Holesome", "track_num": 11 }
+		],
+		"about": "The Japanese CD edition, released by Every Conversation / Escalator Records (EVERYCD006 / XQAV-1087). Includes the Japanese bonus track Holesome, listed as Whole Sum on Discogs, in addition to the ten-track album. Issued with a wraparound obi and double paper jacket.",
+		"display_date": "October 2009, Every Conversation / Escalator Records"
+	},
+	{
+		"title": "Family",
+		"artist": "Think About Life",
+		"release_date": "2009-05-26",
+		"url": "https://thinkaboutlife.bandcamp.com/album/family",
+		"album_id": 3671252794,
+		"art_id": 136281117,
+		"tracks": [
+			{ "title": "Johanna", "duration": 235.6, "track_num": 1 },
+			{ "title": "Havin’ My Baby", "duration": 208.88, "track_num": 2 },
+			{ "title": "Sweet Sixteen", "duration": 223.92, "track_num": 3 },
+			{ "title": "Young Hearts", "duration": 250.493, "track_num": 4 },
+			{ "title": "The Wizzard", "duration": 231.347, "track_num": 5 },
+			{ "title": "Set You On Fire", "duration": 217.48, "track_num": 6 },
+			{ "title": "Sofa Bed", "duration": 190.533, "track_num": 7 },
+			{ "title": "The Veldt", "duration": 283.653, "track_num": 8 },
+			{ "title": "Nueva Nueva", "duration": 197.613, "track_num": 9 },
+			{ "title": "Life of Crime", "duration": 345.52, "track_num": 10 }
+		],
+		"about": "The band's second album, originally released by Alien8 Recordings in 2009. Track metadata and artwork represent the 2020 Bandcamp edition.",
+		"display_date": "2009, Alien8 Recordings"
+	},
+	{
+		"title": "Sweet Sixteen (Digital Single)",
+		"display_title": "Sweet Sixteen",
+		"artist": "Think About Life",
+		"release_date": "2009",
+		"url": "https://thinkaboutlife.bandcamp.com/album/sweet-sixteen-digital-single",
+		"album_id": 30777809,
+		"art_id": 2806922042,
+		"tracks": [
+			{ "title": "Sweet Sixteen (Album Version)", "duration": 223.92, "track_num": 1 },
+			{ "title": "Think About Life - Sweet Sixteen (Cadence Weapon Mix)", "duration": 311.733, "track_num": 2 }
+		],
+		"about": "First issued as a four-track Japanese 12-inch in 2009. The player and track list represent the 2020 two-track digital edition, pairing the album version with a Cadence Weapon mix; the 2010 UK 7-inch also pairs Sweet Sixteen with a Cadence Weapon remix.",
+		"display_date": "2009, Every Conversation Records; 2020 digital edition"
+	},
+	{
+		"title": "Think About Life",
+		"display_title": "Think About Life (Japanese Edition)",
+		"artist": "Think About Life",
+		"release_date": "2007",
+		"artwork_url": "/images/music-releases/think-about-life-japanese-edition.jpg",
+		"tracks": [
+			{ "title": "Paul Cries", "track_num": 1 },
+			{ "title": "Bastian And The Boar", "track_num": 2 },
+			{ "title": "Commander Riker's Party", "track_num": 3 },
+			{ "title": "Fireworks", "track_num": 4 },
+			{ "title": "Money", "track_num": 5 },
+			{ "title": "In Her Hands", "track_num": 6 },
+			{ "title": "Serious Chords", "track_num": 7 },
+			{ "title": "What The Future Might Be", "track_num": 8 },
+			{ "title": "Slow-Motion Slam-Dunk From The Free-Throw Line", "track_num": 9 },
+			{ "title": "The Blue Sun", "track_num": 10 },
+			{ "title": "Going Deaf In The Summer", "track_num": 11 },
+			{ "title": "Testify", "track_num": 12 },
+			{ "title": "The Blue Sun (alternate)", "track_num": 13 },
+			{ "title": "Money (GVP remix)", "track_num": 14 }
+		],
+		"about": "The Japanese two-CD edition, released by Every Conversation / Escalator Records (EVERYCD001 / XQAV-1068-9). Disc one contains the ten-track album; disc two adds Going Deaf In The Summer, Testify, The Blue Sun (alternate), and Money (GVP remix).",
+		"display_date": "2007, Every Conversation / Escalator Records"
+	},
+	{
+		"title": "Black Champagne EP",
+		"artist": "Think About Life",
+		"release_date": "2007",
+		"url": "https://thinkaboutlife.bandcamp.com/album/black-champagne-ep",
+		"album_id": 3597637347,
+		"art_id": 4043215031,
+		"tracks": [
+			{ "title": "Cyanide", "duration": 159.84, "track_num": 1 },
+			{ "title": "Devil Is King", "duration": 168.867, "track_num": 2 },
+			{ "title": "Going Deaf In the Summer", "duration": 204.707, "track_num": 3 },
+			{ "title": "Sea King Takeoff", "duration": 255.025, "track_num": 4 }
+		],
+		"about": "The band dates sales of unmarked test pressings to 2007. A planned 2008 release through What's Your Rupture? did not proceed. This artwork, player and track metadata come from the digital EP released on August 27, 2020.",
+		"display_date": "2007 test pressings; 2020 digital release"
+	},
+	{
+		"title": "Presents: Miracle Fortress Remixes 2 HITS!",
+		"artist": "Think About Life",
+		"release_date": "2007",
+		"artwork_url": "/images/music-releases/think-about-life-remixes-2-hits.jpg",
+		"tracks": [
+			{ "title": "Paul Cries (GVP Remix)", "track_num": 1 },
+			{ "title": "Money (GVP Remix)", "track_num": 2 }
+		],
+		"about": "A two-track 7-inch issued by Every Conversation Records (EVERY006), with Graham Van Pelt remixes of Paul Cries and Money.",
+		"display_date": "2007, Every Conversation Records"
+	},
+	{
+		"title": "Think About Life",
+		"artist": "Think About Life",
+		"release_date": "2006-05-02",
+		"url": "https://thinkaboutlife.bandcamp.com/album/think-about-life-lp",
+		"album_id": 1148942334,
+		"art_id": 3318736360,
+		"tracks": [
+			{ "title": "Paul Cries", "duration": 196.693, "track_num": 1 },
+			{ "title": "Bastian And The Boar", "duration": 147.92, "track_num": 2 },
+			{ "title": "Commander Riker's Party", "duration": 175.067, "track_num": 3 },
+			{ "title": "Fireworks", "duration": 175.533, "track_num": 4 },
+			{ "title": "Money", "duration": 293.52, "track_num": 5 },
+			{ "title": "In Her Hands", "duration": 185.08, "track_num": 6 },
+			{ "title": "Serious Chords", "duration": 195.053, "track_num": 7 },
+			{ "title": "What The Future Might Be", "duration": 149.213, "track_num": 8 },
+			{ "title": "(Slow-Motion-Slam-Dunk From The Free-Throw Line)", "duration": 98.3467, "track_num": 9 },
+			{ "title": "The Blue Sun", "duration": 446.13, "track_num": 10 },
+			{ "title": "Going Deaf in the Summer (Japanese Edition Bonus Track)", "duration": 205.2, "track_num": 11 },
+			{ "title": "Testify (Japanese Edition Bonus Track)", "duration": 213.333, "track_num": 12 },
+			{ "title": "The Blue Sun (Alternate) (Japanese Edition Bonus Track)", "duration": 226.973, "track_num": 13 },
+			{ "title": "Money (GVP Remix) (Japanese Edition Bonus Track)", "duration": 324.92, "track_num": 14 }
+		],
+		"about": "The debut album, originally released by Alien8 Recordings in 2006. This is the 2020 Passovah/Bandcamp edition, including four tracks identified as Japanese-edition bonuses; the original Canadian album has ten tracks.",
+		"display_date": "2006, Alien8 Recordings"
+	},
+	{
+		"title": "Paul Cries",
+		"artist": "Think About Life",
+		"release_date": "2006",
+		"artwork_url": "/images/music-releases/think-about-life-paul-cries.jpg",
+		"tracks": [
+			{ "title": "Paul Cries", "track_num": 1 },
+			{ "title": "Going Deaf In The Summer", "track_num": 2 }
+		],
+		"about": "A 7-inch single issued by Every Conversation Records (EVERY001), backed with Going Deaf In The Summer. The artwork is a photograph of an inscribed sleeve.",
+		"display_date": "2006, Every Conversation Records"
+	}
+]

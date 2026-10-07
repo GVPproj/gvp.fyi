@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import thinkAboutLife from '../src/data/releases/think-about-life.json' with { type: 'json' };
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 async function blockExternalRequests(context, base) {
@@ -36,6 +37,11 @@ test('Music Releases presents linked covers in horizontally browsable artist cat
     '/music-releases/have-you-seen-in-your-dreams', '/music-releases/poetaster-promo', '/music-releases/watery-grave-ep',
   ]);
   assert.equal(await miracleFortress.locator('img').count(), 12);
+  const thinkAboutLifeCategory = page.getByRole('region', { name: 'with Think About Life', exact: true });
+  assert.equal(await thinkAboutLifeCategory.getByRole('link').count(), thinkAboutLife.length);
+  for (const title of ['Family', 'Think About Life', 'Family (Japanese Edition)', 'Think About Life (Japanese Edition)']) {
+    assert.equal(await thinkAboutLifeCategory.getByRole('link', { name: title, exact: true }).count(), 1);
+  }
   await page.setViewportSize({ width: 320, height: 700 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   const last = category.getByRole('link', { name: 'Time Travel', exact: true });
@@ -44,6 +50,45 @@ test('Music Releases presents linked covers in horizontally browsable artist cat
     const rect = el.getBoundingClientRect();
     return rect.left >= 0 && rect.right <= innerWidth;
   }), true);
+});
+
+test('Think About Life releases work without JavaScript and retain verified metadata', browserOptions, async (t) => {
+  const { base, context } = await realBrowser(t);
+  const native = await context.browser().newContext({ javaScriptEnabled: false, viewport: { width: 320, height: 700 } });
+  t.after(() => native.close());
+  await blockExternalRequests(native, base);
+  const page = await native.newPage();
+  await page.goto(`${base}/music-releases`);
+  for (const release of thinkAboutLife) {
+    const title = release.display_title ?? release.title;
+    await page.getByRole('region', { name: 'with Think About Life', exact: true }).getByRole('link', { name: title, exact: true }).click();
+    const main = page.getByRole('main');
+    await main.getByRole('heading', { name: title, exact: true }).waitFor();
+    assert.equal(await main.locator('header p').first().textContent(), 'Think About Life');
+    const date = /^\d{4}(?:-\d{2})?$/.test(release.release_date) ? release.release_date : new Date(release.release_date).toISOString().slice(0, 10);
+    assert.equal(await main.locator('time').getAttribute('datetime'), date);
+    assert.equal(await main.getByRole('img').getAttribute('src'), release.artwork_url ?? `https://f4.bcbits.com/img/a${release.art_id}_16.jpg`);
+    if (title.endsWith('(Japanese Edition)')) {
+      assert.equal(await main.locator('time').getAttribute('datetime'), title === 'Family (Japanese Edition)' ? '2009-10' : '2007');
+      await main.getByRole('img').evaluate(img => img.decode());
+      assert.ok(await main.getByRole('img').evaluate(img => img.naturalWidth > 0));
+      assert.ok((await main.textContent()).includes('Every Conversation / Escalator Records'));
+      assert.ok((await main.textContent()).includes(title === 'Family (Japanese Edition)' ? 'Holesome' : 'disc two adds'));
+      assert.equal(await main.getByRole('navigation', { name: 'Listen to this release' }).count(), 0);
+    }
+    assert.equal(await main.locator('iframe').count(), release.album_id ? 1 : 0);
+    if (release.album_id) {
+      assert.ok((await main.locator('iframe').getAttribute('src')).includes(`/album=${release.album_id}/`));
+    }
+    if (release.url) {
+      assert.equal(await main.getByRole('link', { name: 'Bandcamp', exact: true }).getAttribute('href'), release.url);
+    }
+    if (release.streaming?.apple) {
+      assert.equal(await main.getByRole('link', { name: 'Apple Music', exact: true }).getAttribute('href'), release.streaming.apple);
+    }
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await main.getByRole('link', { name: '← Music Releases', exact: true }).click();
+  }
 });
 
 test('Every cover opens a release detail page with artwork, metadata and available listening links', browserOptions, async (t) => {

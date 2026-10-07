@@ -25,6 +25,7 @@ const streaming = [
     <header>
       <h1>{release.title}</h1>
       <p>{release.artist}</p>
+      {release.credit && <p class="release-credit">Graham Van Pelt — {release.credit}</p>}
       <p><time datetime={release.date}>{release.display_date ?? release.date}</time></p>
     </header>
     <div class="release-media">
@@ -47,11 +48,11 @@ const streaming = [
 </Layout>
 
 <style>
-  .release-detail { width: 100%; max-width: 60rem; display: grid; gap: 1.5rem; text-align: left; }
+  .release-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; overflow-wrap: anywhere; }
   :global(main:has(.release-detail)) { justify-content: flex-start; }
   header { display: grid; gap: .5rem; }
   header p { color: var(--nord4); }
-  .release-media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  .release-media { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: start; }
   img { display: block; width: 100%; height: auto; background: var(--nord1); }
   iframe { width: 100%; border: 0; }
   nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; }
@@ -59,5 +60,4 @@ const streaming = [
   a:hover { color: var(--nord7); }
   a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
   .description { display: grid; gap: 1rem; max-width: 70ch; overflow-wrap: anywhere; white-space: pre-line; }
-  @media (max-width: 40rem) { .release-media { grid-template-columns: minmax(0, 1fr); } }
 </style>

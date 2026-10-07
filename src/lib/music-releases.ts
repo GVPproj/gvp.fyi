@@ -1,5 +1,7 @@
 import grahamVanPelt from '../data/releases/graham-van-pelt.json';
 import miracleFortress from '../data/releases/miracle-fortress.json';
+import thinkAboutLife from '../data/releases/think-about-life.json';
+import otherCredits from '../data/releases/other-credits.json';
 
 type ReleaseData = {
   title: string;
@@ -7,13 +9,14 @@ type ReleaseData = {
   release_date: string;
   tracks: { title: string; duration?: number; track_num: number }[];
   about: string | null;
+  credit?: string;
   display_title?: string;
   display_date?: string;
   player_height?: number;
   streaming?: { spotify?: string; apple?: string; tidal?: string };
 } & (
   | { album_id: number; art_id: number; url: string; artwork_url?: never }
-  | { album_id?: never; art_id?: never; url?: never; artwork_url: string }
+  | { album_id?: never; art_id?: never; url?: string; artwork_url: string }
 );
 
 // Keep the imported catalogue intact; derive display fields in one place.
@@ -25,8 +28,8 @@ function prepareReleases(catalogue: ReleaseData[]) {
       title,
       slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       artwork: release.artwork_url ?? `https://f4.bcbits.com/img/a${release.art_id}_16.jpg`,
-      // Historical releases may only have a verified year, not an exact day.
-      date: /^\d{4}$/.test(release.release_date)
+      // Preserve year/month precision rather than inventing an exact day.
+      date: /^\d{4}(?:-\d{2})?$/.test(release.release_date)
         ? release.release_date
         : new Date(release.release_date).toISOString().slice(0, 10),
     };
@@ -36,6 +39,8 @@ function prepareReleases(catalogue: ReleaseData[]) {
 export const releaseCategories = [
   { id: 'graham-van-pelt', name: 'as Graham Van Pelt', releases: prepareReleases(grahamVanPelt) },
   { id: 'miracle-fortress', name: 'as Miracle Fortress', releases: prepareReleases(miracleFortress) },
+  { id: 'think-about-life', name: 'with Think About Life', releases: prepareReleases(thinkAboutLife) },
+  { id: 'other-credits', name: 'Other Credits', releases: prepareReleases(otherCredits) },
 ];
 
 export type ReleaseCategory = (typeof releaseCategories)[number];

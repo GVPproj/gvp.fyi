@@ -15,6 +15,10 @@ const { category } = Astro.props;
         <a href={`/music-releases/${release.slug}`}>
           <img src={release.artwork} alt="" width="320" height="320" loading="lazy" />
           <span>{release.title}</span>
+          {release.credit && <>
+            <span class="credit-artist">{release.artist}</span>
+            <span class="credit-role">{release.credit}</span>
+          </>}
         </a>
       </li>
     ))}
@@ -37,6 +41,8 @@ const { category } = Astro.props;
   ul { display: flex; gap: .75rem; overflow-x: auto; min-width: 0; list-style: none; padding: .25rem; margin: 0; }
   li { flex: 0 0 var(--cover-size); }
   a { display: block; color: inherit; text-decoration: none; font-size: .85rem; line-height: 1.5; }
+  .credit-artist, .credit-role { display: block; margin-top: .25rem; }
+  .credit-role { color: var(--nord4); font-size: .8rem; }
   a:hover span { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--nord8); outline-offset: 2px; }
   img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; background: var(--nord1); margin-bottom: .5rem; }
