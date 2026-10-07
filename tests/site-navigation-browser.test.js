@@ -13,8 +13,10 @@ test('Grouped navigation uses native desktop popovers and mobile disclosures', b
       const menu = page.locator(`#${parent.toLowerCase()}-menu`);
       assert.equal(await menu.evaluate(el => el.matches(':popover-open')), true);
       await menu.getByRole('link', { name: child, exact: true }).click();
-      await page.getByRole('heading', { name: child, exact: true }).waitFor();
-      assert.equal(new URL(page.url()).pathname, `/${child.toLowerCase()}`);
+      const title = child === 'Releases' ? 'Music Releases' : child;
+      const pathname = child === 'Releases' ? '/music-releases' : `/${child.toLowerCase()}`;
+      await page.getByRole('heading', { name: title, exact: true }).waitFor();
+      assert.equal(new URL(page.url()).pathname, pathname);
       assert.equal(await desktop.getByRole('button', { name: parent }).getAttribute('class'), 'group-toggle current');
       assert.equal(await page.locator('.dropdown:popover-open').count(), 0);
     }

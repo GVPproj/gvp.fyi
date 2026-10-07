@@ -1,0 +1,17 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ReleaseRow from '../../components/music-releases/ReleaseRow.astro';
+import { releaseCategories } from '../../lib/music-releases';
+---
+
+<Layout title="Music Releases">
+  <div class="music-releases">
+    <h1>Music Releases</h1>
+    {releaseCategories.map(category => <ReleaseRow {category} />)}
+  </div>
+</Layout>
+
+<style>
+  .music-releases { width: 100%; max-width: 87rem; text-align: left; display: grid; gap: 1.5rem; }
+  :global(main:has(.music-releases)) { justify-content: flex-start; }
+</style>

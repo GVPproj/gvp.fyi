@@ -1,0 +1,63 @@
+---
+import type { InferGetStaticPropsType } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import { releaseCategories } from '../../lib/music-releases';
+
+export function getStaticPaths() {
+  return releaseCategories.flatMap(category => category.releases.map(release => ({
+    params: { slug: release.slug },
+    props: { release },
+  })));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { release } = Astro.props;
+const streaming = [
+  { label: 'Spotify', url: release.streaming?.spotify },
+  { label: 'Apple Music', url: release.streaming?.apple },
+  { label: 'Tidal', url: release.streaming?.tidal },
+];
+---
+
+<Layout title={release.title}>
+  <article class="release-detail">
+    <a href="/music-releases">← Music Releases</a>
+    <header>
+      <h1>{release.title}</h1>
+      <p>{release.artist}</p>
+      <p><time datetime={release.date}>{release.display_date ?? release.date}</time></p>
+    </header>
+    <div class="release-media">
+      <img src={release.artwork} alt={`${release.title} album cover`} width="700" height="700" />
+      <iframe
+        title={`Bandcamp player — ${release.title} by ${release.artist}`}
+        src={`https://bandcamp.com/EmbeddedPlayer/album=${release.album_id}/size=large/bgcol=2e3440/linkcol=88c0d0/artwork=none/transparent=true/`}
+        height={release.player_height ?? 406}
+        loading="lazy"
+      ></iframe>
+    </div>
+    <nav aria-label="Listen to this release">
+      <a href={release.url}>Bandcamp</a>
+      {streaming.filter(link => link.url).map(link => <a href={link.url}>{link.label}</a>)}
+    </nav>
+    {release.about && <div class="description">
+      {release.about.split(/\r?\n\s*\r?\n/).map(paragraph => <p>{paragraph}</p>)}
+    </div>}
+  </article>
+</Layout>
+
+<style>
+  .release-detail { width: 100%; max-width: 60rem; display: grid; gap: 1.5rem; text-align: left; }
+  :global(main:has(.release-detail)) { justify-content: flex-start; }
+  header { display: grid; gap: .5rem; }
+  header p { color: var(--nord4); }
+  .release-media { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  img { display: block; width: 100%; height: auto; background: var(--nord1); }
+  iframe { width: 100%; border: 0; }
+  nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; }
+  a { color: var(--color-accent); }
+  a:hover { color: var(--nord7); }
+  a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+  .description { display: grid; gap: 1rem; max-width: 70ch; overflow-wrap: anywhere; white-space: pre-line; }
+  @media (max-width: 40rem) { .release-media { grid-template-columns: minmax(0, 1fr); } }
+</style>

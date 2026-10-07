@@ -17,11 +17,10 @@ const groups = [
   { label: 'Music', id: 'music', children: ['Releases', 'Video', 'Film'] },
   { label: 'Software', id: 'software', children: ['Projects', 'Utils'] },
 ].map((group) => {
-  const children = group.children.map((label) => ({
-    label,
-    href: `/${label.toLowerCase()}`,
-    current: path === `/${label.toLowerCase()}` || path.startsWith(`/${label.toLowerCase()}/`),
-  }))
+  const children = group.children.map((label) => {
+    const href = label === 'Releases' ? '/music-releases' : `/${label.toLowerCase()}`
+    return { label, href, current: path === href || path.startsWith(`${href}/`) }
+  })
   return { ...group, children, current: children.some((child) => child.current) }
 })
 ---

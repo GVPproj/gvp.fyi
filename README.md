@@ -42,6 +42,12 @@ import Face from '@src/components/Face.astro';
 Your Markdown here.
 ```
 
+## Music Releases
+
+`/music-releases` shows horizontal category rows of linked album covers, newest first. Each cover opens a static detail page at `/music-releases/<slug>` with release information, description (when available), a Bandcamp player, and available streaming links. Browsing works without JavaScript.
+
+The **as Graham Van Pelt** catalogue is imported intact from `gvp-music-sv/src/lib/data/releases.json` into `src/data/releases/graham-van-pelt.json`. Edit the JSON and rebuild to publish changes; no PocketBase migration or connection is needed. Artwork and audio are hosted by Bandcamp. `src/lib/music-releases.ts` groups releases and derives display fields; detail slugs use the display title (or title), so renaming a title requires preserving its old URL with a redirect.
+
 ## Likes
 
 `/likes` renders published links, images, PDFs, quotes, and personal notes in Astro on each request through a Netlify Function. Public browsing works without JavaScript; saves do not require a rebuild. All other pages remain prerendered. `/links` retains a static-host-compatible redirect.
