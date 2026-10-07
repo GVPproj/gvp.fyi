@@ -48,6 +48,8 @@ Your Markdown here.
 
 The **as Graham Van Pelt** catalogue is imported intact from `gvp-music-sv/src/lib/data/releases.json` into `src/data/releases/graham-van-pelt.json`. Edit the JSON and rebuild to publish changes; no PocketBase migration or connection is needed. Artwork and audio are hosted by Bandcamp. `src/lib/music-releases.ts` groups releases and derives display fields; detail slugs use the display title (or title), so renaming a title requires preserving its old URL with a redirect.
 
+Watery Grave EP uses five self-hosted MP3s in `public/audio/watery-grave/`, copied unchanged from the owner's music library. Track metadata includes optional `audio_url` values; the detail page renders native audio controls with `preload="none"`, no autoplay, and no JavaScript requirement. Netlify serves these as public static files, outside Functions and PocketBase; playable files are also downloadable. Audio changes require a rebuild and add binary assets to Git/deployments. Before production rollout, verify `audio/mpeg`, byte-range (`206`) responses/seeking, and the Netlify account's bandwidth allowance (about 28 MB per complete EP listen).
+
 ## Likes
 
 `/likes` renders published links, images, PDFs, quotes, and personal notes in Astro on each request through a Netlify Function. Public browsing works without JavaScript; saves do not require a rebuild. All other pages remain prerendered. `/links` retains a static-host-compatible redirect.

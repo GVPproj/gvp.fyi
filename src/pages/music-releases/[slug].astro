@@ -12,6 +12,7 @@ export function getStaticPaths() {
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { release } = Astro.props;
+const audioTracks = release.tracks.filter(track => track.audio_url);
 const streaming = [
   { label: 'Spotify', url: release.streaming?.spotify },
   { label: 'Apple Music', url: release.streaming?.apple },
@@ -37,10 +38,21 @@ const streaming = [
         loading="lazy"
       ></iframe>}
     </div>
+    {audioTracks.length > 0 && <section aria-labelledby="tracks-heading">
+      <h2 id="tracks-heading">Listen</h2>
+      <ol class="audio-tracks">
+        {audioTracks.map(track => <li value={track.track_num}>
+          <p id={`track-${track.track_num}`}>{track.title}</p>
+          <audio controls preload="none" src={track.audio_url} aria-labelledby={`track-${track.track_num}`}>
+            <a href={track.audio_url}>Listen to {track.title} (MP3)</a>
+          </audio>
+        </li>)}
+      </ol>
+    </section>}
     {release.url || streaming.length > 0 ? <nav aria-label="Listen to this release">
       {release.url && <a href={release.url}>Bandcamp</a>}
       {streaming.map(link => <a href={link.url}>{link.label}</a>)}
-    </nav> : <p>No listening link is currently available for this release.</p>}
+    </nav> : audioTracks.length === 0 && <p>No listening link is currently available for this release.</p>}
     {release.about && <div class="description">
       {release.about.split(/\r?\n\s*\r?\n/).map(paragraph => <p>{paragraph}</p>)}
     </div>}
@@ -55,6 +67,10 @@ const streaming = [
   .release-media { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: start; }
   img { display: block; width: 100%; height: auto; background: var(--nord1); }
   iframe { width: 100%; border: 0; }
+  .audio-tracks { display: grid; gap: 1.25rem; padding-inline-start: 1.75rem; margin-block-start: 1rem; }
+  .audio-tracks li { min-width: 0; }
+  .audio-tracks p { margin-block-end: .5rem; }
+  audio { display: block; width: 100%; min-width: 0; }
   nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; }
   a { color: var(--color-accent); }
   a:hover { color: var(--nord7); }

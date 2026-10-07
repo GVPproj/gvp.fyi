@@ -7,7 +7,7 @@ type ReleaseData = {
   title: string;
   artist: string;
   release_date: string;
-  tracks: { title: string; duration?: number; track_num: number }[];
+  tracks: { title: string; duration?: number; track_num: number; audio_url?: string }[];
   about: string | null;
   credit?: string;
   display_title?: string;
