@@ -2,9 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
+async function blockExternalRequests(context, base) {
+  await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
+}
+
 test('Music Releases presents six linked covers in a horizontally browsable category', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
-  await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
+  await blockExternalRequests(context, base);
   await page.goto(`${base}/music-releases`);
   await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
   const category = page.getByRole('region', { name: 'as Graham Van Pelt', exact: true });
@@ -30,17 +34,17 @@ test('Music Releases presents six linked covers in a horizontally browsable cate
 
 test('Every cover opens a release detail page with artwork, metadata and listening links', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
-  await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
+  await blockExternalRequests(context, base);
   const examples = [
-    ['The Lookout', 'July 2023, Self Released', '1133752224', 0, 'Hello listeners.'],
-    ['Atlantis Tapes', 'February 2023, Self Released', '2547459725', 0, 'early-morning loop improvisations'],
-    ['Under The Heat Dome', 'August 2022, Self Released', '4102581361', 3, 'Western North American Heat Dome'],
-    ['Salt Spring: Sun and Shadow', '2021, Arbutus Records', '2354237612', 3, 'early 2017'],
-    ['Sense Appeal EP', '2020, No Bad Days / Arbutus Records', '2329153476', 3, 'To order the physical vinyl'],
-    ['Time Travel', '2018, Arbutus Records', '1538922128', 3, null],
+    { title: 'The Lookout', date: 'July 2023, Self Released', albumId: '1133752224', streamingCount: 0, description: 'Hello listeners.' },
+    { title: 'Atlantis Tapes', date: 'February 2023, Self Released', albumId: '2547459725', streamingCount: 0, description: 'early-morning loop improvisations' },
+    { title: 'Under The Heat Dome', date: 'August 2022, Self Released', albumId: '4102581361', streamingCount: 3, description: 'Western North American Heat Dome' },
+    { title: 'Salt Spring: Sun and Shadow', date: '2021, Arbutus Records', albumId: '2354237612', streamingCount: 3, description: 'early 2017' },
+    { title: 'Sense Appeal EP', date: '2020, No Bad Days / Arbutus Records', albumId: '2329153476', streamingCount: 3, description: 'To order the physical vinyl' },
+    { title: 'Time Travel', date: '2018, Arbutus Records', albumId: '1538922128', streamingCount: 3, description: null },
   ];
   await page.goto(`${base}/music-releases`);
-  for (const [title, date, albumId, streamingCount, description] of examples) {
+  for (const { title, date, albumId, streamingCount, description } of examples) {
     await page.getByRole('region', { name: 'as Graham Van Pelt', exact: true }).getByRole('link', { name: title, exact: true }).click();
     await page.getByRole('heading', { name: title, level: 1, exact: true }).waitFor();
     const main = page.getByRole('main');
@@ -62,7 +66,7 @@ test('Every cover opens a release detail page with artwork, metadata and listeni
   // Static content and cover navigation also work with JavaScript disabled.
   const native = await context.browser().newContext({ javaScriptEnabled: false });
   t.after(() => native.close());
-  await native.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
+  await blockExternalRequests(native, base);
   const nativePage = await native.newPage();
   await nativePage.goto(`${base}/music-releases`);
   await nativePage.getByRole('link', { name: 'The Lookout', exact: true }).click();
