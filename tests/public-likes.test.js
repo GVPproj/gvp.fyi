@@ -204,9 +204,9 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     assert.equal(document.querySelectorAll('#likes-board > li').length, 5);
     assert.equal(document.querySelector('#likes-board h2').textContent, unsafe);
     assert.ok(document.querySelector('#likes-board').textContent.includes('A useful description'));
-    assert.equal(document.querySelector('details .full-text').textContent, body);
-    assert.equal(document.querySelector('details blockquote').textContent, 'Every word of the quotation.');
-    assert.equal(document.querySelectorAll('details > summary').length, 2);
+    assert.equal(document.querySelector('#likes-board details .full-text').textContent, body);
+    assert.equal(document.querySelector('#likes-board details blockquote').textContent, 'Every word of the quotation.');
+    assert.equal(document.querySelectorAll('#likes-board details > summary').length, 2);
     const image = document.querySelector('#likes-board img');
     const original = `${endpoint}/api/files/likes_items/image/original%20image.png`;
     assert.equal(image.closest('a').getAttribute('href'), original);

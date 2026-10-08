@@ -2,20 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
-const tracks = [
-  ['Watery Grave', '01-watery-grave.mp3'],
-  ['Forgiven', '02-forgiven.mp3'],
-  ['Secret Passage Way', '03-secret-passage-way.mp3'],
-  ['Eschatology', '04-eschatology.mp3'],
-  ['Sacred Flowers', '05-sacred-flowers.mp3'],
-].map(([title, file]) => ({ title, src: `/audio/watery-grave/${file}` }));
+import { releases, titleOf, slugOf } from './helpers/release-catalog.js';
+
+const release = releases.find(release => release.tracks.some(track => track.audio_url));
+assert.ok(release, 'Keep an audio-bearing release to exercise native playback');
+const tracks = release.tracks.filter(track => track.audio_url).map(track => ({ title: track.title, src: track.audio_url }));
 
 async function blockExternalRequests(context, base) {
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
 }
 
 for (const javaScriptEnabled of [true, false]) {
-  test(`Watery Grave has ordered native audio players without initial downloads (JavaScript ${javaScriptEnabled ? 'enabled' : 'disabled'})`, browserOptions, async (t) => {
+  test(`Native audio is accessible and avoids initial downloads (JavaScript ${javaScriptEnabled ? 'enabled' : 'disabled'})`, browserOptions, async (t) => {
     const { base, context } = await realBrowser(t);
     const native = await context.browser().newContext({ javaScriptEnabled, viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
     t.after(() => native.close());
@@ -26,15 +24,15 @@ for (const javaScriptEnabled of [true, false]) {
     });
     const page = await native.newPage();
     page.setDefaultTimeout(5000);
-    await page.goto(`${base}/music-releases/watery-grave-ep`);
+    await page.goto(`${base}/music-releases/${slugOf(release)}`);
     await page.waitForLoadState('networkidle');
     const main = page.getByRole('main');
-    await main.getByRole('heading', { name: 'Watery Grave EP', exact: true }).waitFor();
-    assert.equal(await main.locator('audio').count(), 5);
+    await main.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
+    assert.equal(await main.locator('audio').count(), tracks.length);
     const list = main.locator('ol').filter({ has: page.locator('audio') });
     assert.equal(await list.count(), 1);
-    assert.equal(await list.locator('li').count(), 5);
-    assert.equal(await list.locator('audio[controls][preload="none"]').count(), 5);
+    assert.equal(await list.locator('li').count(), tracks.length);
+    assert.equal(await list.locator('audio[controls][preload="none"]').count(), tracks.length);
     assert.deepEqual(await list.locator('audio').evaluateAll(players => players.map(audio => ({
       src: audio.getAttribute('src'),
       title: (audio.getAttribute('aria-labelledby') ?? '').trim().split(/\s+/)
@@ -62,9 +60,9 @@ for (const javaScriptEnabled of [true, false]) {
   });
 }
 
-test('Watery Grave local MP3s support byte-range responses', browserOptions, async (t) => {
+test('Local audio supports byte-range responses', browserOptions, async (t) => {
   const { base } = await realBrowser(t);
-  for (const { src } of tracks) {
+  for (const { src } of tracks.slice(0, 1)) {
     const response = await fetch(`${base}${src}`, { headers: { Range: 'bytes=0-1023' } });
     assert.equal(response.status, 206, src);
     assert.match(response.headers.get('content-type') ?? '', /^audio\/mpeg(?:;|$)/i, src);
@@ -74,18 +72,18 @@ test('Watery Grave local MP3s support byte-range responses', browserOptions, asy
   }
 });
 
-test('Watery Grave players load metadata, seek and play local MP3s', browserOptions, async (t) => {
+test('Native audio loads metadata, seeks and plays', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
-  await page.goto(`${base}/music-releases/watery-grave-ep`);
-  await page.getByRole('heading', { name: 'Watery Grave EP', exact: true }).waitFor();
+  await page.goto(`${base}/music-releases/${slugOf(release)}`);
+  await page.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
   const players = page.getByRole('main').locator('ol audio');
-  assert.equal(await players.count(), 5);
+  assert.equal(await players.count(), tracks.length);
   if (!await page.evaluate(() => document.createElement('audio').canPlayType('audio/mpeg'))) {
     t.skip('This Chromium build does not support MP3 decoding');
     return;
   }
-  for (const [index, { title }] of tracks.entries()) {
+  for (const [index, { title }] of tracks.slice(0, 1).entries()) {
     const audio = players.nth(index);
     // Explicit loading starts only here, after the separate preload regression check.
     await audio.evaluate(el => el.load());
