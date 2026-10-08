@@ -145,7 +145,7 @@ const groups = [
     document.querySelectorAll<HTMLElement>('.site-header [popover]').forEach((menu) => menu.hidePopover())
   })
 
-  // Brightens the pill's border once it's floating over content. The header
+  // Brightens the header's border once it's floating over content. The header
   // is re-rendered on every client-side navigation, so bind per page load.
   let cleanup = () => {}
   let controller = new AbortController()
@@ -194,7 +194,7 @@ const groups = [
     padding: 1.5rem;
   }
 
-  /* Desktop: a sticky, frosted pill. It must be a direct child of <body>
+  /* Desktop: a sticky, frosted bar. It must be a direct child of <body>
      (the scroll container) for `position: sticky` to work — any wrapper
      would become its containing block and it would never stick. */
   @media (width >= 48rem) {
@@ -209,11 +209,11 @@ const groups = [
       margin-block: 1rem 2.5rem;
       padding: 1rem 2rem 1rem 1.625rem;
       border: 1px solid var(--ink-700);
-      border-radius: 999px;
+      border-radius: 0;
       background-color: color-mix(in srgb, var(--colour-fill) 80%, transparent);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 10px 30px -10px hsl(204 80% 6% / 0.7);
+      box-shadow: 0 4px 12px -6px hsl(204 80% 6% / 0.3);
       transition: border-color 200ms ease;
     }
 
@@ -221,7 +221,7 @@ const groups = [
       border-color: var(--ink-500);
     }
 
-    /* Sig sets its own size (and bumps it at 64rem); the pill needs it small
+    /* Sig sets its own size (and bumps it at 64rem); the bar needs it small
        at every desktop width. */
     header :global(.sig) {
       width: 9rem;
@@ -340,7 +340,7 @@ const groups = [
   }
 
   .dropdown {
-    /* Centered below the pill on browsers without CSS anchor positioning. */
+    /* Centered below the bar on browsers without CSS anchor positioning. */
     position: fixed;
     inset: 6rem 1rem auto;
     width: max-content;
@@ -348,10 +348,10 @@ const groups = [
     margin: 0 auto;
     padding: 0.5rem;
     border: 1px solid var(--ink-500);
-    border-radius: 0.75rem;
+    border-radius: 0;
     background: var(--colour-fill);
     color: var(--colour-text-base);
-    box-shadow: 0 10px 30px -10px hsl(204 80% 6% / 0.7);
+    box-shadow: 0 4px 12px -6px hsl(204 80% 6% / 0.3);
     font: 500 1.125rem/1.5 var(--font-sans);
   }
 
@@ -368,7 +368,7 @@ const groups = [
   .dropdown a {
     display: block;
     padding: 0.625rem 0.875rem;
-    border-radius: 0.25rem;
+    border-radius: 0;
   }
 
   .dropdown a:hover { background: var(--colour-fill-muted); }
@@ -397,11 +397,11 @@ const groups = [
     padding: 0.75rem 1.5rem 2.25rem;
     border: 0;
     border-block-start: 1px solid var(--ink-500);
-    border-radius: 1.5rem 1.5rem 0 0;
+    border-radius: 0;
     background-color: color-mix(in srgb, var(--colour-fill) 92%, transparent);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 -20px 50px -20px hsl(204 80% 4% / 0.9);
+    box-shadow: 0 -4px 16px -8px hsl(204 80% 4% / 0.35);
     color: var(--colour-text-base);
     overscroll-behavior: contain;
     opacity: 0;
@@ -484,7 +484,7 @@ const groups = [
     margin-block-start: 1rem;
     padding: 0.875rem;
     border: 1px solid var(--ink-700);
-    border-radius: 999px;
+    border-radius: 0;
     background: var(--colour-fill-muted);
     color: var(--colour-text-muted);
     font-family: var(--font-sans);
