@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { parseHTML } from 'linkedom';
 import { chromium } from 'playwright-core';
+import { ownerResult, logout } from './helpers/owner-session.js';
 
 async function listen(server) {
   server.listen(0, '127.0.0.1');
@@ -121,6 +122,16 @@ async function publicLikesServer(t) {
       return { response, html, document, query: itemRequests[0]?.url.searchParams, queries: itemRequests.map(request => request.url.searchParams) };
     },
   };
+}
+
+// URL and DOM changes happen before Astro finishes a swap and runs page scripts.
+async function clientNavigation(tab, action) {
+  await tab.evaluate(() => {
+    window.pageLoaded = false;
+    document.addEventListener('astro:page-load', () => { window.pageLoaded = true; }, { once: true });
+  });
+  await action();
+  await tab.waitForFunction(() => window.pageLoaded);
 }
 
 const created = '2026-01-01 00:00:00.000Z';
@@ -323,6 +334,179 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
       await tab.waitForURL(`${origin}/likes`);
       await tab.goBack();
       assert.equal(await tab.locator('#likes-board > li').count(), 24);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  await t.test('completed signature survives public Likes navigation without replay, including remove-and-reinsert', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  }, async () => {
+    state.items = [item('reading')];
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    try {
+      for (const fallback of [false, true]) {
+        const context = await browser.newContext();
+        if (fallback) await context.addInitScript(() => { Element.prototype.moveBefore = undefined; });
+        const tab = await context.newPage();
+        tab.setDefaultTimeout(5000);
+        await tab.goto(`${origin}/blog`);
+        await tab.waitForFunction(() => document.querySelector('.sig path')?.style.animationName === 'none');
+        await tab.evaluate(() => { window.originalSignature = document.querySelector('.sig'); });
+        const nav = tab.getByRole('navigation', { name: 'Main navigation', exact: true });
+        await clientNavigation(tab, () => nav.getByRole('link', { name: 'Likes', exact: true }).click());
+        await tab.locator('#collection-rows').waitFor();
+        assert.equal(await tab.evaluate(() => window.originalSignature === document.querySelector('.sig')), true);
+        assert.equal(await tab.locator('.sig path').evaluate(path => parseFloat(getComputedStyle(path).strokeDashoffset)), 0);
+        assert.equal(await tab.locator('.sig path').evaluate(path => getComputedStyle(path).animationName), 'none');
+        await clientNavigation(tab, () => nav.getByRole('link', { name: 'Blog', exact: true }).click());
+        await tab.waitForURL(`${origin}/blog`);
+        assert.equal(await tab.evaluate(() => window.originalSignature === document.querySelector('.sig')), true);
+        assert.equal(await tab.locator('.sig path').evaluate(path => getComputedStyle(path).animationName), 'none');
+        await context.close();
+      }
+    } finally {
+      await browser.close();
+    }
+  });
+
+  await t.test('initial loads draw the signature and navigation during drawing keeps the SVG, including the fallback', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  }, async () => {
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    try {
+      for (const fallback of [false, true]) {
+        const context = await browser.newContext();
+        if (fallback) await context.addInitScript(() => { Element.prototype.moveBefore = undefined; });
+        const tab = await context.newPage();
+        tab.setDefaultTimeout(5000);
+        await tab.goto(`${origin}/likes`);
+        assert.ok(await tab.locator('.sig path').evaluate(path => parseFloat(getComputedStyle(path).strokeDashoffset) > 0));
+        await tab.evaluate(() => { window.originalSignature = document.querySelector('.sig'); });
+        await clientNavigation(tab, () => tab.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Blog', exact: true }).click());
+        await tab.waitForURL(`${origin}/blog`);
+        assert.equal(await tab.evaluate(() => window.originalSignature === document.querySelector('.sig')), true);
+        await tab.waitForFunction(() => document.querySelector('.sig path')?.style.animationName === 'none');
+        assert.equal(await tab.locator('.sig path').evaluate(path => parseFloat(getComputedStyle(path).strokeDashoffset)), 0);
+        await tab.reload();
+        assert.ok(await tab.locator('.sig path').evaluate(path => parseFloat(getComputedStyle(path).strokeDashoffset) > 0), 'a new document draws again');
+        await context.close();
+      }
+    } finally {
+      await browser.close();
+    }
+  });
+
+  await t.test('reduced motion shows the signature immediately through public navigation', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  }, async () => {
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    try {
+      const context = await browser.newContext({ reducedMotion: 'reduce' });
+      const tab = await context.newPage();
+      await tab.goto(`${origin}/likes`);
+      await tab.evaluate(() => { window.originalSignature = document.querySelector('.sig'); });
+      for (const destination of ['Blog', 'Likes']) {
+        assert.equal(await tab.locator('.sig path').evaluate(path => parseFloat(getComputedStyle(path).strokeDashoffset)), 0);
+        assert.equal(await tab.locator('.sig path').evaluate(path => getComputedStyle(path).animationName), 'none');
+        await clientNavigation(tab, () => tab.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: destination, exact: true }).click());
+        await tab.waitForURL(`${origin}/${destination.toLowerCase()}`);
+        assert.equal(await tab.evaluate(() => window.originalSignature === document.querySelector('.sig')), true);
+      }
+      assert.equal(await tab.locator('.sig path').evaluate(path => parseFloat(getComputedStyle(path).strokeDashoffset)), 0);
+      assert.equal(await tab.locator('.sig path').evaluate(path => getComputedStyle(path).animationName), 'none');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  await t.test('client navigation preserves public filters, keyboard links, direct URLs, refresh and Back/Forward', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  }, async () => {
+    state.items = [item('reading'), item('loose', { collections: [] })];
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    try {
+      const tab = await browser.newPage();
+      tab.setDefaultTimeout(5000);
+      await tab.goto(`${origin}/likes`);
+      await tab.evaluate(() => { window.originalSignature = document.querySelector('.sig'); });
+      await tab.locator('#collection-rows a[href="/likes?collection=reading"]').focus();
+      await clientNavigation(tab, () => tab.keyboard.press('Enter'));
+      await tab.locator('#collection-filters [aria-current="page"]').filter({ hasText: 'Reading & thinking' }).waitFor();
+      assert.deepEqual(await tab.locator('#likes-board h2').allTextContents(), ['Published find reading']);
+      assert.equal(await tab.evaluate(() => window.originalSignature === document.querySelector('.sig')), true);
+      await clientNavigation(tab, () => tab.locator('#collection-filters a').filter({ hasText: 'All items' }).click());
+      await tab.waitForURL(`${origin}/likes?view=all`);
+      assert.equal(await tab.locator('#likes-board > li').count(), 2);
+      await clientNavigation(tab, () => tab.goBack());
+      await tab.locator('#collection-filters [aria-current="page"]').filter({ hasText: 'Reading & thinking' }).waitFor();
+      assert.deepEqual(await tab.locator('#likes-board h2').allTextContents(), ['Published find reading']);
+      await clientNavigation(tab, () => tab.goForward());
+      await tab.locator('#collection-filters [aria-current="page"]').filter({ hasText: 'All items' }).waitFor();
+      assert.equal(await tab.locator('#likes-board > li').count(), 2);
+      assert.equal(await tab.evaluate(() => window.originalSignature === document.querySelector('.sig')), true);
+      await tab.reload();
+      assert.equal(await tab.locator('#likes-board > li').count(), 2);
+      assert.equal(await tab.locator('#collection-filters [aria-current="page"]').textContent(), 'All items');
+      await tab.goto(`${origin}/likes?collection=misc`);
+      assert.deepEqual(await tab.locator('#likes-board h2').allTextContents(), ['Published find loose']);
+      assert.equal(await tab.locator('#collection-filters [aria-current="page"]').textContent(), 'Misc.');
+      await clientNavigation(tab, () => tab.getByRole('link', { name: '← Collections', exact: true }).click());
+      await tab.locator('#collection-rows').waitFor();
+      assert.equal(new URL(tab.url()).search, '');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  await t.test('shared session controls reconcile repeated public navigation, logout and expiry without duplicate handlers', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  }, async () => {
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    try {
+      const context = await browser.newContext();
+      let auth = ownerResult();
+      await context.route(`${endpoint}/api/collections/likes_owners/auth-with-password`, route => route.fulfill({ json: auth }));
+      const tab = await context.newPage();
+      tab.setDefaultTimeout(5000);
+      const signIn = async () => {
+        await tab.goto(`${origin}/login`);
+        await tab.locator('#owner-login [name=email]').fill('owner@example.test');
+        await tab.locator('#owner-login [name=password]').fill('owner-password');
+        await tab.getByRole('button', { name: 'Sign in', exact: true }).click();
+        await tab.waitForURL(`${origin}/`);
+        await tab.getByRole('button', { name: 'Logged In', exact: true }).waitFor();
+      };
+      await signIn();
+      await tab.evaluate(() => {
+        window.logoutEvents = 0;
+        document.addEventListener('owner-session-change', event => {
+          if (event.detail.reason === 'logout') window.logoutEvents++;
+        });
+      });
+      const nav = tab.getByRole('navigation', { name: 'Main navigation', exact: true });
+      for (let index = 0; index < 3; index++) {
+        await clientNavigation(tab, () => nav.getByRole('link', { name: 'Likes', exact: true }).click());
+        await tab.locator('#manage-likes').waitFor({ state: 'visible' });
+        await tab.getByRole('button', { name: 'Logged In', exact: true }).waitFor();
+        await clientNavigation(tab, () => nav.getByRole('link', { name: 'Blog', exact: true }).click());
+        await tab.getByRole('button', { name: 'Logged In', exact: true }).waitFor();
+      }
+      await logout(tab);
+      assert.equal(await tab.evaluate(() => window.logoutEvents), 1);
+      await clientNavigation(tab, () => tab.goBack());
+      assert.equal(await tab.locator('#manage-likes').isVisible(), false);
+      assert.equal(await tab.getByRole('button', { name: 'Logged In', exact: true }).isVisible(), false);
+      await clientNavigation(tab, () => tab.goForward());
+      assert.equal(await tab.getByRole('button', { name: 'Logged In', exact: true }).isVisible(), false);
+      auth = ownerResult(Math.floor(Date.now() / 1000) + 4);
+      await signIn();
+      await clientNavigation(tab, () => nav.getByRole('link', { name: 'Likes', exact: true }).click());
+      await tab.locator('#manage-likes').waitFor({ state: 'visible' });
+      await tab.getByRole('button', { name: 'Logged In', exact: true }).waitFor({ state: 'hidden' });
+      assert.equal(await tab.locator('#manage-likes').isVisible(), false);
+      await clientNavigation(tab, () => nav.getByRole('link', { name: 'Blog', exact: true }).click());
+      assert.equal(await tab.getByRole('button', { name: 'Logged In', exact: true }).isVisible(), false);
     } finally {
       await browser.close();
     }
