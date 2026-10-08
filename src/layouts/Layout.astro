@@ -25,6 +25,7 @@ const { title, wide = false, clientRouter = true } = Astro.props;
     {clientRouter && <ClientRouter />}
   </head>
   <body>
+    <div id="navigation-status" role="status" aria-atomic="true"><span></span></div>
     <SiteHeader />
     <main class:list={{ 'likes-layout': wide }} aria-label={title ?? 'Graham Van Pelt'}>
       <slot />
@@ -44,4 +45,5 @@ const { title, wide = false, clientRouter = true } = Astro.props;
   // the router still requires page metadata to enable client-side navigation.
   import 'astro:transitions/client';
   import '../scripts/session.js';
+  import '../scripts/navigation-loading';
 </script>

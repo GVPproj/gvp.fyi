@@ -94,6 +94,54 @@ h1 {
   font-size: 28px;
 }
 
+/* Navigation stays interactive while Astro prepares the next page. */
+:root[data-navigation-loading],
+:root[data-navigation-loading] * {
+  cursor: progress !important;
+}
+
+#navigation-status {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Keep the live announcement available without showing a text overlay. */
+#navigation-status span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:root[data-navigation-loading] #navigation-status::before {
+  content: '';
+  display: block;
+  width: 35%;
+  height: 100%;
+  background: var(--color-accent);
+  animation: navigation-loading 1s linear infinite;
+}
+
+@keyframes navigation-loading {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-navigation-loading] #navigation-status::before {
+    width: 100%;
+    animation: none;
+  }
+}
+
 #owner-session[hidden] { display: none; }
 
 #owner-session {
