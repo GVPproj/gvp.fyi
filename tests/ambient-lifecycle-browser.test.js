@@ -87,7 +87,7 @@ async function openHome(page, base) {
 
 async function assertControlsEnabled(page) {
   assert.equal(await instrument(page).locator('[data-pad]').evaluateAll(pads => pads.every(pad => !pad.disabled)), true);
-  for (const selector of ['[data-record]', '[data-volume]', '[data-mute]']) {
+  for (const selector of ['[data-record]', '[data-volume]']) {
     assert.equal(await instrument(page).locator(selector).isEnabled(), true);
   }
 }
@@ -124,6 +124,73 @@ async function assertNoNewSound(page, milliseconds = 1200) {
   assert.equal(after.contexts.length, before.contexts.length, 'no context is created in the background');
   assert.deepEqual(after.contexts.map(c => c.resumes), before.contexts.map(c => c.resumes), 'no automatic resume');
 }
+
+test('page-wide pad letters unlock audio, trigger once per press and preserve editing', browserOptions, async t => {
+  const { base, page, context } = await realBrowser(t);
+  await observeAudio(context, { requireActivation: true });
+  await openHome(page, base);
+  const pads = instrument(page).locator('[data-pad]');
+  assert.deepEqual(await pads.evaluateAll(buttons => buttons.map(button => button.lastElementChild.textContent)),
+    [...'QWERASDFZXCV']);
+
+  for (const key of 'tyuiTYUI') await page.keyboard.press(key);
+  assert.deepEqual((await snapshot(page)).contexts, [], 'removed shortcuts do not unlock audio');
+  assert.equal((await snapshot(page)).starts.length, 0, 'removed shortcuts do not play notes');
+  assert.equal(await instrument(page).locator('[data-held]').count(), 0);
+
+  // No click or focus inside the instrument should be needed to unlock audio.
+  await page.keyboard.down('q');
+  await page.waitForFunction(() => window.__ambientBrowserProbe().starts.length === 1);
+  await page.keyboard.down('q');
+  assert.equal((await snapshot(page)).starts.length, 1, 'holding a letter does not retrigger');
+  assert.equal(await pad(page, 1).getAttribute('data-held'), '');
+  await page.keyboard.down('w');
+  await page.waitForFunction(() => window.__ambientBrowserProbe().starts.length === 2);
+  assert.equal(await instrument(page).locator('[data-held]').count(), 2, 'simultaneous letters highlight both pads');
+  await page.keyboard.up('q');
+  await page.keyboard.up('w');
+  assert.equal(await instrument(page).locator('[data-held]').count(), 0);
+
+  for (const [index, key] of [...'qwerasdfzxcv'].entries()) {
+    const before = (await snapshot(page)).starts.length;
+    await page.keyboard.press(key.toUpperCase());
+    await page.waitForFunction(count => window.__ambientBrowserProbe().starts.length === count, before + 1);
+    const expected = 440 * 2 ** (([57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84][index] - 69) / 12);
+    assert.ok(Math.abs((await snapshot(page)).starts.at(-1).frequency - expected) < 0.001, `${key} plays its pad's note`);
+  }
+  const before = (await snapshot(page)).starts.length;
+  for (const key of 'tyuiTYUI') await page.keyboard.press(key);
+  assert.equal((await snapshot(page)).starts.length, before, 'removed shortcuts also stay silent after unlock');
+  for (const key of ['Control+q', 'Alt+q', 'Meta+q']) await page.keyboard.press(key);
+  await instrument(page).getByRole('slider').focus();
+  await page.keyboard.press('q');
+  assert.equal((await snapshot(page)).starts.length, before, 'modifiers and form controls are left alone');
+
+  await pad(page, 1).focus();
+  await page.keyboard.down('q');
+  await page.waitForFunction(count => window.__ambientBrowserProbe().starts.length === count, before + 1);
+  await blogLink(page).focus();
+  assert.equal(await instrument(page).locator('[data-held]').count(), 1, 'moving focus does not release a held key');
+  await page.keyboard.up('q');
+  assert.equal(await instrument(page).locator('[data-held]').count(), 0);
+  await page.keyboard.press('w');
+  await page.waitForFunction(count => window.__ambientBrowserProbe().starts.length === count, before + 2);
+
+  for (const tag of ['input', 'textarea', 'div']) {
+    await page.evaluate(tag => {
+      const editor = document.createElement(tag);
+      editor.id = 'shortcut-test-editor';
+      if (tag === 'div') editor.contentEditable = 'true';
+      document.body.append(editor);
+      editor.focus();
+    }, tag);
+    const count = (await snapshot(page)).starts.length;
+    await page.keyboard.press('q');
+    assert.equal((await snapshot(page)).starts.length, count, `${tag} editing does not play a pad`);
+    assert.equal(await page.locator('#shortcut-test-editor').evaluate(el => 'value' in el ? el.value : el.textContent), 'q');
+    await page.locator('#shortcut-test-editor').evaluate(el => el.remove());
+  }
+});
 
 test('Activation failure offers retry; pointer, native keyboard and simultaneous touch each trigger once', browserOptions, async t => {
   const { base, page, context } = await realBrowser(t);
@@ -375,7 +442,7 @@ test('Synthetic pagehide/pageshow (including persisted) clean up and remount onc
   assert.deepEqual(errors, []);
 });
 
-test('Sine-only audio makes no sample requests; volume and mute do not unlock sound', browserOptions, async t => {
+test('Sine-only audio makes no sample requests; volume does not unlock sound and mute UI is absent', browserOptions, async t => {
   const { base, page, context } = await realBrowser(t);
   await observeAudio(context);
   const errors = [];
@@ -396,9 +463,8 @@ test('Sine-only audio makes no sample requests; volume and mute do not unlock so
   assert.equal(await volume.getAttribute('aria-valuetext'), '50 percent');
   await volume.fill('60');
   assert.equal(await volume.getAttribute('aria-valuetext'), '60 percent');
-  await button(page, 'Mute').click();
-  assert.equal(await instrument(page).locator('[data-mute]').getAttribute('aria-pressed'), 'true');
-  await button(page, 'Mute').click();
+  assert.equal(await instrument(page).locator('[data-mute]').count(), 0);
+  assert.equal(await instrument(page).getByRole('button', { name: /mute/i }).count(), 0);
   assert.equal(await button(page, 'Play').isDisabled(), true);
   await assertNoNewSound(page);
   assert.deepEqual((await snapshot(page)).contexts, [], 'output controls do not unlock audio');

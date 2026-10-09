@@ -12,8 +12,8 @@ test('without JavaScript, Home explains the disabled instrument and keeps its co
   const fallback = page.locator('#ambient-pad noscript p');
   await fallback.waitFor();
   assert.match(await fallback.textContent(), /This instrument needs JavaScript and Web Audio/);
-  assert.equal(await page.locator('[data-pad]:disabled').count(), 16);
-  await page.getByRole('img', { name: 'A one-line portrait of my face' }).waitFor();
+  assert.equal(await page.locator('[data-pad]:disabled').count(), 12);
+  await page.getByText('PadLoop-1000', { exact: true }).waitFor();
 });
 
 test('without Web Audio, Home visibly explains the disabled instrument', browserOptions, async t => {
@@ -24,7 +24,7 @@ test('without Web Audio, Home visibly explains the disabled instrument', browser
   await page.waitForFunction(() => /not supported/i.test(document.querySelector('[data-status]')?.textContent ?? ''));
   assert.equal(await status.evaluate(element => element.classList.contains('sr-only')), false);
   assert.equal(await page.locator('#ambient-pad button:enabled, #ambient-pad input:enabled').count(), 0);
-  await page.getByRole('img', { name: 'A one-line portrait of my face' }).waitFor();
+  await page.getByText('PadLoop-1000', { exact: true }).waitFor();
 });
 
 test('keyboard activation keeps visible focus through automatic unlock, playback and clearing transitions', browserOptions, async t => {
@@ -93,11 +93,10 @@ test('full-height volume fader supports vertical dragging and keyboard limits wi
   await page.mouse.move(box.x + box.width / 2, box.y + box.height - 8, { steps: 10 });
   await page.mouse.up();
   assert.ok(Number(await volume.inputValue()) < 100);
-  await page.locator('[data-mute]').click();
-  assert.match(await volume.getAttribute('aria-valuetext'), /muted/);
+  assert.equal(await volume.getAttribute('aria-valuetext'), `${await volume.inputValue()} percent`);
 });
 
-test('Home has a silent, accessible 4×4 instrument left of Face, stacked above it on mobile', browserOptions, async t => {
+test('Home has a silent, accessible 3×4 instrument centered on desktop and mobile', browserOptions, async t => {
   const { page, base } = await realBrowser(t);
   const samples = [];
   page.on('request', request => { if (request.url().includes('/audio/ambient-test/')) samples.push(request.url()); });
@@ -125,13 +124,15 @@ test('Home has a silent, accessible 4×4 instrument left of Face, stacked above 
   }
   await assertTransport('Record', 'record', 'Play', true);
   const pads = instrument.locator('[data-pad]');
-  assert.equal(await pads.count(), 16);
+  assert.equal(await pads.count(), 12);
   assert.equal(await pads.evaluateAll(buttons => buttons.every(button => !button.disabled)), true);
-  for (const selector of ['[data-record]', '[data-volume]', '[data-mute]']) {
+  for (const selector of ['[data-record]', '[data-volume]']) {
     assert.equal(await instrument.locator(selector).isEnabled(), true);
   }
   assert.equal(await instrument.locator('[data-play]').isDisabled(), true);
   assert.equal(await instrument.locator('[data-stop]').count(), 0);
+  assert.equal(await instrument.locator('[data-mute]').count(), 0);
+  assert.equal(await instrument.getByRole('button', { name: /mute/i }).count(), 0);
   assert.equal(await instrument.getByRole('button', { name: 'Enable sound', exact: true }).count(), 0);
   assert.equal(await instrument.getByRole('combobox').count(), 0);
   assert.equal(await instrument.getByRole('heading').count(), 0);
@@ -152,14 +153,22 @@ test('Home has a silent, accessible 4×4 instrument left of Face, stacked above 
     const padGrid = await instrument.locator('.pads').boundingBox();
     const controlsBox = await controls.boundingBox();
     assert.ok(controlsBox.x >= padGrid.x + padGrid.width, 'buttons stay right of pads');
-    assert.equal(await controls.locator('button').count(), 4);
+    assert.equal(await controls.locator('button').count(), 3);
+    assert.deepEqual(await pads.evaluateAll(buttons => {
+      const rows = new Map();
+      for (const button of buttons) {
+        const top = button.getBoundingClientRect().top;
+        rows.set(top, (rows.get(top) ?? 0) + 1);
+      }
+      return [...rows.values()];
+    }), [4, 4, 4], 'pads occupy exactly three rows of four');
     assert.equal(await instrument.getByRole('slider', { name: 'Volume', exact: true }).count(), 1);
     assert.equal(await controls.locator('button').evaluateAll(buttons => buttons.every(button =>
       button.getAttribute('aria-label') && button.querySelector('svg') && !button.textContent.trim()
     )), true, 'controls are named, icon-only buttons');
     const controller = await instrument.boundingBox();
-    const face = await page.getByRole('img', { name: 'A one-line portrait of my face' }).boundingBox();
-    assert.ok(width === 1280 ? controller.x + controller.width <= face.x : controller.y + controller.height <= face.y);
+    assert.equal(await page.getByRole('img', { name: 'A one-line portrait of my face' }).count(), 0);
+    assert.ok(Math.abs(controller.x + controller.width / 2 - width / 2) < 2, 'instrument stays centered');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.equal(await pads.evaluateAll(buttons => buttons.every(button => {
       const rect = button.getBoundingClientRect();

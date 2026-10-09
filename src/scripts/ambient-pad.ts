@@ -44,7 +44,6 @@ function mount(root: HTMLElement) {
   const element = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const volumeControl = element<HTMLInputElement>('[data-volume]');
   let volume = 60;
-  const mute = element<HTMLButtonElement>('[data-mute]');
   const record = element<HTMLButtonElement>('[data-record]');
   const play = element<HTMLButtonElement>('[data-play]');
   const clear = element<HTMLButtonElement>('[data-clear]');
@@ -53,11 +52,12 @@ function mount(root: HTMLElement) {
   const playIcons = play.querySelectorAll<HTMLElement>('[data-play-icon]');
   const pads = [...root.querySelectorAll<HTMLButtonElement>('[data-pad]')];
   const contacts = new Map<number, { pad: HTMLButtonElement; playOnRelease: boolean }>();
+  const keyboardPads = new Map(pads.map(pad => [pad.dataset.key!, pad]));
+  const heldKeys = new Set<string>();
   let timer: ReturnType<typeof setInterval> | undefined;
   let dead = false;
   let enabling: Promise<void> | undefined;
   let activation = 0;
-  let muted = false;
   const audio = new AmbientAudio(() => pause('Sound interrupted. Tap a pad or press Play to resume.'));
   const looper = new AmbientLooper(audio, () => audio.currentTime);
   audio.setVolume(volume / 100);
@@ -68,8 +68,7 @@ function mount(root: HTMLElement) {
   }
 
   function renderVolume() {
-    volumeControl.setAttribute('aria-valuetext', `${volume} percent${muted ? ', muted' : ''}`);
-    mute.setAttribute('aria-pressed', String(muted));
+    volumeControl.setAttribute('aria-valuetext', `${volume} percent`);
   }
 
   function renderLoopInfo() {
@@ -121,6 +120,7 @@ function mount(root: HTMLElement) {
 
   function releaseContacts() {
     contacts.clear();
+    heldKeys.clear();
     pads.forEach(pad => { pad.removeAttribute('data-held'); });
   }
 
@@ -163,18 +163,16 @@ function mount(root: HTMLElement) {
     audio.setVolume(volume / 100);
     renderVolume();
   }, { signal });
-  mute.addEventListener('click', () => {
-    muted = !muted;
-    audio.setMuted(muted);
-    renderVolume();
-  }, { signal });
 
   function transport(action: () => void) {
     action();
     announceTransport();
     render();
   }
-  record.addEventListener('click', () => { void withAudio(() => transport(() => looper.record())); }, { signal });
+  record.addEventListener('click', () => {
+    record.removeAttribute('data-record-hint');
+    void withAudio(() => transport(() => looper.record()));
+  }, { signal });
   play.addEventListener('click', () => {
     if (transportViews[looper.state].running) {
       if (enabling) pause('Stopped.');
@@ -217,6 +215,28 @@ function mount(root: HTMLElement) {
       if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
     }, { signal });
   }
+  // Pad letters work page-wide, but leave native editing and modified shortcuts
+  // alone. Enter/Space still activate focused buttons natively.
+  document.addEventListener('keydown', event => {
+    if (document.hidden || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+    const key = event.key.toLowerCase();
+    const pad = keyboardPads.get(key);
+    if (!pad || pad.disabled) return;
+    event.preventDefault();
+    if (event.repeat || heldKeys.has(key)) return;
+    heldKeys.add(key);
+    pad.setAttribute('data-held', '');
+    void withAudio(() => hit(pad));
+  }, { signal });
+  // Release even if focus moves outside the instrument before key-up.
+  document.addEventListener('keyup', event => {
+    const key = event.key.toLowerCase();
+    if (!heldKeys.delete(key)) return;
+    const pad = keyboardPads.get(key)!;
+    if (![...contacts.values()].some(contact => contact.pad === pad)) pad.removeAttribute('data-held');
+  }, { signal });
+
   function release(event: PointerEvent) {
     const contact = contacts.get(event.pointerId);
     contacts.delete(event.pointerId);
@@ -224,7 +244,7 @@ function mount(root: HTMLElement) {
     for (const held of contacts.values()) {
       if (held.pad === contact.pad) return;
     }
-    contact.pad.removeAttribute('data-held');
+    if (!heldKeys.has(contact.pad.dataset.key!)) contact.pad.removeAttribute('data-held');
   }
   root.addEventListener('pointerup', event => {
     const contact = contacts.get(event.pointerId);
@@ -238,7 +258,7 @@ function mount(root: HTMLElement) {
     if (document.hidden) pause('Paused while away. Press Play to resume.');
   }, { signal });
 
-  for (const control of [...pads, record, mute, volumeControl]) control.disabled = false;
+  for (const control of [...pads, record, volumeControl]) control.disabled = false;
   volumeControl.value = String(volume);
   renderVolume();
   announceTransport();

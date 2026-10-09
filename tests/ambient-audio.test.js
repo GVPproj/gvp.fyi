@@ -111,7 +111,7 @@ test('activation is explicit and resume is invoked synchronously in enable', asy
   });
 });
 
-test('sixteen C-major pentatonic pads render scheduled, gently enveloped two-second sine notes', async t => {
+test('twelve A3–C6 C-major pentatonic pads render scheduled, gently enveloped two-second sine notes', async t => {
   const page = await offlineFor(t);
   const result = await page.evaluate(async () => {
     const { pads } = await import('/src/lib/lib-ambient-pad/ambient-kit');
@@ -132,9 +132,9 @@ test('sixteen C-major pentatonic pads render scheduled, gently enveloped two-sec
     return notes;
   });
   assert.deepEqual(result.map(note => note.label),
-    ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5', 'A5', 'C6']);
-  assert.equal(new Set(result.map(note => note.id)).size, 16);
-  const frequencies = [130.813, 146.832, 164.814, 195.998, 220, 261.626, 293.665, 329.628,
+    ['A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5', 'A5', 'C6']);
+  assert.equal(new Set(result.map(note => note.id)).size, 12);
+  const frequencies = [220, 261.626, 293.665, 329.628,
     391.995, 440, 523.251, 587.33, 659.255, 783.991, 880, 1046.502];
   result.forEach((note, index) => {
     assert.ok(Math.abs(note.frequency - frequencies[index]) < 0.001, note.label);
@@ -300,8 +300,8 @@ test('samples load only on request with progress, and generated WAV voices match
   });
   assert.equal(result.beforeSamples, 0);
   assert.equal(result.loadedReady, true);
-  assert.equal(result.cachedRequests, 16);
-  assert.deepEqual(result.progress, Array.from({ length: 17 }, (_, i) => [i, 16]));
+  assert.equal(result.cachedRequests, 12);
+  assert.deepEqual(result.progress, Array.from({ length: 13 }, (_, i) => [i, 12]));
   for (const error of result.errors) assert.ok(error < 0.00001, `PCM sine agreement: ${error}`);
 });
 
@@ -327,7 +327,7 @@ test('intentional suspension stops audio, preserves the decoded kit, and needs e
     audio.dispose();
     return { interruptions, requests, suspendedReady, unsolicitedReady, enabledReady, peak };
   });
-  assert.deepEqual(result, { interruptions: 0, requests: 16, suspendedReady: false,
+  assert.deepEqual(result, { interruptions: 0, requests: 12, suspendedReady: false,
     unsolicitedReady: false, enabledReady: true, peak: 0 });
 });
 
@@ -389,7 +389,7 @@ test('dispose aborts pending fetch, blocks late progress/readiness, and is termi
       state: contexts[0].state, contexts: contexts.length };
   });
   assert.deepEqual(result, { aborted: true, loadingReady: false, outcome: 'AbortError', retry: 'rejected',
-    ready: false, requests: 1, progress: [[0, 16]], state: 'closed', contexts: 1 });
+    ready: false, requests: 1, progress: [[0, 12]], state: 'closed', contexts: 1 });
 });
 
 for (const action of ['dispose', 'suspend', 'interrupt', 'switch']) {
@@ -430,7 +430,7 @@ for (const action of ['dispose', 'suspend', 'interrupt', 'switch']) {
       return { aborted, outcome, readyAfter, progress, requests, interruptions };
     }, action);
     assert.deepEqual(result, { aborted: true, outcome: 'AbortError', readyAfter: action === 'switch',
-      progress: [[0, 16]], requests: action === 'dispose' ? 1 : 17, interruptions: action === 'interrupt' ? 1 : 0 });
+      progress: [[0, 12]], requests: action === 'dispose' ? 1 : 13, interruptions: action === 'interrupt' ? 1 : 0 });
   });
 }
 
@@ -461,8 +461,8 @@ for (const failure of ['network', 'http', 'decode']) {
       audio.dispose();
       return { outcome, failedReady, retryReady, requests, progress, peak };
     }, failure);
-    assert.deepEqual(result, { outcome: 'rejected', failedReady: false, retryReady: true, requests: 17,
-      progress: Array.from({ length: 16 }, (_, i) => [i + 1, 16]), peak: 0 });
+    assert.deepEqual(result, { outcome: 'rejected', failedReady: false, retryReady: true, requests: 13,
+      progress: Array.from({ length: 12 }, (_, i) => [i + 1, 12]), peak: 0 });
   });
 }
 

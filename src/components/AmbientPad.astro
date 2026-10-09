@@ -1,30 +1,48 @@
 ---
 import { pads } from '../lib/lib-ambient-pad/ambient-kit';
 import PadIcon from './PadIcon.astro';
+
+const padKeys = 'qwerasdfzxcv';
 ---
 
 <section id="ambient-pad" aria-label="Ambient playground">
   <div class="controller">
+    <header class="nameplate">
+      <span class="brand">
+        <svg class="brand-mark" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+          <path d="M2 14h4v2H2zm0 4h4v2H2zM10 6h4v2h-4zm0 4h4v2h-4zm0 4h4v2h-4zm0 4h4v2h-4zm8-8h4v2h-4zm0 4h4v2h-4zm0 4h4v2h-4z" />
+        </svg>
+        <span class="brand-name">GVP</span>
+      </span>
+      <span class="product">
+        <span class="product-name">PadLoop-<span class="model-number">1000</span></span>
+        <span class="product-description">Loop machine</span>
+      </span>
+    </header>
     <p class="sr-only" role="status" aria-atomic="true" data-status>Ready. Play a pad or record a loop.</p>
     <p class="sr-only" data-loop-info>No loop yet</p>
+    <p class="sr-only" id="ambient-pad-keyboard-help">Press a pad’s letter anywhere on this page to play it, except while editing a field.</p>
     <div class="pads" aria-label="Sound pads">
       {pads.map((pad, index) => (
-        <button type="button" data-pad={pad.id} aria-label={`Pad ${index + 1}, ${pad.label}`} disabled>
-          <span class="pad-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-          <span>{pad.label}</span>
+        <button type="button" data-pad={pad.id} data-key={padKeys[index]} aria-label={`Pad ${index + 1}, ${padKeys[index].toUpperCase()}, ${pad.label}`} aria-keyshortcuts={padKeys[index].toUpperCase()} aria-describedby="ambient-pad-keyboard-help" disabled>
+          <span>{padKeys[index].toUpperCase()}</span>
         </button>
       ))}
     </div>
     <div class="controls" role="group" aria-label="Volume and looper controls">
-      <button type="button" class="record" data-record aria-label="Record" title="Record" disabled>
-        <span data-record-icon="record"><PadIcon name="circle" /></span>
+      <button type="button" class="record" data-record data-record-hint aria-label="Record" title="Record" disabled>
+        <span data-record-icon="record">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path class="record-fill" d="M7 5h10v2h2v10h-2v2H7v-2H5V7h2z" />
+            <path d="M17 3H7v2H5v2H3v10h2v2h2v2h10v-2h2v-2h2V7h-2V5h-2V3zm0 2v2h2v10h-2v2H7v-2H5V7h2V5h10z" />
+          </svg>
+        </span>
         <span data-record-icon="overdub" hidden><PadIcon name="repeat" /></span>
       </button>
       <button type="button" data-play aria-label="Play" title="Play" disabled>
         <span data-play-icon="play"><PadIcon name="play" /></span>
         <span data-play-icon="stop" hidden><PadIcon name="stop" /></span>
       </button>
-      <button type="button" data-mute aria-label="Mute" title="Mute" aria-pressed="false" disabled><PadIcon name="volume-x" /></button>
       <button type="button" data-clear aria-label="Clear" title="Clear" disabled><PadIcon name="trash" /></button>
     </div>
     <label class="volume-fader" title="Volume: drag up or down, or use arrow keys">
@@ -42,6 +60,14 @@ import PadIcon from './PadIcon.astro';
 <style>
   #ambient-pad { width: min(100%, 26rem); text-align: left; color: var(--nord4); }
   .controller { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 0.5rem; border: 1px solid var(--nord8); border-radius: 0.65rem; background: var(--nord1); padding: 0.5rem; }
+  .nameplate { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.35rem 0.25rem 0.6rem; border-bottom: 1px solid var(--nord3); }
+  .brand { display: flex; align-items: center; gap: 0.35rem; color: var(--nord6); }
+  .brand-mark { flex: none; color: var(--nord8); }
+  .brand-name { font-size: 1.75rem; line-height: 1; letter-spacing: 0.08em; }
+  .product { display: grid; gap: 0.2rem; margin-left: auto; text-align: right; }
+  .product-name { font-size: 1.25rem; line-height: 1; color: var(--nord6); white-space: nowrap; }
+  .model-number { color: var(--nord8); }
+  .product-description { font-size: 0.625rem; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.12em; }
   button { font: inherit; color: var(--nord6); border: 1px solid var(--nord4); border-radius: 0.25rem; background: var(--nord0); min-height: 44px; padding: 0.3rem; cursor: pointer; }
   button:disabled { opacity: 0.55; cursor: default; }
   button:not(:disabled):hover { border-color: var(--nord8); }
@@ -49,12 +75,9 @@ import PadIcon from './PadIcon.astro';
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   [data-status]:not(.sr-only) { grid-column: 1 / -1; margin: 0; }
   .pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
-  .pads button { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; text-align: left; color: var(--nord0); background: var(--nord8); border-color: transparent; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pads button { min-width: 0; display: grid; place-items: center; text-align: center; color: var(--nord0); background: var(--nord15); border-color: transparent; touch-action: none; user-select: none; -webkit-user-select: none; }
   .pads button:nth-child(n+5) { background: var(--nord7); }
   .pads button:nth-child(n+9) { background: var(--nord14); }
-  .pads button:nth-child(n+13) { background: var(--nord13); }
-  .pads button span:last-child { align-self: end; }
-  .pad-number { font-size: 11px; }
   .pads button:not(:disabled):is(:active, [data-held]) { outline: 2px solid var(--nord6); outline-offset: 2px; background: var(--nord6); }
   .controls { display: grid; gap: 0.5rem; }
   .controls button, .controls span:not([hidden]) { display: grid; place-items: center; }
@@ -68,9 +91,18 @@ import PadIcon from './PadIcon.astro';
   .volume-fader input:disabled { opacity: 0.55; cursor: default; }
   @media (max-width: 400px) {
     .controller { gap: 0; padding: 0; }
+    .nameplate { padding: 0.6rem 0.5rem; }
     .pads { gap: 1px; }
   }
-  .record { border-color: var(--nord15); }
+  .record-fill { fill: transparent; }
+  .record[data-record-hint]:not(:disabled) .record-fill { fill: var(--nord15); animation: record-invitation 4s ease-in-out infinite; }
+  @keyframes record-invitation {
+    0%, 100% { fill: var(--nord15); opacity: 0.55; }
+    35% { fill: var(--nord11); opacity: 1; }
+    65% { fill: var(--nord12); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .record[data-record-hint]:not(:disabled) .record-fill { animation: none; }
+  }
   [data-recording] .record { background: var(--nord11); border-style: dashed; }
-  [aria-pressed=true] { background: var(--nord8); color: var(--nord0); }
 </style>
