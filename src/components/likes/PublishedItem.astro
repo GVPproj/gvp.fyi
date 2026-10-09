@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { textItemTitle, webURL } from '../../lib/likes.js';
+import { likeItemTitle, likesItemURL, webURL } from '../../lib/likes.js';
 
 interface Props {
   item: Record<string, any>;
@@ -12,37 +12,20 @@ const url = webURL(item.url);
 const asset = webURL(assetURL);
 const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
 const textItem = item.type === 'quote' || item.type === 'note';
-const title = textItem ? textItemTitle(item) : item.title || (pdf ? 'PDF document' : asset ? 'Image' : 'Link');
 const body = item.body ?? '';
 const preview = body.slice(0, 400) + (body.length > 400 ? '…' : '');
-const destination = asset || url;
-const Destination = destination ? 'a' : 'div';
 ---
 
 <li>
   <article>
-    {textItem ? (
-      <>
-        <h2>{title}</h2>
-        <details>
-          <summary>
-            <span class="like-preview text-preview">{preview}</span>
-            <span class="read-label">Read full {item.type}</span>
-          </summary>
-          {item.type === 'quote' ? <blockquote>{body}</blockquote> : <p class="full-text">{body}</p>}
-        </details>
-        {item.attribution && <p>{item.attribution}</p>}
-      </>
-    ) : (
-      <Destination href={destination || undefined} target={destination ? '_blank' : undefined} rel={destination ? 'noopener noreferrer' : undefined}>
-        <div class="like-preview">
-          {asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="contain" format="webp" loading="lazy" /> : asset ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
-        </div>
-        <h2>{title}</h2>
-        {item.description && <p>{item.description}</p>}
-      </Destination>
-    )}
-    {url && (asset || textItem) && <a class="source" href={url} target="_blank" rel="noopener noreferrer">Source: {new URL(url).hostname}</a>}
+    <a href={likesItemURL(item)}>
+      <div class:list={['like-preview', { 'text-preview': textItem }]}>
+        {textItem ? preview : asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="contain" format="webp" loading="lazy" /> : pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
+      </div>
+      <h2>{likeItemTitle(item)}</h2>
+    </a>
+    {textItem && item.attribution && <p>{item.attribution}</p>}
+    {item.description && <p>{item.description}</p>}
     {item.commentary && <p>{item.commentary}</p>}
   </article>
 </li>
@@ -50,14 +33,11 @@ const Destination = destination ? 'a' : 'div';
 <style>
   li { min-width: 0; }
   a { display: block; color: inherit; text-decoration: none; }
-  a:hover h2, a.source:hover { text-decoration: underline; }
+  a:hover h2 { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--nord8); outline-offset: 2px; }
   h2 { font-size: 1rem; font-weight: 400; margin: .75rem 0 .25rem; overflow-wrap: anywhere; }
-  p, blockquote { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }
-  blockquote { margin-inline: 0; padding-inline-start: 1rem; border-inline-start: 2px solid var(--nord4); }
+  p { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }
   .like-preview { aspect-ratio: 1; background: var(--nord1); display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-wrap: anywhere; overflow: hidden; color: var(--nord4); }
   .text-preview { display: block; white-space: pre-wrap; line-height: 1.5; }
   .like-preview img { width: 100%; height: 100%; object-fit: contain; }
-  summary { cursor: pointer; }
-  .read-label { display: inline-block; margin-block: .5rem; text-decoration: underline; }
-  .source { overflow-wrap: anywhere; }
 </style>

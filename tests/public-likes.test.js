@@ -28,6 +28,8 @@ async function publicLikesServer(t) {
     } else if (url.pathname === '/api/collections/likes_items/records') {
       const filter = url.searchParams.get('filter') ?? '';
       let items = state.items.filter(item => item.published);
+      const id = filter.match(/\bid\s*=\s*("(?:[^"\\]|\\.)*")/);
+      if (id) items = items.filter(item => item.id === JSON.parse(id[1]));
       const collection = filter.match(/collections\.id \?= ("(?:[^"\\]|\\.)*")/);
       if (collection) items = items.filter(item => item.collections?.includes(JSON.parse(collection[1])));
       if (filter.includes('collections:length = 0')) items = items.filter(item => !item.collections?.length);
@@ -35,6 +37,9 @@ async function publicLikesServer(t) {
         items = items.toSorted((a, b) => (b.updated ?? b.created).localeCompare(a.updated ?? a.created) || b.id.localeCompare(a.id));
       }
       response.end(JSON.stringify({ totalItems: items.length, items: items.slice(0, Number(url.searchParams.get('perPage') ?? 200)), totalPages: 1 }));
+    } else if (url.pathname.startsWith('/api/files/likes_items/')) {
+      response.setHeader('Content-Type', 'image/png');
+      response.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==', 'base64'));
     } else if (url.pathname === '/api/collections/likes_collections/records') {
       response.end(JSON.stringify({ items: state.collections, totalPages: 1 }));
     } else {
@@ -160,11 +165,13 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     const rows = [...document.querySelectorAll('#collection-rows > li')];
     assert.deepEqual(rows.map(row => row.querySelector('h2').textContent), ['Reading & thinking', 'Empty', 'Misc.']);
     assert.match(rows[0].querySelector('p').textContent, /13 blocks/);
-    assert.equal(rows[0].querySelectorAll('.collection-preview').length, 8);
+    assert.equal(rows[0].querySelectorAll('.content-preview').length, 8);
+    assert.equal(document.querySelectorAll('#collection-rows .content-row').length, 3);
     assert.equal(rows[0].querySelector('time').getAttribute('datetime'), '2026-02-03T12:00:00.000Z');
     assert.match(rows[0].querySelector('time').getAttribute('title'), /03 Feb 2026/);
     assert.equal(rows[0].querySelector('a').getAttribute('href'), '/likes?collection=reading');
-    assert.equal(rows[0].querySelectorAll('a').length, 1, 'the previews open the collection, not individual items');
+    assert.equal(rows[0].querySelectorAll('a').length, 9, 'collection heading and eight item pages are independently linked');
+    assert.equal(rows[0].querySelector('.content-preview').closest('a').getAttribute('href'), '/likes/recent');
     assert.equal(rows[0].querySelector('img').getAttribute('loading'), 'lazy');
     assert.match(rows[1].textContent, /0 blocks/);
     assert.match(rows[1].textContent, /No published items/);
@@ -198,7 +205,7 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     }
   });
 
-  await t.test('renders published content, native full text and original image links safely', async () => {
+  await t.test('published grid links to item pages and renders safe previews', async () => {
     const unsafe = '<img src=x onerror="alert(1)"><script>alert(2)</script>';
     const body = `${'A full-length note. '.repeat(40)}${unsafe}`;
     state.items = [
@@ -215,12 +222,13 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     assert.equal(document.querySelectorAll('#likes-board > li').length, 5);
     assert.equal(document.querySelector('#likes-board h2').textContent, unsafe);
     assert.ok(document.querySelector('#likes-board').textContent.includes('A useful description'));
-    assert.equal(document.querySelector('#likes-board details .full-text').textContent, body);
-    assert.equal(document.querySelector('#likes-board details blockquote').textContent, 'Every word of the quotation.');
-    assert.equal(document.querySelectorAll('#likes-board details > summary').length, 2);
+    assert.equal(document.querySelectorAll('#likes-board details').length, 0);
+    const note = document.querySelector('#likes-board a[href="/likes/note"]');
+    assert.equal(note.querySelector('.text-preview').textContent.trim(), body.slice(0, 400) + '…');
+    assert.ok(document.querySelector('#likes-board a[href="/likes/quote"]').textContent.includes('Every word of the quotation.'));
     const image = document.querySelector('#likes-board img');
     const original = `${endpoint}/api/files/likes_items/image/original%20image.png`;
-    assert.equal(image.closest('a').getAttribute('href'), original);
+    assert.equal(image.closest('a').getAttribute('href'), '/likes/image');
     const optimized = new URL(image.getAttribute('src'), 'http://site.test');
     assert.equal(optimized.pathname, '/_image');
     assert.equal(optimized.searchParams.get('href'), original);
@@ -239,10 +247,59 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     }
   });
 
+  await t.test('item pages show full content and safe destinations, while missing and draft items return 404', async () => {
+    const unsafe = '<img src=x onerror="alert(1)"><script>alert(2)</script>';
+    const body = `${'A full-length note. '.repeat(40)}\n${unsafe}`;
+    state.items = [
+      item('note', { type: 'note', title: '', body, attribution: 'A note attribution', url: '' }),
+      item('quote', { type: 'quote', title: 'Quotation', body, attribution: unsafe }),
+      item('image', { asset: 'original image.png', description: unsafe, commentary: 'Personal thoughts\nMore thoughts' }),
+      item('pdf', { asset: 'document.pdf' }),
+      item('unsafe', { url: 'javascript:alert(1)', title: unsafe }),
+      item('private', { published: false, title: 'PRIVATE draft', body }),
+    ];
+    for (const record of state.items.filter(item => item.published)) {
+      const { response, document, query } = await page(`/likes/${record.id}`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.equal(query.get('filter'), `published=true && id=${JSON.stringify(record.id)}`);
+      assert.equal(query.get('perPage'), '1');
+      assert.equal(query.get('skipTotal'), 'true');
+      const article = document.querySelector('#like-detail');
+      assert.equal(article.querySelector('h1').textContent, record.title || 'Personal note');
+      assert.equal(article.querySelector('a').getAttribute('href'), '/likes');
+      if (record.type === 'note') assert.equal(article.querySelector('.full-text').textContent, body);
+      if (record.type === 'quote') {
+        assert.equal(article.querySelector('blockquote').textContent, body);
+        assert.equal(article.querySelector('figcaption').textContent, unsafe);
+      }
+      if (record.asset) {
+        const original = `${endpoint}/api/files/likes_items/${record.id}/${encodeURIComponent(record.asset)}`;
+        assert.ok(article.querySelector(`a[href="${original}"]`));
+        assert.equal(article.querySelectorAll('img').length, record.asset.endsWith('.pdf') ? 0 : 1);
+        if (!record.asset.endsWith('.pdf')) assert.equal(new URL(article.querySelector('img').getAttribute('src'), origin).searchParams.get('href'), original);
+      }
+      if (record.url.startsWith('https:')) assert.equal(article.querySelector('.source').getAttribute('href'), record.url);
+      else assert.equal(article.querySelector('.source'), null);
+      if (record.commentary) assert.equal(article.querySelector('.commentary').textContent, record.commentary);
+      assert.equal(article.querySelector('script, [onerror], a[href^="javascript:"]'), null);
+    }
+    for (const slug of ['missing', 'private']) {
+      const { response, html, document } = await page(`/likes/${slug}`);
+      assert.equal(response.status, 404);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.match(document.querySelector('#like-detail [role="status"]').textContent, /not found/);
+      assert.doesNotMatch(html, /PRIVATE draft|A full-length note/);
+    }
+    // IDs, unlike editorial titles, are stable when a find is renamed.
+    state.items[0].title = 'Renamed note';
+    assert.equal((await page('/likes/note')).document.querySelector('h1').textContent, 'Renamed note');
+  });
+
   await t.test('collection links and cursor links forward the selected filter and exclusive cursor', async () => {
     state.items = Array.from({ length: 25 }, (_, index) => item(String(99 - index)));
     const initial = await page();
-    const filter = [...initial.document.querySelectorAll('#collection-rows h2')].find(heading => heading.textContent === 'Reading & thinking')?.closest('a');
+    const filter = [...initial.document.querySelectorAll('#collection-rows h2')].find(heading => heading.textContent === 'Reading & thinking')?.querySelector('a');
     assert.ok(filter);
     const filterURL = new URL(filter.getAttribute('href'), 'http://site.test');
     assert.equal(filterURL.searchParams.get('collection'), 'reading');
@@ -318,11 +375,29 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
         await tab.goto(`${origin}/likes`);
         assert.equal(await tab.locator('#collection-rows > li').count(), 3);
         assert.ok(await tab.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'the preview strip must not overflow the page');
-        const info = await tab.locator('.collection-info').first().boundingBox();
-        const previews = await tab.locator('.collection-previews').first().boundingBox();
-        assert.ok(info.x + info.width <= previews.x, 'metadata stays to the left of previews');
+        const info = await tab.locator('.content-row-info').first().boundingBox();
+        const previews = await tab.locator('.content-row ul').first().boundingBox();
+        if (width > 480) assert.ok(info.x + info.width <= previews.x, 'metadata stays to the left of previews');
+        else assert.ok(info.y + info.height <= previews.y, 'metadata stacks above previews on small screens');
+        const row = tab.getByRole('region', { name: 'Misc.', exact: true });
+        await row.locator('ul a').first().focus();
+        for (let index = 1; index < 8; index++) await tab.keyboard.press('Tab');
+        assert.equal(await row.locator('ul a').last().evaluate(link => document.activeElement === link), true);
+        assert.equal(await row.locator('ul a').last().evaluate(link => {
+          const rect = link.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= innerWidth;
+        }), true);
       }
-      const misc = tab.locator('#collection-rows a').last();
+      const card = tab.getByRole('region', { name: 'Misc.', exact: true }).locator('ul a').last();
+      const itemPath = await card.getAttribute('href');
+      await card.focus();
+      await tab.keyboard.press('Enter');
+      await tab.waitForURL(`${origin}${itemPath}`);
+      await tab.getByRole('heading', { level: 1, name: state.items[0].title, exact: true }).waitFor();
+      assert.ok(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await tab.getByRole('main').getByRole('link', { name: '← Likes', exact: true }).click();
+      await tab.waitForURL(`${origin}/likes`);
+      const misc = tab.locator('#collection-rows h2 a[href="/likes?collection=misc"]');
       await misc.focus();
       assert.equal(await misc.evaluate(node => node.matches(':focus-visible')), true);
       await tab.keyboard.press('Enter');
@@ -334,6 +409,55 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
       await tab.waitForURL(`${origin}/likes`);
       await tab.goBack();
       assert.equal(await tab.locator('#likes-board > li').count(), 24);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  await t.test('item links, full content, images, refresh and Back/Forward work with and without JavaScript', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  }, async () => {
+    const body = 'A complete note with multiple paragraphs.\n\n' + 'More words. '.repeat(60);
+    state.items = [
+      item('note', { type: 'note', body, title: 'A saved note', url: '' }),
+      item('quote', { type: 'quote', body, title: 'A saved quote', attribution: 'An author' }),
+      item('image', { asset: 'landscape.png', title: 'A saved image' }),
+      item('pdf', { asset: 'document.pdf', title: 'A saved PDF' }),
+      item('link', { title: 'A saved link' }),
+    ];
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    try {
+      for (const javaScriptEnabled of [true, false]) {
+        const context = await browser.newContext({ javaScriptEnabled, viewport: { width: 320, height: 800 } });
+        const tab = await context.newPage();
+        tab.setDefaultTimeout(5000);
+        for (const record of state.items) {
+          await tab.goto(`${origin}/likes`);
+          // Wait for the initial router scripts before asserting a client-side swap.
+          if (javaScriptEnabled) await tab.waitForLoadState('networkidle');
+          const card = tab.locator(`#collection-rows a[href="/likes/${record.id}"]`);
+          const thumbnail = card.locator('img');
+          if (await thumbnail.count()) await thumbnail.evaluate(image => image.decode());
+          if (javaScriptEnabled) await clientNavigation(tab, () => card.click());
+          else await card.click();
+          await tab.waitForURL(`${origin}/likes/${record.id}`);
+          const article = tab.locator('#like-detail');
+          await article.getByRole('heading', { name: record.title, level: 1, exact: true }).waitFor();
+          if (record.type) assert.equal(await article.locator(record.type === 'quote' ? 'blockquote' : '.full-text').textContent(), body);
+          if (record.asset === 'landscape.png') await article.getByRole('img').evaluate(image => image.decode());
+          assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+          await tab.reload();
+          if (javaScriptEnabled) await tab.waitForLoadState('networkidle');
+          await article.getByRole('heading', { name: record.title, level: 1, exact: true }).waitFor();
+          await tab.goBack();
+          await tab.locator('#collection-rows').waitFor();
+          await tab.goForward();
+          await article.getByRole('heading', { name: record.title, level: 1, exact: true }).waitFor();
+          await article.getByRole('link', { name: '← Likes', exact: true }).click();
+          await tab.locator('#collection-rows').waitFor();
+        }
+        await context.close();
+      }
     } finally {
       await browser.close();
     }
@@ -524,6 +648,11 @@ test('public /likes is useful from server-rendered HTML without JavaScript', { t
     assert.ok(retry);
     assert.match(retry.textContent, /try again|retry/i);
     assert.equal(new URL(retry.getAttribute('href'), 'http://site.test').searchParams.get('collection'), 'reading');
+    const detail = await page('/likes/recovered');
+    assert.equal(detail.response.status, 503);
+    assert.equal(detail.response.headers.get('cache-control'), 'no-store');
+    assert.doesNotMatch(detail.html, /PRIVATE backend diagnostic/);
+    assert.equal(detail.document.querySelector('#like-detail [role="status"] a').getAttribute('href'), '/likes/recovered');
     state.failure = false;
     state.items = [item('recovered')];
     const recovered = await page(retry.getAttribute('href'));

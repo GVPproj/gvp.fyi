@@ -1,0 +1,77 @@
+---
+import { Image } from 'astro:assets';
+import type { InferGetStaticPropsType } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import { softwareProjects } from '../../data/software-projects';
+
+export function getStaticPaths() {
+  return softwareProjects.map(project => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { project } = Astro.props;
+---
+
+<Layout title={project.title}>
+  <article class="software-detail">
+    <a href="/software">← Software</a>
+    <header>
+      <h1>{project.title}</h1>
+      <p>{project.description}</p>
+      {project.tagline && <p>{project.tagline}</p>}
+    </header>
+    <img class="screenshot" src={project.screenshot} alt={`Screenshot of ${project.title}`} width={project.screenshotWidth} height={project.screenshotHeight} />
+    <section aria-labelledby="tooling-heading">
+      <h2 id="tooling-heading">Built with</h2>
+      <ul class="tooling">{project.tooling.map(tool => <li>{tool}</li>)}</ul>
+    </section>
+    {(project.url || project.repo) && <nav aria-label="Project links">
+      {project.url && <a href={project.url}>Visit website</a>}
+      {project.repo && <a href={project.repo}>GitHub repository</a>}
+    </nav>}
+    {project.role && <section aria-labelledby="role-heading" class="prose">
+      <h2 id="role-heading">{project.role.title}</h2>
+      {project.role.paragraphs.map(paragraph => <p>{paragraph}</p>)}
+    </section>}
+    {project.gallery && <section aria-label="Project screenshots" class="gallery">
+      {project.gallery.map(image => <Image
+        src={image.src}
+        alt={image.alt}
+        width={image.width}
+        height={image.height}
+        widths={[480, 960, 1440].filter(width => width <= image.width)}
+        sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)"
+        format="webp"
+        loading="lazy"
+      />)}
+    </section>}
+    {project.team && <section aria-labelledby="team-heading">
+      <h2 id="team-heading">Team</h2>
+      <ul class="team">
+        {project.team.map(member => <li>
+          {member.href ? <a href={member.href}>{member.name}</a> : <span>{member.name}</span>}
+          {' — '}{member.role}
+        </li>)}
+      </ul>
+    </section>}
+  </article>
+</Layout>
+
+<style>
+  .software-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
+  :global(main:has(.software-detail)) { justify-content: flex-start; }
+  header, .prose, .gallery { display: grid; gap: 1rem; }
+  header p { color: var(--nord4); }
+  h2 { margin: 0 0 .75rem; font-size: 1.25rem; font-weight: 400; }
+  .prose h2 { margin: 0; }
+  img { display: block; width: 100%; height: auto; background: var(--nord1); }
+  .tooling { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; list-style: none; margin: 0; padding: 0; color: var(--nord4); }
+  nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; }
+  .team { display: grid; gap: .75rem; padding-inline-start: 1.25rem; margin: 0; }
+  a { color: var(--color-accent); }
+  a:hover { color: var(--nord7); }
+  a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+</style>

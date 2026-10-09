@@ -1,0 +1,36 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ContentRow from '../../components/ContentRow.astro';
+import { softwareProjects, type SoftwareProjectCategory } from '../../data/software-projects';
+
+const categories: { id: SoftwareProjectCategory; title: string }[] = [
+  { id: 'portfolio', title: 'Applications' },
+  { id: 'small-websites', title: 'Small websites' },
+  { id: 'early-projects', title: 'Early projects' },
+];
+---
+
+<Layout title="Software">
+  <div class="software">
+    <h1>Software</h1>
+    {categories.map(category => {
+      const projects = softwareProjects.filter(project => project.category === category.id);
+      return <ContentRow
+        id={category.id}
+        title={category.title}
+        summary={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`}
+        items={projects.map(project => ({
+          href: `/software/${project.slug}`,
+          title: project.title,
+          image: { src: project.screenshot, width: project.screenshotWidth, height: project.screenshotHeight },
+          metadata: project.tooling.join(' · '),
+        }))}
+      />;
+    })}
+  </div>
+</Layout>
+
+<style>
+  .software { width: 100%; max-width: 87rem; text-align: left; display: grid; gap: 1.5rem; }
+  :global(main:has(.software)) { justify-content: flex-start; }
+</style>

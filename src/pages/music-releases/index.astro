@@ -1,13 +1,24 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import ReleaseRow from '../../components/music-releases/ReleaseRow.astro';
+import ContentRow from '../../components/ContentRow.astro';
 import { releaseCategories } from '../../lib/music-releases';
 ---
 
 <Layout title="Music Releases">
   <div class="music-releases">
     <h1>Music Releases</h1>
-    {releaseCategories.map(category => <ReleaseRow {category} />)}
+    {releaseCategories.map(category => <ContentRow
+      id={`category-${category.id}`}
+      title={category.name}
+      summary={`${category.releases.length} ${category.releases.length === 1 ? 'release' : 'releases'}`}
+      items={category.releases.map(release => ({
+        href: `/music-releases/${release.slug}`,
+        title: release.title,
+        image: { src: release.artwork, width: 320, height: 320 },
+        subtitle: release.credit ? release.artist : undefined,
+        metadata: release.credit,
+      }))}
+    />)}
   </div>
 </Layout>
 

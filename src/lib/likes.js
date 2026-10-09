@@ -125,6 +125,17 @@ export function createLikesAPI(base, fetcher = fetch) {
       const last = items.at(-1);
       return { items, nextCursor: result.items.length > 24 ? { created: last.created, id: last.id } : null };
     },
+    async getPublishedItem(id) {
+      if (typeof id !== 'string' || !id) return null;
+      const query = new URLSearchParams({
+        filter: `published=true && id=${quote(id)}`, perPage: '1', skipTotal: 'true',
+      });
+      // Anonymous list lookup: missing records and drafts have the same result.
+      const result = await request(`collections/likes_items/records?${query}`);
+      const item = result.items[0];
+      // Fail closed even if the backend returns an unfiltered or malformed record.
+      return item?.id === id && item.published === true ? item : null;
+    },
     list() { return listRecords('collections/likes_items/records?filter=published%3Dtrue&sort=-created,-id'); },
     listDrafts(token) {
       return listRecords('collections/likes_items/records?filter=published%3Dfalse&sort=-created,-id', { headers: { Authorization: token } });
@@ -171,6 +182,15 @@ export function createLikesAPI(base, fetcher = fetch) {
       });
     },
   };
+}
+
+export function likeItemTitle(item) {
+  if (item.type === 'quote' || item.type === 'note') return textItemTitle(item);
+  return item.title || (item.asset ? /\.pdf$/i.test(item.asset) ? 'PDF document' : 'Image' : 'Link');
+}
+
+export function likesItemURL(item) {
+  return `/likes/${encodeURIComponent(item.id)}`;
 }
 
 export function textItemTitle(item) {

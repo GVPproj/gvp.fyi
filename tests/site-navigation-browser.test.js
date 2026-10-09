@@ -7,7 +7,7 @@ test('Grouped navigation uses native desktop popovers and mobile disclosures', b
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
   await page.goto(`${base}/blog`);
   const desktop = page.getByRole('navigation', { name: 'Main navigation', exact: true });
-  for (const [parent, children] of [['Music', ['Releases', 'Video', 'Film']], ['Software', ['Projects', 'Utils']]]) {
+  for (const [parent, children] of [['Music', ['Releases', 'Video', 'Film']]]) {
     for (const child of children) {
       await desktop.getByRole('button', { name: parent }).click();
       const menu = page.locator(`#${parent.toLowerCase()}-menu`);
@@ -29,15 +29,23 @@ test('Grouped navigation uses native desktop popovers and mobile disclosures', b
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.dropdown:popover-open').count(), 0);
   await music.click();
-  await desktop.getByRole('button', { name: 'Software' }).click();
-  assert.equal(await page.locator('.dropdown:popover-open').count(), 1);
-  await page.getByRole('heading', { name: 'Utils', exact: true }).click();
+  const software = desktop.getByRole('link', { name: 'Software', exact: true });
+  assert.equal(await software.locator('svg').count(), 0);
+  assert.equal(await page.locator('#software-menu').count(), 0);
+  await software.click();
+  await page.getByRole('heading', { name: 'Software', exact: true }).waitFor();
+  assert.equal(new URL(page.url()).pathname, '/software');
+  assert.equal(await software.getAttribute('aria-current'), 'page');
   assert.equal(await page.locator('.dropdown:popover-open').count(), 0);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Open menu', exact: true }).click();
   const mobile = page.getByRole('navigation', { name: 'Mobile navigation', exact: true });
-  assert.equal(await mobile.locator('details[open] summary').textContent(), 'Software');
+  const mobileSoftware = mobile.getByRole('link', { name: 'Software', exact: true });
+  assert.equal(await mobileSoftware.getAttribute('href'), '/software');
+  assert.equal(await mobileSoftware.getAttribute('aria-current'), 'page');
+  assert.equal(await mobileSoftware.locator('svg, .chev').count(), 0);
+  assert.equal(await mobile.locator('summary').filter({ hasText: 'Software' }).count(), 0);
   await mobile.locator('summary').filter({ hasText: 'Music' }).click();
   await mobile.getByRole('link', { name: 'Film', exact: true }).click();
   await page.getByRole('heading', { name: 'Film', exact: true }).waitFor();

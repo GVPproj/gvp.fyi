@@ -4,8 +4,8 @@ import ChevronDown from './ChevronDown.astro'
 
 const path = Astro.url.pathname
 
-const links = [
-
+const [software, ...links] = [
+  { href: '/software', label: 'Software' },
   { href: '/likes', label: 'Likes' },
   { href: '/blog', label: 'Blog' },
 ].map((link) => ({
@@ -15,7 +15,6 @@ const links = [
 
 const groups = [
   { label: 'Music', id: 'music', children: ['Releases', 'Video', 'Film'] },
-  { label: 'Software', id: 'software', children: ['Projects', 'Utils'] },
 ].map((group) => {
   const children = group.children.map((label) => {
     const href = label === 'Releases' ? '/music-releases' : `/${label.toLowerCase()}`
@@ -37,6 +36,11 @@ const groups = [
 
   <nav class="desktop" aria-label="Main navigation">
     <ul>
+      <li>
+        <a href={software.href} class:list={{ current: software.match(path) }} aria-current={software.match(path) ? 'page' : undefined}>
+          {software.label}
+        </a>
+      </li>
       {groups.map((group) => (
         <li class="nav-group" style={`anchor-name: --${group.id}`}>
           <button type="button" class:list={['group-toggle', { current: group.current }]} popovertarget={`${group.id}-menu`}>
@@ -99,6 +103,11 @@ const groups = [
         <a href="/" class:list={{ current: path === '/' }} aria-current={path === '/' ? 'page' : undefined}>
           <span>Home</span>
           <span class="chev" aria-hidden="true">›</span>
+        </a>
+      </li>
+      <li>
+        <a href={software.href} class:list={{ current: software.match(path) }} aria-current={software.match(path) ? 'page' : undefined}>
+          <span>{software.label}</span>
         </a>
       </li>
       {groups.map((group) => (

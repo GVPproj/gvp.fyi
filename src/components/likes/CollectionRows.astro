@@ -1,6 +1,6 @@
 ---
-import { Image } from 'astro:assets';
-import { createLikesAPI, MISC_COLLECTION, webURL } from '../../lib/likes.js';
+import ContentRow, { type ContentRowItem } from '../ContentRow.astro';
+import { createLikesAPI, MISC_COLLECTION, webURL, likesItemURL, likeItemTitle } from '../../lib/likes.js';
 
 export interface CollectionRow {
   id: string;
@@ -15,6 +15,20 @@ interface Props {
 }
 const { rows, endpoint } = Astro.props;
 const api = createLikesAPI(endpoint);
+function rowItem(item: Record<string, any>): ContentRowItem {
+  const asset = api.assetURL(item);
+  const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
+  const textItem = item.type === 'quote' || item.type === 'note';
+  const url = webURL(item.url);
+  return {
+    href: likesItemURL(item),
+    title: likeItemTitle(item),
+    image: !textItem && asset && !pdf ? { src: asset, width: 320, height: 320, optimized: true } : undefined,
+    text: textItem ? (item.body ?? '').slice(0, 400) : undefined,
+    label: pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable',
+    metadata: textItem ? item.attribution : undefined,
+  };
+}
 const now = Date.now();
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 function editedTime(value: string | null) {
@@ -35,41 +49,17 @@ function editedTime(value: string | null) {
 <ul id="collection-rows" aria-label="Collections">
   {rows.filter(row => row.id !== MISC_COLLECTION || row.totalItems > 0).map((row, index) => {
     const edited = editedTime(row.updated);
-    const heading = `collection-heading-${index}`;
-    const metadata = `collection-metadata-${index}`;
     return (
       <li>
-        <a class="collection-row" href={`/likes?${new URLSearchParams({ collection: row.id })}`} aria-labelledby={heading} aria-describedby={metadata}>
-          <div class="collection-info">
-            <h2 id={heading}>{row.name}</h2>
-            <p id={metadata}>
-              <span>{row.totalItems} {row.totalItems === 1 ? 'block' : 'blocks'}</span>
-              {edited && <span>Edited <time datetime={edited.datetime} title={edited.exact}>{edited.label}</time></span>}
-            </p>
-          </div>
-          <div class="collection-previews" aria-hidden="true">
-            {row.items.length ? row.items.map(item => {
-              const asset = api.assetURL(item);
-              const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
-              const textItem = item.type === 'quote' || item.type === 'note';
-              const url = webURL(item.url);
-              return (
-                <div class:list={['collection-preview', { 'text-preview': textItem }]}>
-                  {textItem ? (
-                    <span>{(item.body ?? '').slice(0, 400)}</span>
-                  ) : asset && !pdf ? (
-                    <Image src={asset} alt="" width={320} height={320} widths={[160, 320, 640]} sizes="192px" fit="contain" format="webp" loading="lazy" />
-                  ) : (
-                    <div class="preview-label">
-                      <strong>{item.title || (pdf ? 'PDF document' : 'Link')}</strong>
-                      <span>{pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            }) : <span class="empty-preview">No published items yet</span>}
-          </div>
-        </a>
+        <ContentRow
+          id={`collection-${index}`}
+          title={row.name}
+          summary={`${row.totalItems} ${row.totalItems === 1 ? 'block' : 'blocks'}`}
+          headingHref={`/likes?${new URLSearchParams({ collection: row.id })}`}
+          items={row.items.map(rowItem)}
+        >
+          {edited && <span slot="metadata" class="edited">Edited <time datetime={edited.datetime} title={edited.exact}>{edited.label}</time></span>}
+        </ContentRow>
       </li>
     );
   })}
@@ -78,26 +68,5 @@ function editedTime(value: string | null) {
 <style>
   #collection-rows { list-style: none; padding: 0; margin-block: 1.5rem; display: grid; gap: 1.25rem; }
   #collection-rows > li { min-width: 0; }
-  .collection-row {
-    --preview-size: clamp(8rem, 16vw, 12rem);
-    display: grid; grid-template-columns: clamp(7rem, 18vw, 12rem) minmax(0, 1fr);
-    gap: .75rem; padding: .75rem; border: 1px solid var(--nord3);
-    color: inherit; text-decoration: none;
-  }
-  .collection-row:hover { border-color: var(--nord8); }
-  .collection-row:focus-visible { outline: 2px solid var(--nord8); outline-offset: 4px; }
-  .collection-row:hover h2 { text-decoration: underline; }
-  .collection-info { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow-wrap: anywhere; }
-  h2 { font-size: clamp(1rem, 1.6vw, 1.25rem); font-weight: 400; line-height: 1.3; margin: 0 0 .5rem; }
-  p { margin: 0; color: var(--nord4); font-size: .8rem; line-height: 1.5; }
-  p span { display: block; }
-  .collection-previews { display: flex; gap: .75rem; overflow: hidden; min-width: 0; height: var(--preview-size); }
-  .collection-preview { flex: 0 0 var(--preview-size); height: 100%; min-width: 0; overflow: hidden; background: var(--nord1); color: var(--nord4); }
-  .collection-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
-  .text-preview, .preview-label { padding: 1rem; font-size: .85rem; line-height: 1.5; overflow-wrap: anywhere; }
-  .text-preview { white-space: pre-wrap; }
-  .preview-label { display: flex; flex-direction: column; justify-content: center; gap: .5rem; height: 100%; text-align: center; }
-  .preview-label strong { font-weight: 400; color: var(--nord6); }
-  .preview-label span { font-size: .75rem; }
-  .empty-preview { align-self: center; color: var(--nord4); font-size: .85rem; }
+  .edited { display: block; }
 </style>
