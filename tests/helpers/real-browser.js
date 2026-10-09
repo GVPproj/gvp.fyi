@@ -11,7 +11,7 @@ export const browserOptions = {
   timeout: 60000,
 };
 
-export async function realBrowser(t) {
+async function startServer(t) {
   const socket = net.createServer();
   socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
@@ -51,6 +51,12 @@ export async function realBrowser(t) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   assert.ok(ready, `Temporary Astro server failed to start: ${spawnError ?? ''}\n${logs}`);
+  return base;
+}
+
+export async function realBrowser(t) {
+  // A preview/production server avoids Vite reloads disrupting lifecycle tests.
+  const base = process.env.PLAYWRIGHT_BASE_URL ?? await startServer(t);
   const browser = await chromium.launch({ executablePath, headless: true });
   t.after(() => browser.close());
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
