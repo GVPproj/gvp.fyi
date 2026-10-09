@@ -58,9 +58,26 @@ const padKeys = 'qwerasdfzxcv';
 </script>
 
 <style>
-  #ambient-pad { width: min(100%, 26rem); text-align: left; color: var(--nord4); }
-  .controller { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: var(--pad-gap, 0.5rem); border: 1px solid var(--nord8); border-radius: 0.65rem; background: var(--nord1); padding: 0.5rem; }
-  .nameplate { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.35rem 0.25rem 0.6rem; border-bottom: 1px solid var(--nord3); }
+  #ambient-pad { width: min(100%, 29rem); text-align: left; color: var(--nord4); }
+  /* Stepped highlights and short, hard shadows keep the enclosure pixel-like. */
+  .controller {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 2px solid #171c25;
+    border-radius: 6px;
+    background: var(--nord2);
+    box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0), 0 6px 0 #1d222c, 0 8px 0 #141922, 6px 12px 0 #0003;
+  }
+  .controller::after {
+    content: ''; position: absolute; bottom: -5px; left: 14px; right: 14px; height: 2px;
+    background: repeating-linear-gradient(to right, #080d15 0 10px, transparent 10px 15px);
+    pointer-events: none;
+  }
+  .nameplate { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.2rem 0.15rem 0.85rem; margin-bottom: 0.25rem; border-bottom: 2px solid #252b36; box-shadow: 0 1px 0 #ffffff12; }
+  .brand-name, .product-name { text-shadow: 1px 2px 0 #202631; }
   .brand { display: flex; align-items: center; gap: 0.35rem; color: var(--nord6); }
   .brand-mark { flex: none; color: var(--nord8); }
   .brand-name { font-size: 1.75rem; line-height: 1; letter-spacing: 0.08em; }
@@ -74,14 +91,32 @@ const padKeys = 'qwerasdfzxcv';
   button:focus-visible { outline: 2px solid var(--nord13); outline-offset: 3px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   [data-status]:not(.sr-only) { grid-column: 1 / -1; margin: 0; }
-  .pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--pad-gap, 0.5rem); }
-  .pads button { min-width: 0; display: grid; place-items: center; text-align: center; color: var(--nord0); background: var(--nord15); border-color: transparent; touch-action: none; user-select: none; -webkit-user-select: none; }
-  .pads button:nth-child(n+5) { background: var(--nord7); }
-  .pads button:nth-child(n+9) { background: var(--nord14); }
-  .pads button:not(:disabled):is(:active, [data-held]) { outline: 2px solid var(--nord6); outline-offset: 2px; background: var(--nord6); }
-  .controls { display: grid; gap: var(--pad-gap, 0.5rem); }
+  .pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; padding: 0.5rem; background: #202630; border: 1px solid #151a22; box-shadow: inset 2px 2px 0 #151a22, 1px 1px 0 #ffffff18; }
+  .pads button {
+    --rubber: var(--nord15);
+    min-width: 0; min-height: 48px; display: grid; place-items: center; text-align: center;
+    color: var(--nord0); background: var(--rubber); border: 1px solid #1a202a; border-radius: 3px;
+    box-shadow: inset 2px 2px 0 #ffffff45, inset -2px -3px 0 #0003, 0 3px 0 #111720;
+    text-shadow: 0 1px 0 #ffffff35;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .pads button:nth-child(n+5) { --rubber: var(--nord7); }
+  .pads button:nth-child(n+9) { --rubber: var(--nord14); }
+  .pads button:not(:disabled):hover { border-color: var(--nord6); }
+  .pads button:not(:disabled):is(:active, [data-held]) {
+    transform: translateY(3px); background: var(--nord6); box-shadow: inset 1px 2px 0 #0003;
+    outline: 1px solid var(--rubber); outline-offset: 1px;
+  }
+  .pads button:not(:disabled):focus-visible { outline: 2px solid var(--nord13); outline-offset: 3px; }
+  .controls { display: grid; gap: 0.65rem; padding-block: 0.5rem; }
   .controls button, .controls span:not([hidden]) { display: grid; place-items: center; }
-  .volume-fader { position: relative; min-height: 44px; border-radius: 0.25rem; background: var(--nord0); }
+  .controls button { border: 1px solid #171c25; border-radius: 3px; background: var(--nord1); box-shadow: inset 1px 1px 0 #ffffff25, inset -1px -2px 0 #0003, 0 3px 0 #181e28; }
+  .controls button:not(:disabled):active { transform: translateY(2px); box-shadow: inset 1px 1px 0 #0005; }
+  .volume-fader {
+    position: relative; min-height: 44px; margin-block: 0.5rem; border: 1px solid #171c25; border-radius: 2px;
+    background: repeating-linear-gradient(to bottom, transparent 0 11px, #d8dee933 11px 12px) center / 28px calc(100% - 24px) no-repeat, #262c37;
+    box-shadow: inset 1px 2px 0 #0005, 1px 1px 0 #ffffff18;
+  }
   .volume-fader input { position: absolute; inset: 0; box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: 8px 0; writing-mode: vertical-lr; direction: rtl; appearance: none; background: transparent; cursor: ns-resize; }
   .volume-fader input::-webkit-slider-runnable-track { width: 8px; height: 100%; border: 1px solid var(--nord3); border-radius: 4px; background: #161a20; box-shadow: inset 1px 0 3px #000; }
   .volume-fader input::-moz-range-track { width: 8px; height: 100%; border: 1px solid var(--nord3); border-radius: 4px; background: #161a20; box-shadow: inset 1px 0 3px #000; }
@@ -90,8 +125,9 @@ const padKeys = 'qwerasdfzxcv';
   .volume-fader input:focus-visible { outline: 2px solid var(--nord13); outline-offset: 3px; border-radius: 0.25rem; }
   .volume-fader input:disabled { opacity: 0.55; cursor: default; }
   @media (max-width: 400px) {
-    .controller { --pad-gap: clamp(2px, calc(10vw - 30px), 0.5rem); }
-    .nameplate { padding: 0.6rem 0.5rem; }
+    .controller { padding: 0.5rem; gap: 0.4rem; }
+    .pads { gap: 0.35rem; padding: 0.3rem; }
+    .pads button { min-height: 44px; }
   }
   .record-fill { fill: transparent; }
   .record[data-record-hint]:not(:disabled) .record-fill { fill: var(--nord15); animation: record-invitation 4s ease-in-out infinite; }
