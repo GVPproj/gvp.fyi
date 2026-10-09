@@ -41,6 +41,12 @@ Review against `main` retained the native Web Audio design and required sample-r
 - A browser MutationObserver regression measures **0 unrelated transport mutations**, down from **27**, for two live hits plus a volume adjustment. This measures eliminated work, not a claim of perceptibly faster audio on every device.
 - Error text is visible on activation failure; unsupported Web Audio leaves controls disabled with an explanation.
 
+### PR refactor
+
+Transport presentation now lives in one exhaustively typed state table, shared by rendering, announcements and Play/Stop handling. Looper duration/event limits and its scheduling horizon have named constants; audio polyphony and gain share one voice limit. Natural voice completion and forced silence share disconnect/removal cleanup without changing their stop behavior. Browser assertions cover labels, titles, icons and disabled controls across all five transport states; six audio regressions cover natural completion, explicit stop and voice stealing in both sound modes.
+
+Refactor validation: **49 instrument tests passed** (26 audio-engine, 10 looper, 13 production-build Chromium UI/lifecycle), without failures or skips. `pnpm check` and an isolated `pnpm build` passed with the existing hints/warning. `pnpm test` passed 103 tests and skipped 87 environment-gated cases; the 13 instrument browser cases were run separately as above. Safari, physical-device and real BFCache verification remain outstanding.
+
 ## Verification
 
 Approved public test seams: looper/audio-engine API (timing, cancellation, voice generation) and browser UI (activation, inputs, loading and lifecycle). Tests are in `tests/ambient-*.test.js`.
@@ -53,7 +59,7 @@ pnpm build
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chrome pnpm exec node --test --test-concurrency=1 tests/*.test.js
 ```
 
-For instrument UI/lifecycle tests, optionally set `PLAYWRIGHT_BASE_URL` to an already-running dev or production-preview origin (without a trailing slash). This bypasses per-test Astro startup. The follow-up used the built static Home/Blog routes on a local server: development-server dependency reloads, including interference from another running Astro server, can otherwise invalidate lifecycle tests. Do not rebuild during a browser run.
+For instrument UI/lifecycle tests, optionally set `PLAYWRIGHT_BASE_URL` to an already-running dev or production-preview origin (without a trailing slash). This bypasses per-test Astro startup. The follow-up used the built static Home/Blog routes on a local server: development-server dependency reloads, including interference from another running Astro server, can otherwise invalidate lifecycle tests. Do not rebuild during a browser run. A static fixture server must serve directory indexes at slashless URLs (such as `/blog`) without adding a redirect; the navigation regressions assert those route URLs. Run builds separately from repository tests, whose temporary Astro servers also write generated adapter files.
 
 Follow-up validation: **43 instrument tests passed, zero failures or skips** (20 audio-engine, 10 looper, 13 browser UI/lifecycle), with the UI/lifecycle suite exercising the production build in Chromium. `pnpm check` and `pnpm build` passed. New regression checks cover cold/cancelled/warm multi-touch, visible activation errors and unavailable Web Audio, unrelated DOM mutations, nonzero-epoch boundaries, and non-color-only recording state. This follow-up did not rerun the entire repository's test suite.
 

@@ -107,6 +107,23 @@ test('Home has a silent, accessible 4×4 instrument left of Face, stacked above 
   const instrument = page.getByRole('region', { name: 'Ambient playground' });
   await instrument.waitFor();
   await page.waitForFunction(() => document.querySelector('[data-pad]')?.disabled === false);
+  async function assertTransport(recordLabel, recordIcon, playLabel, empty = false) {
+    const record = instrument.locator('[data-record]');
+    const play = instrument.locator('[data-play]');
+    assert.equal(await record.getAttribute('aria-label'), recordLabel);
+    assert.equal(await record.getAttribute('title'), recordLabel);
+    assert.deepEqual(await record.locator('[data-record-icon]').evaluateAll(icons =>
+      icons.filter(icon => !icon.hidden).map(icon => icon.dataset.recordIcon)
+    ), [recordIcon]);
+    assert.equal(await play.getAttribute('aria-label'), playLabel);
+    assert.equal(await play.getAttribute('title'), playLabel);
+    assert.deepEqual(await play.locator('[data-play-icon]').evaluateAll(icons =>
+      icons.filter(icon => !icon.hidden).map(icon => icon.dataset.playIcon)
+    ), [playLabel.toLowerCase()]);
+    assert.equal(await play.isDisabled(), empty);
+    assert.equal(await instrument.locator('[data-clear]').isDisabled(), empty);
+  }
+  await assertTransport('Record', 'record', 'Play', true);
   const pads = instrument.locator('[data-pad]');
   assert.equal(await pads.count(), 16);
   assert.equal(await pads.evaluateAll(buttons => buttons.every(button => !button.disabled)), true);
@@ -151,10 +168,12 @@ test('Home has a silent, accessible 4×4 instrument left of Face, stacked above 
   }
   await instrument.getByRole('button', { name: 'Record', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('[data-record]')?.getAttribute('aria-label') === 'Finish loop');
+  await assertTransport('Finish loop', 'record', 'Stop');
   await pads.first().click();
   await page.waitForTimeout(1050);
   await instrument.getByRole('button', { name: 'Finish loop', exact: true }).click();
   assert.match(await instrument.getByRole('status').textContent(), /Overdubbing/);
+  await assertTransport('Finish overdub', 'overdub', 'Stop');
   assert.equal(await instrument.locator('[data-record]').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(191, 97, 106)');
   assert.equal(await instrument.locator('[data-record]').evaluate(el => getComputedStyle(el).borderTopStyle), 'dashed', 'overdub is not distinguished by color alone');
   await pads.nth(1).focus();
@@ -162,11 +181,14 @@ test('Home has a silent, accessible 4×4 instrument left of Face, stacked above 
   await instrument.getByRole('button', { name: 'Finish overdub', exact: true }).click();
   assert.equal(await instrument.locator('[data-record]').evaluate(el => getComputedStyle(el).borderTopStyle), 'solid');
   assert.match(await instrument.locator('[data-loop-info]').textContent(), /2 events/);
+  await assertTransport('Overdub', 'overdub', 'Stop');
   await instrument.getByRole('button', { name: 'Stop', exact: true }).click();
   assert.match(await instrument.getByRole('status').textContent(), /Stopped/);
+  await assertTransport('Overdub', 'overdub', 'Play');
   await instrument.getByRole('button', { name: 'Play', exact: true }).click();
   assert.match(await instrument.getByRole('status').textContent(), /Playing/);
   await instrument.getByRole('button', { name: 'Clear', exact: true }).click();
   assert.match(await instrument.getByRole('status').textContent(), /cleared/i);
+  await assertTransport('Record', 'record', 'Play', true);
   assert.deepEqual(samples, [], 'the instrument never downloads samples');
 });

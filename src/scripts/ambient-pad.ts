@@ -1,6 +1,36 @@
 import { AmbientAudio } from '../lib/ambient-audio';
 import { AmbientLooper } from '../lib/ambient-looper';
 
+// Keep every transport state's controls and announcement together. The mapped
+// type requires presentation for any new state introduced by the looper.
+const transportViews: Record<AmbientLooper['state'], {
+  running: boolean;
+  recordLabel: string;
+  recordIcon: 'record' | 'overdub';
+  description: string;
+}> = {
+  empty: {
+    running: false, recordLabel: 'Record', recordIcon: 'record',
+    description: 'Ready. Play a pad or record a loop.',
+  },
+  recording: {
+    running: true, recordLabel: 'Finish loop', recordIcon: 'record',
+    description: 'Recording. Finish loop after 1–8 seconds.',
+  },
+  playing: {
+    running: true, recordLabel: 'Overdub', recordIcon: 'overdub',
+    description: 'Playing. Overdub to add a layer.',
+  },
+  overdubbing: {
+    running: true, recordLabel: 'Finish overdub', recordIcon: 'overdub',
+    description: 'Overdubbing. Finish overdub to keep this layer.',
+  },
+  stopped: {
+    running: false, recordLabel: 'Overdub', recordIcon: 'overdub',
+    description: 'Stopped. Finished layers kept; unfinished takes discarded.',
+  },
+};
+
 function mount(root: HTMLElement) {
   const status = root.querySelector<HTMLElement>('[data-status]')!;
   if (typeof window.AudioContext !== 'function') {
@@ -48,11 +78,9 @@ function mount(root: HTMLElement) {
   function render() {
     const focused = document.activeElement;
     const state = looper.state;
-    const running = ['recording', 'playing', 'overdubbing'].includes(state);
-    const recordLabel = state === 'recording' ? 'Finish loop' : state === 'overdubbing' ? 'Finish overdub' : state === 'empty' ? 'Record' : 'Overdub';
+    const { running, recordLabel, recordIcon } = transportViews[state];
     record.setAttribute('aria-label', recordLabel);
     record.title = recordLabel;
-    const recordIcon = state === 'empty' || state === 'recording' ? 'record' : 'overdub';
     recordIcons.forEach(icon => {
       icon.hidden = icon.dataset.recordIcon !== recordIcon;
     });
@@ -87,14 +115,7 @@ function mount(root: HTMLElement) {
   }
 
   function announceTransport() {
-    const descriptions = {
-      empty: 'Ready. Play a pad or record a loop.',
-      recording: 'Recording. Finish loop after 1–8 seconds.',
-      playing: 'Playing. Overdub to add a layer.',
-      overdubbing: 'Overdubbing. Finish overdub to keep this layer.',
-      stopped: 'Stopped. Finished layers kept; unfinished takes discarded.',
-    };
-    message(looper.full ? 'Loop full (512 events). Live pads still work; Clear to start again.' : descriptions[looper.state]);
+    message(looper.full ? 'Loop full (512 events). Live pads still work; Clear to start again.' : transportViews[looper.state].description);
   }
 
   function releaseContacts() {
@@ -154,7 +175,7 @@ function mount(root: HTMLElement) {
   }
   record.addEventListener('click', () => { void withAudio(() => transport(() => looper.record())); }, { signal });
   play.addEventListener('click', () => {
-    if (['recording', 'playing', 'overdubbing'].includes(looper.state)) {
+    if (transportViews[looper.state].running) {
       if (enabling) pause('Stopped.');
       transport(() => looper.stop());
     } else {
@@ -219,7 +240,7 @@ function mount(root: HTMLElement) {
   for (const control of [...pads, record, mute, volumeControl]) control.disabled = false;
   volumeControl.value = String(volume);
   renderVolume();
-  message('Ready. Play a pad or record a loop.');
+  announceTransport();
   render();
   return () => {
     dead = true;

@@ -1,9 +1,12 @@
 import { pads } from './ambient-kit';
 
 const DURATION = 2;
-const VOICE_GAIN = 0.8 / 32;
+const MAX_VOICES = 32;
+const VOICE_GAIN = 0.8 / MAX_VOICES;
 
 export type SoundMode = 'sine' | 'samples';
+
+type Voice = { source: AudioScheduledSourceNode; gain: GainNode };
 
 /** Owns one explicitly activated audio context; construction is silent. */
 export class AmbientAudio {
@@ -19,7 +22,7 @@ export class AmbientAudio {
   private muted = false;
   private mode: SoundMode = 'sine';
   private readonly buffers = new Map<string, AudioBuffer>();
-  private readonly voices = new Set<{ source: AudioScheduledSourceNode; gain: GainNode }>();
+  private readonly voices = new Set<Voice>();
 
   constructor(private readonly onInterruption: () => void) {}
 
@@ -117,7 +120,7 @@ export class AmbientAudio {
     const pad = pads.find(pad => pad.id === soundId);
     if (!pad) return;
     const context = this.context;
-    if (this.voices.size >= 32) this.silence(this.voices.values().next().value!);
+    if (this.voices.size >= MAX_VOICES) this.silence(this.voices.values().next().value!);
     const start = Math.max(when, context.currentTime);
     const gain = context.createGain();
     let source: AudioScheduledSourceNode;
@@ -140,11 +143,7 @@ export class AmbientAudio {
     source.connect(gain).connect(this.master!);
     const voice = { source, gain };
     this.voices.add(voice);
-    source.onended = () => {
-      source.disconnect();
-      gain.disconnect();
-      this.voices.delete(voice);
-    };
+    source.onended = () => this.releaseVoice(voice);
     source.start(start);
     source.stop(start + DURATION);
   }
@@ -174,9 +173,13 @@ export class AmbientAudio {
     for (const voice of this.voices) this.silence(voice);
   }
 
-  private silence(voice: { source: AudioScheduledSourceNode; gain: GainNode }): void {
+  private silence(voice: Voice): void {
     voice.source.onended = null;
     voice.source.stop();
+    this.releaseVoice(voice);
+  }
+
+  private releaseVoice(voice: Voice): void {
     voice.source.disconnect();
     voice.gain.disconnect();
     this.voices.delete(voice);

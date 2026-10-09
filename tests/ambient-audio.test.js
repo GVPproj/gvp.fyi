@@ -184,6 +184,62 @@ test('stop silences both active and scheduled voices without disabling live play
   assert.equal(result.after, 0);
 });
 
+for (const mode of ['sine', 'samples']) {
+  for (const ending of ['natural', 'stop', 'steal']) {
+    test(`${mode} voices disconnect and leave the active set after ${ending} cleanup`, async t => {
+      const page = await offlineFor(t);
+      const result = await page.evaluate(async ({ mode, ending }) => {
+        const audio = new AmbientAudio(() => {});
+        await audio.enable(mode);
+        const context = contexts[0];
+        const sources = [];
+        const gains = [];
+        const ended = [];
+        // Observe real nodes without reaching into the engine's private voice set.
+        for (const method of ['createGain', mode === 'sine' ? 'createOscillator' : 'createBufferSource']) {
+          const create = context[method].bind(context);
+          context[method] = () => {
+            const node = create();
+            const counts = { disconnects: 0, stops: 0 };
+            const disconnect = node.disconnect.bind(node);
+            node.disconnect = (...args) => { counts.disconnects++; return disconnect(...args); };
+            if (method === 'createGain') gains.push(counts);
+            else {
+              sources.push(counts);
+              const stop = node.stop.bind(node);
+              node.stop = (...args) => { counts.stops++; return stop(...args); };
+              ended.push(new Promise(resolve => node.addEventListener('ended', resolve, { once: true })));
+            }
+            return node;
+          };
+        }
+        const count = ending === 'steal' ? 33 : 2;
+        for (let i = 0; i < count; i++) audio.trigger({ soundId: 'a4', when: 0.25 });
+        if (ending === 'stop') {
+          audio.stop();
+          audio.stop();
+        }
+        const immediate = sources.map((source, i) => [source.disconnects, gains[i].disconnects, source.stops]);
+        await render(context);
+        await Promise.all(ended);
+        // Neither stop nor disposal should revisit voices already released.
+        audio.stop();
+        const ready = audio.ready;
+        audio.dispose();
+        return { immediate, ready,
+          final: sources.map((source, i) => [source.disconnects, gains[i].disconnects, source.stops]) };
+      }, { mode, ending });
+      const count = ending === 'steal' ? 33 : 2;
+      const silenced = i => ending === 'stop' || (ending === 'steal' && i === 0);
+      assert.deepEqual(result.immediate, Array.from({ length: count }, (_, i) =>
+        silenced(i) ? [1, 1, 2] : [0, 0, 1]));
+      assert.deepEqual(result.final, Array.from({ length: count }, (_, i) =>
+        [1, 1, silenced(i) ? 2 : 1]));
+      assert.equal(result.ready, true);
+    });
+  }
+}
+
 test('volume clamps to [0,1], and mute preserves the chosen volume without unlocking audio', async t => {
   const page = await offlineFor(t);
   const peaks = await page.evaluate(async () => {

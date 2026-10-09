@@ -1,3 +1,8 @@
+const MIN_LOOP_DURATION = 1;
+const MAX_LOOP_DURATION = 8;
+const MAX_EVENTS = 512;
+const SCHEDULE_AHEAD = 0.1;
+
 type Trigger = { soundId: string; when: number };
 type VoiceOutput = { trigger: (voice: Trigger) => void; stop: () => void };
 type LoopEvent = { soundId: string; position: number; nextCycle: number };
@@ -21,7 +26,7 @@ export class AmbientLooper {
   get state() { return this.transport; }
   get duration() { return this.length; }
   get eventCount() { return this.events.length + this.overdub.length; }
-  get full() { return this.eventCount >= 512; }
+  get full() { return this.eventCount >= MAX_EVENTS; }
 
   record() {
     if (this.transport === 'stopped') this.play();
@@ -30,8 +35,8 @@ export class AmbientLooper {
       this.epoch = now;
       this.transport = 'recording';
     } else if (this.transport === 'recording') {
-      if (now - this.epoch < 1) return;
-      this.length = Math.min(8, now - this.epoch);
+      if (now - this.epoch < MIN_LOOP_DURATION) return;
+      this.length = Math.min(MAX_LOOP_DURATION, now - this.epoch);
       for (const event of this.events) {
         // A coarse audio clock can give the final hit and pedal press the same
         // timestamp. Wrap its phase, but don't replay that monitored hit now.
@@ -44,7 +49,7 @@ export class AmbientLooper {
       // hits if that tick is within the scheduling horizon, rather than skipping
       // a whole first replay. The audio engine clamps late starts to "now";
       // subsequent cycles still use the original epoch. Longer stalls skip.
-      this.scheduleAt(now - boundary < 0.1 ? boundary : now);
+      this.scheduleAt(now - boundary < SCHEDULE_AHEAD ? boundary : now);
     } else if (this.transport === 'playing') {
       this.transport = 'overdubbing';
     } else if (this.transport === 'overdubbing') {
@@ -81,7 +86,7 @@ export class AmbientLooper {
 
   hit(soundId: string) {
     const now = this.now();
-    if (this.transport === 'recording' && now - this.epoch >= 8) this.record();
+    if (this.transport === 'recording' && now - this.epoch >= MAX_LOOP_DURATION) this.record();
     this.output.trigger({ soundId, when: now });
     if (this.full) return;
     if (this.transport === 'recording') {
@@ -93,7 +98,7 @@ export class AmbientLooper {
   }
 
   schedule() {
-    if (this.transport === 'recording' && this.now() - this.epoch >= 8) this.record();
+    if (this.transport === 'recording' && this.now() - this.epoch >= MAX_LOOP_DURATION) this.record();
     this.scheduleAt(this.now());
   }
 
@@ -113,7 +118,7 @@ export class AmbientLooper {
         event.nextCycle++;
         when = this.epoch + event.nextCycle * this.length + event.position;
       }
-      if (when < now + 0.1) {
+      if (when < now + SCHEDULE_AHEAD) {
         this.output.trigger({ soundId: event.soundId, when });
         event.nextCycle++;
       }
