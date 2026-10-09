@@ -23,7 +23,7 @@ before(async () => {
     try {
       const path = new URL(request.url, 'http://localhost').pathname;
       if (path === '/') return response.end('<!doctype html><title>Audio seam tests</title>');
-      if (path.startsWith('/src/lib/ambient-')) {
+      if (path.startsWith('/src/lib/lib-ambient-pad/ambient-')) {
         const source = await readFile(new URL(`..${path}.ts`, import.meta.url), 'utf8');
         response.setHeader('Content-Type', 'text/javascript');
         return response.end(ts.transpileModule(source, {
@@ -53,7 +53,7 @@ async function pageFor(t) {
   t.after(() => page.close());
   await page.goto(base);
   await page.evaluate(async () => {
-    window.AmbientAudio = (await import('/src/lib/ambient-audio')).AmbientAudio;
+    window.AmbientAudio = (await import('/src/lib/lib-ambient-pad/ambient-audio')).AmbientAudio;
   });
   return page;
 }
@@ -113,7 +113,7 @@ test('activation is explicit and resume is invoked synchronously in enable', asy
 test('sixteen C-major pentatonic pads render scheduled, gently enveloped two-second sine notes', async t => {
   const page = await offlineFor(t);
   const result = await page.evaluate(async () => {
-    const { pads } = await import('/src/lib/ambient-kit');
+    const { pads } = await import('/src/lib/lib-ambient-pad/ambient-kit');
     const notes = [];
     for (const pad of pads) {
       const audio = new AmbientAudio(() => {});
@@ -270,7 +270,7 @@ test('volume clamps to [0,1], and mute preserves the chosen volume without unloc
 test('samples load only on request with progress, and generated WAV voices match sine timing and pitches', async t => {
   const page = await offlineFor(t);
   const result = await page.evaluate(async () => {
-    const { pads } = await import('/src/lib/ambient-kit');
+    const { pads } = await import('/src/lib/lib-ambient-pad/ambient-kit');
     const nativeFetch = window.fetch;
     let requests = 0;
     window.fetch = (...args) => { requests++; return nativeFetch(...args); };

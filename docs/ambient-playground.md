@@ -14,9 +14,9 @@ Home's flat 4×4 instrument sits left of Face, or above it below 761px. It needs
 
 ## Modules and clock
 
-- `src/lib/ambient-kit.ts`: stable sound IDs, pad labels, tuning, sample URLs.
-- `src/lib/ambient-looper.ts`: first-pass/overdub transactions and event scheduling. Its public port accepts `{ soundId, when }` and `stop()`, with an injected audio clock. Committed and unfinished overdub events track their next occurrence independently, including when a new event enters an already-filled scheduling horizon.
-- `src/lib/ambient-audio.ts`: lazy owned AudioContext, oscillator/sample voices, master gain, polyphony, loading and disposal. Both sound modes implement the same scheduled-trigger contract.
+- `src/lib/lib-ambient-pad/ambient-kit.ts`: stable sound IDs, pad labels, tuning, sample URLs.
+- `src/lib/lib-ambient-pad/ambient-looper.ts`: first-pass/overdub transactions and event scheduling. Its public port accepts `{ soundId, when }` and `stop()`, with an injected audio clock. Committed and unfinished overdub events track their next occurrence independently, including when a new event enters an already-filled scheduling horizon.
+- `src/lib/lib-ambient-pad/ambient-audio.ts`: lazy owned AudioContext, oscillator/sample voices, master gain, polyphony, loading and disposal. Both sound modes implement the same scheduled-trigger contract.
 - `src/scripts/ambient-pad.ts`: native input, UI state and an idempotent Astro lifecycle coordinator. Page-owned handlers are abortable; timers and voices are disposed on swap/pagehide. BFCache pageshow mounts a fresh silent instance.
 
 The 25ms timer only feeds a 100ms audio scheduling horizon. All event times derive from the original epoch plus an integer cycle number; timer jitter cannot accumulate drift. Cycle selection compares computed onset times rather than rounding a quotient upward, avoiding dropped boundary notes from floating-point cancellation at nonzero epochs. A stall beyond the horizon skips expired occurrences, rather than bursting missed hits. At automatic 8-second closure, opening hits are recovered if the closing tick is less than 100ms late: overdue onsets play immediately, but subsequent cycles retain the original epoch. This avoids losing a whole first replay to normal timer jitter without accumulating drift. This does **not** guarantee uninterrupted playback through arbitrary main-thread stalls or low latency on Bluetooth hardware. Sound tails are independent of loop wrapping.

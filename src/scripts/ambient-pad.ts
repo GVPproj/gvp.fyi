@@ -1,5 +1,5 @@
-import { AmbientAudio } from '../lib/ambient-audio';
-import { AmbientLooper } from '../lib/ambient-looper';
+import { AmbientAudio } from '../lib/lib-ambient-pad/ambient-audio';
+import { AmbientLooper } from '../lib/lib-ambient-pad/ambient-looper';
 
 // Keep every transport state's controls and announcement together. The mapped
 // type requires presentation for any new state introduced by the looper.

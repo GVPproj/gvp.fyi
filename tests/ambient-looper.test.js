@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { AmbientLooper } from '../src/lib/ambient-looper.ts';
+import { AmbientLooper } from '../src/lib/lib-ambient-pad/ambient-looper.ts';
 
 // The public scheduling port and audio clock are the system boundary.
 function instrument() {

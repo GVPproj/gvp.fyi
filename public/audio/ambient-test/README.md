@@ -21,7 +21,7 @@ and a 600 ms linear release. The engine adds 0.8/32 per-voice headroom and
 limits polyphony to 32, including future scheduled starts.
 
 The notes are C3 D3 E3 G3 A3 C4 D4 E4 G4 A4 C5 D5 E5 G5 A5 C6.
-Lowercase filenames match stable sound IDs in `src/lib/ambient-kit.ts`.
+Lowercase filenames match stable sound IDs in `src/lib/lib-ambient-pad/ambient-kit.ts`.
 If changing the mapping/envelope, update the generator and engine together;
 the browser audio tests compare all generated voices with their sine counterparts.
 
