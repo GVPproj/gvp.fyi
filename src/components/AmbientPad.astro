@@ -59,7 +59,7 @@ const padKeys = 'qwerasdfzxcv';
 
 <style>
   #ambient-pad { width: min(100%, 26rem); text-align: left; color: var(--nord4); }
-  .controller { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 0.5rem; border: 1px solid var(--nord8); border-radius: 0.65rem; background: var(--nord1); padding: 0.5rem; }
+  .controller { display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: var(--pad-gap, 0.5rem); border: 1px solid var(--nord8); border-radius: 0.65rem; background: var(--nord1); padding: 0.5rem; }
   .nameplate { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.35rem 0.25rem 0.6rem; border-bottom: 1px solid var(--nord3); }
   .brand { display: flex; align-items: center; gap: 0.35rem; color: var(--nord6); }
   .brand-mark { flex: none; color: var(--nord8); }
@@ -74,12 +74,12 @@ const padKeys = 'qwerasdfzxcv';
   button:focus-visible { outline: 2px solid var(--nord13); outline-offset: 3px; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   [data-status]:not(.sr-only) { grid-column: 1 / -1; margin: 0; }
-  .pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+  .pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--pad-gap, 0.5rem); }
   .pads button { min-width: 0; display: grid; place-items: center; text-align: center; color: var(--nord0); background: var(--nord15); border-color: transparent; touch-action: none; user-select: none; -webkit-user-select: none; }
   .pads button:nth-child(n+5) { background: var(--nord7); }
   .pads button:nth-child(n+9) { background: var(--nord14); }
   .pads button:not(:disabled):is(:active, [data-held]) { outline: 2px solid var(--nord6); outline-offset: 2px; background: var(--nord6); }
-  .controls { display: grid; gap: 0.5rem; }
+  .controls { display: grid; gap: var(--pad-gap, 0.5rem); }
   .controls button, .controls span:not([hidden]) { display: grid; place-items: center; }
   .volume-fader { position: relative; min-height: 44px; border-radius: 0.25rem; background: var(--nord0); }
   .volume-fader input { position: absolute; inset: 0; box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: 8px 0; writing-mode: vertical-lr; direction: rtl; appearance: none; background: transparent; cursor: ns-resize; }
@@ -90,9 +90,8 @@ const padKeys = 'qwerasdfzxcv';
   .volume-fader input:focus-visible { outline: 2px solid var(--nord13); outline-offset: 3px; border-radius: 0.25rem; }
   .volume-fader input:disabled { opacity: 0.55; cursor: default; }
   @media (max-width: 400px) {
-    .controller { gap: 0; padding: 0; }
+    .controller { --pad-gap: clamp(2px, calc(10vw - 30px), 0.5rem); }
     .nameplate { padding: 0.6rem 0.5rem; }
-    .pads { gap: 1px; }
   }
   .record-fill { fill: transparent; }
   .record[data-record-hint]:not(:disabled) .record-fill { fill: var(--nord15); animation: record-invitation 4s ease-in-out infinite; }

@@ -23,4 +23,9 @@ import Layout from '../layouts/Layout.astro';
   @media (max-width: 760px) {
     .home-playground { flex-direction: column; }
   }
+
+  @media (max-width: 400px) {
+    /* Keep room for the controller inset and 44px pads on narrow screens. */
+    .home-playground { width: calc(100% + clamp(0px, calc(7.5rem - 30vw), 1.5rem)); }
+  }
 </style>

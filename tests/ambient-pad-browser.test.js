@@ -147,12 +147,18 @@ test('Home has a silent, accessible 3×4 instrument centered on desktop and mobi
       style.clipPath === 'inset(50%)' && rect.width <= 1 && rect.height <= 1;
   }), true, 'status remains accessible but visually hidden');
   assert.deepEqual(samples, []);
-  for (const width of [1280, 320]) {
+  for (const width of [1280, 401, 400, 375, 350, 320]) {
     await page.setViewportSize({ width, height: 900 });
     const controls = instrument.locator('.controls');
     const padGrid = await instrument.locator('.pads').boundingBox();
     const controlsBox = await controls.boundingBox();
-    assert.ok(controlsBox.x >= padGrid.x + padGrid.width, 'buttons stay right of pads');
+    assert.ok(controlsBox.x - (padGrid.x + padGrid.width) >= 2, 'transport stays separated from pads');
+    assert.equal(await pads.evaluateAll(buttons => {
+      const first = buttons[0].getBoundingClientRect();
+      const next = buttons[1].getBoundingClientRect();
+      const below = buttons[4].getBoundingClientRect();
+      return next.left - first.right >= 2 && below.top - first.bottom >= 2;
+    }), true, 'pads retain horizontal and vertical spacing');
     assert.equal(await controls.locator('button').count(), 3);
     assert.deepEqual(await pads.evaluateAll(buttons => {
       const rows = new Map();
@@ -166,6 +172,12 @@ test('Home has a silent, accessible 3×4 instrument centered on desktop and mobi
     assert.equal(await controls.locator('button').evaluateAll(buttons => buttons.every(button =>
       button.getAttribute('aria-label') && button.querySelector('svg') && !button.textContent.trim()
     )), true, 'controls are named, icon-only buttons');
+    const shell = await instrument.locator('.controller').boundingBox();
+    const fader = await instrument.locator('.volume-fader').boundingBox();
+    assert.ok(padGrid.x - shell.x >= 8, 'pads retain their left inset');
+    assert.ok(shell.y + shell.height - (padGrid.y + padGrid.height) >= 8, 'pads retain their bottom inset');
+    assert.ok(shell.x + shell.width - (fader.x + fader.width) >= 8, 'fader retains its right inset');
+    assert.ok(shell.y + shell.height - (controlsBox.y + controlsBox.height) >= 8, 'transport retains its bottom inset');
     const controller = await instrument.boundingBox();
     assert.equal(await page.getByRole('img', { name: 'A one-line portrait of my face' }).count(), 0);
     assert.ok(Math.abs(controller.x + controller.width / 2 - width / 2) < 2, 'instrument stays centered');
