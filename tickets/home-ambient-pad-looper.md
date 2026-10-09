@@ -51,7 +51,9 @@ Confirmed by the owner during implementation:
 - Current Chrome, Firefox and Safari, including Android Chrome and iOS Safari.
 - Tests at the public looper/audio-engine boundary and browser UI (activation, input, navigation and cleanup).
 
-Safety bounds: first-pass length 1–120 seconds, automatically closed at the maximum; 512 recorded events and 32 simultaneous/scheduled voices. These limits are disclosed in the UI.
+Safety bounds: first-pass length 1–8 seconds, automatically closed at the maximum; 512 recorded events and 32 simultaneous/scheduled voices. Full limits are documented in the implementation notes; the separate UI help disclosure was removed at the owner's request. Recording duration and event-capacity announcements remain accessible in the UI.
+
+The eight-second first-pass limit in PR #2 supersedes the earlier 120-second limit. This keeps the first version a small playground; longer loops remain a possible follow-up, not part of the current contract.
 
 ## Original decisions to resolve before implementation (resolved above)
 

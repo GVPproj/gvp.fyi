@@ -24,7 +24,8 @@ before(async () => {
       const path = new URL(request.url, 'http://localhost').pathname;
       if (path === '/') return response.end('<!doctype html><title>Audio seam tests</title>');
       if (path.startsWith('/src/lib/lib-ambient-pad/ambient-')) {
-        const source = await readFile(new URL(`..${path}.ts`, import.meta.url), 'utf8');
+        const sourcePath = path.endsWith('.ts') ? path : `${path}.ts`;
+        const source = await readFile(new URL(`..${sourcePath}`, import.meta.url), 'utf8');
         response.setHeader('Content-Type', 'text/javascript');
         return response.end(ts.transpileModule(source, {
           compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },

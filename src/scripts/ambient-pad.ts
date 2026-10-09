@@ -1,5 +1,6 @@
 import { AmbientAudio } from '../lib/lib-ambient-pad/ambient-audio';
 import { AmbientLooper } from '../lib/lib-ambient-pad/ambient-looper';
+import { MIN_LOOP_DURATION, MAX_LOOP_DURATION, MAX_EVENTS } from '../lib/lib-ambient-pad/ambient-limits';
 
 // Keep every transport state's controls and announcement together. The mapped
 // type requires presentation for any new state introduced by the looper.
@@ -15,7 +16,7 @@ const transportViews: Record<AmbientLooper['state'], {
   },
   recording: {
     running: true, recordLabel: 'Finish loop', recordIcon: 'record',
-    description: 'Recording. Finish loop after 1–8 seconds.',
+    description: `Recording. Finish loop after ${MIN_LOOP_DURATION}–${MAX_LOOP_DURATION} seconds.`,
   },
   playing: {
     running: true, recordLabel: 'Overdub', recordIcon: 'overdub',
@@ -115,7 +116,7 @@ function mount(root: HTMLElement) {
   }
 
   function announceTransport() {
-    message(looper.full ? 'Loop full (512 events). Live pads still work; Clear to start again.' : transportViews[looper.state].description);
+    message(looper.full ? `Loop full (${MAX_EVENTS} events). Live pads still work; Clear to start again.` : transportViews[looper.state].description);
   }
 
   function releaseContacts() {

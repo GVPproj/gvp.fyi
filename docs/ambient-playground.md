@@ -1,6 +1,6 @@
 # Ambient playground
 
-Home's flat 4×4 instrument sits left of Face, or above it below 761px. It needs JavaScript and Web Audio; the rest of Home remains usable without either. The pads are ready immediately, with sine tones only. The first pad tap or Record/Play press unlocks audio as part of that gesture; arrival stays silent and no samples download. Only pads and a right-hand column of Pixelarticons buttons are visible; there is no separate pedal, last-pad readout, or visible status panel. Buttons retain accessible names and hover titles; transport announcements and loop information remain available to screen readers. Activation errors and missing Web Audio support are also shown visibly.
+Home's flat 4×4 instrument sits left of Face, or above it below 761px. It needs JavaScript and Web Audio; the rest of Home remains usable without either. The pads are ready immediately, with sine tones only. The first pad tap or Record/Play press unlocks audio as part of that gesture; arrival stays silent and no samples download. The controller shows only pads and a right-hand column of Pixelarticons buttons; there is no help panel. There is no separate pedal, last-pad readout, or visible status panel. Buttons retain accessible names and hover titles; transport announcements and loop information remain available to screen readers. Activation errors and missing Web Audio support are also shown visibly.
 
 ## Playing
 
@@ -15,6 +15,7 @@ Home's flat 4×4 instrument sits left of Face, or above it below 761px. It needs
 ## Modules and clock
 
 - `src/lib/lib-ambient-pad/ambient-kit.ts`: stable sound IDs, pad labels, tuning, sample URLs.
+- `src/lib/lib-ambient-pad/ambient-limits.ts`: safety bounds shared by engines and announcements. The eight-second first-pass maximum supersedes the ticket's earlier 120-second limit.
 - `src/lib/lib-ambient-pad/ambient-looper.ts`: first-pass/overdub transactions and event scheduling. Its public port accepts `{ soundId, when }` and `stop()`, with an injected audio clock. Committed and unfinished overdub events track their next occurrence independently, including when a new event enters an already-filled scheduling horizon.
 - `src/lib/lib-ambient-pad/ambient-audio.ts`: lazy owned AudioContext, oscillator/sample voices, master gain, polyphony, loading and disposal. Both sound modes implement the same scheduled-trigger contract.
 - `src/scripts/ambient-pad.ts`: native input, UI state and an idempotent Astro lifecycle coordinator. Page-owned handlers are abortable; timers and voices are disposed on swap/pagehide. BFCache pageshow mounts a fresh silent instance.
@@ -46,6 +47,12 @@ Review against `main` retained the native Web Audio design and required sample-r
 Transport presentation now lives in one exhaustively typed state table, shared by rendering, announcements and Play/Stop handling. Looper duration/event limits and its scheduling horizon have named constants; audio polyphony and gain share one voice limit. Natural voice completion and forced silence share disconnect/removal cleanup without changing their stop behavior. Browser assertions cover labels, titles, icons and disabled controls across all five transport states; six audio regressions cover natural completion, explicit stop and voice stealing in both sound modes.
 
 Refactor validation: **49 instrument tests passed** (26 audio-engine, 10 looper, 13 production-build Chromium UI/lifecycle), without failures or skips. `pnpm check` and an isolated `pnpm build` passed with the existing hints/warning. `pnpm test` passed 103 tests and skipped 87 environment-gated cases; the 13 instrument browser cases were run separately as above. Safari, physical-device and real BFCache verification remain outstanding.
+
+### PR #2 review fixes
+
+Retained the eight-second maximum and reconciled the originating ticket. Safety bounds now have one shared source for engines and announcements; interruption, suspension and disposal share audio deactivation. The expandable help panel and its dedicated assertions were removed at the owner's request; full safety bounds remain documented here rather than in a separate UI disclosure.
+
+Validation before removing the help panel: **49 instrument tests passed with no failures or skips** (26 audio-engine, 10 looper, 13 production Chromium UI/lifecycle). Astro check and build passed using the local Astro CLI directly; the three existing test hints and blog MDX directive warning remain. Safari, physical-device and true BFCache checks remain outstanding.
 
 ## Verification
 

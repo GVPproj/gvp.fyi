@@ -1,6 +1,4 @@
-const MIN_LOOP_DURATION = 1;
-const MAX_LOOP_DURATION = 8;
-const MAX_EVENTS = 512;
+import { MIN_LOOP_DURATION, MAX_LOOP_DURATION, MAX_EVENTS } from './ambient-limits.ts';
 const SCHEDULE_AHEAD = 0.1;
 
 type Trigger = { soundId: string; when: number };

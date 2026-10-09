@@ -1,7 +1,7 @@
 import { pads } from './ambient-kit';
+import { MAX_VOICES } from './ambient-limits.ts';
 
 const DURATION = 2;
-const MAX_VOICES = 32;
 const VOICE_GAIN = 0.8 / MAX_VOICES;
 
 export type SoundMode = 'sine' | 'samples';
@@ -108,10 +108,7 @@ export class AmbientAudio {
     // pending. That unchanged starting state is not a new interruption. Once
     // running is observed (or resume settles), every suspension is actionable.
     if (!this.expectRunning || state === this.resumeFrom) return;
-    this.cancelLoading();
-    this.expectRunning = false;
-    this.enabled = false;
-    this.stop();
+    this.deactivate();
     this.onInterruption();
   };
 
@@ -185,12 +182,16 @@ export class AmbientAudio {
     this.voices.delete(voice);
   }
 
-  /** Keep decoded samples, but never automatically resume after returning. */
-  suspend(): void {
+  private deactivate(): void {
     this.cancelLoading();
     this.expectRunning = false;
     this.enabled = false;
     this.stop();
+  }
+
+  /** Keep decoded samples, but never automatically resume after returning. */
+  suspend(): void {
+    this.deactivate();
     if (this.context && this.context.state !== 'closed') {
       void this.context.suspend().catch(() => {});
     }
@@ -199,11 +200,8 @@ export class AmbientAudio {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.cancelLoading();
-    this.expectRunning = false;
-    this.enabled = false;
     this.context?.removeEventListener('statechange', this.handleStateChange);
-    this.stop();
+    this.deactivate();
     this.master?.disconnect();
     this.buffers.clear();
     if (this.context && this.context.state !== 'closed') {
