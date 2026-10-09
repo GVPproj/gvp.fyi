@@ -25,7 +25,7 @@ const padKeys = 'qwerasdfzxcv';
     <div class="pads" aria-label="Sound pads">
       {pads.map((pad, index) => (
         <button type="button" data-pad={pad.id} data-key={padKeys[index]} aria-label={`Pad ${index + 1}, ${padKeys[index].toUpperCase()}, ${pad.label}`} aria-keyshortcuts={padKeys[index].toUpperCase()} aria-describedby="ambient-pad-keyboard-help" disabled>
-          <span>{padKeys[index].toUpperCase()}</span>
+          <span class="pad-key">{padKeys[index].toUpperCase()}</span>
         </button>
       ))}
     </div>
@@ -124,6 +124,9 @@ const padKeys = 'qwerasdfzxcv';
   .volume-fader input::-moz-range-thumb { width: 34px; height: 16px; border: 1px solid var(--nord3); border-radius: 3px; background: linear-gradient(to bottom, var(--nord6), var(--nord4) 40%, var(--nord0) 42%, var(--nord0) 58%, var(--nord4) 60%, var(--nord6)); box-shadow: 0 2px 3px #0008; }
   .volume-fader input:focus-visible { outline: 2px solid var(--nord13); outline-offset: 3px; border-radius: 0.25rem; }
   .volume-fader input:disabled { opacity: 0.55; cursor: default; }
+  @media (pointer: coarse) {
+    .pad-key { visibility: hidden; }
+  }
   @media (max-width: 400px) {
     .controller { padding: 0.5rem; gap: 0.4rem; }
     .pads { gap: 0.35rem; padding: 0.3rem; }
