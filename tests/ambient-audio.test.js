@@ -85,12 +85,82 @@ async function offlineFor(t, seconds = 3) {
   return page;
 }
 
+// These tests verify the workaround's activation/lifecycle, not the physical
+// iPhone Silent switch. Audibility with that switch on still needs device QA.
+for (const device of ['iPhone', 'iPad-desktop']) {
+  test(`iOS media channel starts within activation and unloads on pause/disposal (${device})`, async t => {
+    const page = await offlineFor(t);
+    const result = await page.evaluate(async device => {
+      Object.defineProperty(navigator, 'userAgent', { value: device === 'iPhone'
+        ? 'Mozilla/5.0 (iPhone)' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)' });
+      Object.defineProperty(navigator, 'maxTouchPoints', { value: 5 });
+      const elements = [];
+      HTMLMediaElement.prototype.load = function () {};
+      HTMLMediaElement.prototype.play = function () { elements.push(this); return Promise.resolve(); };
+      HTMLMediaElement.prototype.pause = function () {};
+      const audio = new AmbientAudio(() => {});
+      const initial = elements.length;
+      const enabling = audio.enable('sine');
+      const synchronous = elements.length === 1;
+      await enabling;
+      const first = elements[0];
+      const settings = { loop: first.loop, muted: first.muted,
+        remote: first.disableRemotePlayback, src: first.getAttribute('src') };
+      audio.suspend();
+      const unloaded = !first.hasAttribute('src');
+      window.dispatchEvent(new Event('click'));
+      const noAutoResume = elements.length === 1 && !audio.ready;
+      await audio.enable('sine');
+      const recreated = elements.length === 2 && elements[1] !== first;
+      contexts[0].changeState('interrupted');
+      const interrupted = !audio.ready && !elements[1].hasAttribute('src');
+      await audio.enable('sine');
+      audio.dispose();
+      return { initial, synchronous, settings, unloaded, noAutoResume, recreated, interrupted,
+        disposed: !elements[2].hasAttribute('src') };
+    }, device);
+    assert.deepEqual(result, { initial: 0, synchronous: true,
+      settings: { loop: true, muted: false, remote: true, src: '/audio/ambient-silence.mp3' },
+      unloaded: true, noAutoResume: true, recreated: true, interrupted: true, disposed: true });
+  });
+}
+
+test('failed iOS media activation unloads the element and can be retried', async t => {
+  const page = await offlineFor(t);
+  const result = await page.evaluate(async () => {
+    Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (iPhone)' });
+    const elements = [];
+    HTMLMediaElement.prototype.load = function () {};
+    HTMLMediaElement.prototype.pause = function () {};
+    HTMLMediaElement.prototype.play = function () {
+      elements.push(this);
+      return elements.length === 1 ? Promise.reject(new Error('Playback blocked')) : Promise.resolve();
+    };
+    const audio = new AmbientAudio(() => {});
+    let error;
+    try { await audio.enable('sine'); } catch (e) { error = e.message; }
+    const failedReady = audio.ready;
+    const unloaded = !elements[0].hasAttribute('src');
+    await audio.enable('sine');
+    const ready = audio.ready;
+    audio.dispose();
+    return { error, failedReady, unloaded, ready, attempts: elements.length };
+  });
+  assert.deepEqual(result, { error: 'Playback blocked', failedReady: false, unloaded: true,
+    ready: true, attempts: 2 });
+});
+
 test('activation is explicit and resume is invoked synchronously in enable', async t => {
   const page = await pageFor(t);
   const result = await page.evaluate(async () => {
     const NativeContext = window.AudioContext;
     const contexts = [];
     let resumed = false;
+    let mediaPlays = 0;
+    HTMLMediaElement.prototype.play = function () {
+      mediaPlays++;
+      return Promise.reject(new Error('Desktop should not need silent media'));
+    };
     window.AudioContext = class extends NativeContext {
       constructor() { super(); contexts.push(this); }
       resume() { resumed = true; return super.resume(); }
@@ -103,11 +173,11 @@ test('activation is explicit and resume is invoked synchronously in enable', asy
     const enabled = audio.ready;
     const clockMatches = audio.currentTime === contexts[0].currentTime;
     audio.dispose();
-    return { initial, synchronousResume, enabled, clockMatches };
+    return { initial, synchronousResume, enabled, clockMatches, mediaPlays };
   });
   assert.deepEqual(result, {
     initial: { count: 0, ready: false, time: 0 },
-    synchronousResume: true, enabled: true, clockMatches: true,
+    synchronousResume: true, enabled: true, clockMatches: true, mediaPlays: 0,
   });
 });
 

@@ -1,4 +1,5 @@
 import { pads } from './ambient-kit';
+import { AmbientMediaChannel } from './ambient-media-channel';
 import { MAX_VOICES } from './ambient-limits.ts';
 
 const DURATION = 2;
@@ -11,6 +12,7 @@ type Voice = { source: AudioScheduledSourceNode; gain: GainNode };
 /** Owns one explicitly activated audio context; construction is silent. */
 export class AmbientAudio {
   private context?: AudioContext;
+  private readonly mediaChannel = new AmbientMediaChannel();
   private enabled = false;
   private expectRunning = false;
   private resumeFrom?: AudioContextState;
@@ -49,7 +51,7 @@ export class AmbientAudio {
       const context = this.context;
       this.resumeFrom = context.state;
       // Must happen before the first await, inside the visitor's activation.
-      await context.resume();
+      await Promise.all([context.resume(), this.mediaChannel.enable()]);
       this.checkGeneration(generation);
       this.resumeFrom = undefined;
       if (mode === 'samples') {
@@ -78,6 +80,7 @@ export class AmbientAudio {
         this.expectRunning = false;
         this.resumeFrom = undefined;
         this.stop();
+        this.mediaChannel.stop();
         this.cancelLoading();
       }
       throw error;
@@ -183,6 +186,7 @@ export class AmbientAudio {
   }
 
   private deactivate(): void {
+    this.mediaChannel.stop();
     this.cancelLoading();
     this.expectRunning = false;
     this.enabled = false;
