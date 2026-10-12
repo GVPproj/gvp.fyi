@@ -7,7 +7,10 @@ see the [decision record](docs/publishing-decisions.md) and
 [current provider research](docs/research/private-publishing-storage.md).
 The owner selected private S3 originals and static Netlify delivery for published
 images/downloads, with the S3 region chosen to suit the existing Fly backend.
-Budget thresholds remain pending; provisioning requires non-root access (#16).
+Approved cost guardrails: a $5/month incremental AWS alert (not a cap), with
+backups targeted under $1/month within that total. Verify actual estimates before
+provisioning; seek approval for backup approaches estimated at $1/month or more.
+Provisioning requires non-root access (#16).
 The owner explicitly agreed to keep the MP3 hosting described below unchanged.
 
 ## Current setup
