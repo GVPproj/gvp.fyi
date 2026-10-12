@@ -46,11 +46,11 @@ Network-private administration remains a possible separate hardening change, not
 
 Retain the existing [backup and rollback safety requirements](../pocketbase/README.md#backup-and-rollback-safety). Before migration/cutover, stop or coordinate writes and obtain a consistent database/local-storage backup plus an independent copy of external object files, matching code/hooks/migrations/configuration, and securely retained encryption keys. PocketBase backup ZIPs do not include S3-uploaded files. Verify inventories/checksums and rehearse restoration in isolation before switching production.
 
-**Owner agreed 2026-10-12:** potential loss since the last checkpoint is acceptable. The owner also said automatic backups would be desirable if cheap/free. This explicitly reopens evaluation of low-cost automation, not blanket approval of the previously declined recurring-backup project or authorization to provision a paid service.
+**Owner agreed 2026-10-12:** monthly automatic backups, retaining the latest **three successful recovery sets**, covering both the database and uploaded files, with notification on failure. Continue immediate backups before migrations or risky changes. Potential loss since the last checkpoint is acceptable: roughly a month of changes, or longer if backups fail. This is a deliberately small reopening of the previously declined recurring-backup work, conditional on being cheap/free; no numeric budget or paid service has been approved.
 
-Until an automatic approach is agreed, retain manual owner-triggered checkpoints and mandatory pre-change backups. Keep the previous verified recovery set until the replacement is restore-tested and the owner authorizes its retirement. S3 versioning alone is not an independent backup.
+Until automation is implemented and verified, retain manual owner-triggered checkpoints and mandatory pre-change backups. Do not prune a valid recovery set because a new backup failed or is incomplete; verify replacement sets before retention cleanup. Preserve migration rollback sets separately until the owner authorizes their retirement. S3 versioning alone is not an independent backup.
 
-**Follow-up:** propose the simplest scheduled database backup plus separate object-file protection, with estimated total cost, retention, failure visibility and a restore test. Account for stored backup versions, requests, transfer and any scheduler/compute charges; do not promise a free tier or price without measuring backup size and checking account eligibility. Agree cadence, retention and the meaning of “cheap” before enabling automation. No guaranteed recovery-time target has been agreed. Backup destination, capacity, and access must be verified before migration; do not assume a historical archive still exists.
+**Follow-up:** select the simplest implementation of this policy, with estimated total cost, failure-notification destination and a restore test. Account for stored backup versions, requests, transfer and any scheduler/compute charges; do not promise a free tier or price without measuring backup size and checking account eligibility. Agree the meaning of “cheap” before enabling paid automation. No guaranteed recovery-time target has been agreed. Backup destination, capacity, and access must be verified before migration; do not assume a historical archive still exists.
 
 ## Access and setup blockers
 
@@ -60,7 +60,7 @@ Before affected implementation proceeds:
 
 | Requirement | Status / boundary |
 | --- | --- |
-| Owner publication/privacy and provider/budget approvals; backup approach | Open; removal delay and potential checkpoint loss accepted, low-cost automatic backups to evaluate; this issue cannot yet be closed |
+| Owner publication/privacy and provider/budget approvals; backup approach | Open; monthly backups with three successful recovery sets and failure notification agreed, cost/implementation to verify; this issue cannot yet be closed |
 | Scoped non-root AWS provisioning identity | [Human setup #16](https://github.com/GVPproj/gvp.fyi/issues/16) blocks #11 if AWS is selected; authenticate locally, never paste keys into issues/chat |
 | PocketBase access and production hosting administration | Not verified in this task; preserve the shared backend and coordinate with #1 |
 | Administration security verification | Public HTTPS with owner-authenticated administration agreed; verify deployed version, superuser MFA, access rules and protected files before rollout. No tailnet prerequisite |
@@ -72,4 +72,4 @@ AWS CLI availability does not establish Netlify/Fly/PocketBase authorization. No
 
 ## Completion gate
 
-Record the owner's answers here and update `OBJECT-STORAGE.md` with the adopted provider/delivery choice before closing #5. Unresolved items remain explicit blockers rather than guessed implementation requirements. This record does not deploy code, migrate files, remove the existing management UI, or authorize backup automation. The owner has explicitly reopened evaluation of cheap/free automatic backups; implementation still requires an agreed approach.
+Record the owner's answers here and update `OBJECT-STORAGE.md` with the adopted provider/delivery choice before closing #5. Unresolved items remain explicit blockers rather than guessed implementation requirements. This record does not deploy code, migrate files, or remove the existing management UI. The owner approved the monthly backup policy above, conditional on cheap/free operation; implementation and any paid costs still require verification. #16 blocks AWS provisioning in #11, not completion of the decisions in #5.
