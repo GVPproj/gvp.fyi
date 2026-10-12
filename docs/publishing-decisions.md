@@ -1,6 +1,6 @@
 # Private editing and static publishing decisions
 
-Status: **partially agreed**. The owner approved the administration approach below on 2026-10-12; all other proposed decisions still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the agreed administration approach from the remaining recommendations.
+Status: **partially agreed**. The owner approved the administration approach and normal removal delay, accepted potential loss since the last recovery checkpoint, and expressed interest in cheap/free automatic backups on 2026-10-12. Other proposed decisions still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the explicitly agreed choices below from the remaining recommendations.
 
 ## Proposed defaults
 
@@ -40,15 +40,17 @@ Network-private administration remains a possible separate hardening change, not
 - Stop referencing removed assets in the replacement deployment. Old deploy URLs, CDN/browser caches, and downloaded copies can outlive it. Urgent removal requires investigating/purging host caches and old deploy artifacts as supported; no system can recall a visitor's downloaded copy.
 - Saving a published record as private cannot retroactively privatize its former public version. Clearly distinguish editing privately from explicitly unpublishing.
 
-**Owner approval needed:** whether normal deployment latency and best-effort urgent removal are sufficient, or a bounded removal target is required.
+**Owner agreed 2026-10-12:** normal deployment delay is acceptable, including the explained limits on recalling cached/downloaded copies. No bounded removal SLA was requested.
 
 ### Backup and recovery
 
 Retain the existing [backup and rollback safety requirements](../pocketbase/README.md#backup-and-rollback-safety). Before migration/cutover, stop or coordinate writes and obtain a consistent database/local-storage backup plus an independent copy of external object files, matching code/hooks/migrations/configuration, and securely retained encryption keys. PocketBase backup ZIPs do not include S3-uploaded files. Verify inventories/checksums and rehearse restoration in isolation before switching production.
 
-Proposal: manual owner-triggered checkpoints and mandatory pre-change backups only. Keep the previous verified recovery set until the replacement is restore-tested and the owner authorizes its retirement. No recurring-backup automation, scheduled job, or new retention service is authorized. S3 versioning alone is not an independent backup.
+**Owner agreed 2026-10-12:** potential loss since the last checkpoint is acceptable. The owner also said automatic backups would be desirable if cheap/free. This explicitly reopens evaluation of low-cost automation, not blanket approval of the previously declined recurring-backup project or authorization to provision a paid service.
 
-**Owner approval needed:** accept losing changes since the last manual checkpoint and manual restoration without a guaranteed recovery time, or specify a maximum tolerable loss/recovery interval. Backup destination, capacity, and access must be verified before migration; do not assume a historical archive still exists.
+Until an automatic approach is agreed, retain manual owner-triggered checkpoints and mandatory pre-change backups. Keep the previous verified recovery set until the replacement is restore-tested and the owner authorizes its retirement. S3 versioning alone is not an independent backup.
+
+**Follow-up:** propose the simplest scheduled database backup plus separate object-file protection, with estimated total cost, retention, failure visibility and a restore test. Account for stored backup versions, requests, transfer and any scheduler/compute charges; do not promise a free tier or price without measuring backup size and checking account eligibility. Agree cadence, retention and the meaning of “cheap” before enabling automation. No guaranteed recovery-time target has been agreed. Backup destination, capacity, and access must be verified before migration; do not assume a historical archive still exists.
 
 ## Access and setup blockers
 
@@ -58,7 +60,7 @@ Before affected implementation proceeds:
 
 | Requirement | Status / boundary |
 | --- | --- |
-| Owner publication/privacy, provider/budget, removal, and recovery approvals | Open; this issue cannot yet be closed |
+| Owner publication/privacy and provider/budget approvals; backup approach | Open; removal delay and potential checkpoint loss accepted, low-cost automatic backups to evaluate; this issue cannot yet be closed |
 | Scoped non-root AWS provisioning identity | [Human setup #16](https://github.com/GVPproj/gvp.fyi/issues/16) blocks #11 if AWS is selected; authenticate locally, never paste keys into issues/chat |
 | PocketBase access and production hosting administration | Not verified in this task; preserve the shared backend and coordinate with #1 |
 | Administration security verification | Public HTTPS with owner-authenticated administration agreed; verify deployed version, superuser MFA, access rules and protected files before rollout. No tailnet prerequisite |
@@ -70,4 +72,4 @@ AWS CLI availability does not establish Netlify/Fly/PocketBase authorization. No
 
 ## Completion gate
 
-Record the owner's answers here and update `OBJECT-STORAGE.md` with the adopted provider/delivery choice before closing #5. Unresolved items remain explicit blockers rather than guessed implementation requirements. This proposal does not deploy code, migrate files, remove the existing management UI, or revive the declined recurring-backup project.
+Record the owner's answers here and update `OBJECT-STORAGE.md` with the adopted provider/delivery choice before closing #5. Unresolved items remain explicit blockers rather than guessed implementation requirements. This record does not deploy code, migrate files, remove the existing management UI, or authorize backup automation. The owner has explicitly reopened evaluation of cheap/free automatic backups; implementation still requires an agreed approach.
