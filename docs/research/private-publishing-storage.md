@@ -4,6 +4,8 @@ Researched **2026-10-12 (UTC)** for [issue #5](https://github.com/GVPproj/gvp.fy
 
 **Status: research and proposed options, not owner decisions or an implementation plan approved for execution.** Official pages and upstream source were fetched with `curl`; issues and comments were read with `gh`. No accounts, credentials, deployed configuration, billing dashboards, or production behavior were inspected. No infrastructure changes were made.
 
+**Subsequent owner decision (2026-10-12):** retain the existing Fly-hosted PocketBase public HTTPS endpoint with owner-authenticated administration, subject to pre-rollout security verification. Tailscale is not a migration prerequisite. See the [decision record](../publishing-decisions.md#private-administration--agreed-2026-10-12); the private-network options below remain research alternatives, not the selected approach.
+
 Read alongside `CONTEXT.md`, `OBJECT-STORAGE.md`, and `pocketbase/README.md`. No ADR directory was present. At the start of this research, `OBJECT-STORAGE.md` was an options document; any decision update should follow owner selection, not this research alone.
 
 ## Summary and proposed defaults

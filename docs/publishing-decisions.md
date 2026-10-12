@@ -1,6 +1,6 @@
 # Private editing and static publishing decisions
 
-Status: **proposal awaiting owner approval**, not an adopted ADR or authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must not treat the recommendations below as agreed decisions.
+Status: **partially agreed**. The owner approved the administration approach below on 2026-10-12; all other proposed decisions still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the agreed administration approach from the remaining recommendations.
 
 ## Proposed defaults
 
@@ -25,11 +25,13 @@ Status: **proposal awaiting owner approval**, not an adopted ADR or authorizatio
 
 **Owner approval needed:** S3 versus alternatives, region, incremental monthly spending-alert threshold, and offline media availability. An alert is not a hard spending cap. Existing Netlify delivery and Fly costs remain separate from S3 storage/request charges.
 
-### Private administration
+### Private administration — agreed 2026-10-12
 
-Prefer tailnet-only owner dashboard access with PocketBase authentication, while preserving the deliberately exposed endpoints required by existing consumers and a narrowly authorized build path. Tailscale is already documented for local development; production access is **not verified**. Do not make the entire shared PocketBase service private without auditing its consumers. Routing, administrative API restrictions, owner-device access, and CI connectivity need validation before rollout; hiding only `/_/` is insufficient.
+Retain the existing PocketBase hosting on Fly and its public HTTPS endpoint. Administration is owner-authenticated, not tailnet-only. The owner confirmed that this is the backend already in use and approved retaining this access model rather than introducing Tailscale as a migration prerequisite.
 
-**Owner approval needed:** whether requiring Tailscale for administration is acceptable. Implementation must prove the public origin cannot bypass the administrative restriction.
+Before rollout, audit the deployed PocketBase version, superuser MFA, access rules, and protected-file handling. Verify authentication and authorization for both the dashboard and administrative API; hiding only `/_/` is insufficient. Preserve existing shared-backend consumers, and give builds narrowly scoped published-content read access, never superuser credentials. These security controls have **not yet been verified** in production.
+
+Network-private administration remains a possible separate hardening change, not part of this migration by default. Making the entire service tailnet-only could break existing consumers and complicate Netlify builds; restricting administration alone would require additional routing and recovery work.
 
 ### Cache and removal semantics
 
@@ -59,7 +61,7 @@ Before affected implementation proceeds:
 | Owner publication/privacy, provider/budget, removal, and recovery approvals | Open; this issue cannot yet be closed |
 | Scoped non-root AWS provisioning identity | [Human setup #16](https://github.com/GVPproj/gvp.fyi/issues/16) blocks #11 if AWS is selected; authenticate locally, never paste keys into issues/chat |
 | PocketBase access and production hosting administration | Not verified in this task; preserve the shared backend and coordinate with #1 |
-| Private admin network and owner-device access | Proposed, not provisioned or verified |
+| Administration security verification | Public HTTPS with owner-authenticated administration agreed; verify deployed version, superuser MFA, access rules and protected files before rollout. No tailnet prerequisite |
 | S3 runtime credentials | Provision narrowly scoped credentials server-side using PocketBase's supported configuration; no `PUBLIC_` variables or Git secrets |
 | Netlify build authorization and server-side build hook | Not verified/provisioned; separate published-read build access from build-trigger secret |
 | Independent recovery storage and restoration access | Not verified; mandatory before migration |
