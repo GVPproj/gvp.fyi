@@ -2,6 +2,12 @@
 
 Status: options and migration notes, not a decision or scheduled change.
 
+For the broader private PocketBase editing/static publishing workflow in issue #5,
+see the [decision proposal](docs/publishing-decisions.md) and
+[current provider research](docs/research/private-publishing-storage.md).
+Owner approval is still required; AWS CLI access alone is not a provider decision.
+The proposal keeps the MP3 hosting described below unchanged.
+
 ## Current setup
 
 Watery Grave EP's five MP3s live in `public/audio/watery-grave/` and are copied into the Astro build for static delivery by Netlify. The release metadata in `src/data/releases/miracle-fortress.json` supplies each track's `audio_url`; `src/pages/music-releases/[slug].astro` renders native audio controls with `preload="none"` and no autoplay.
