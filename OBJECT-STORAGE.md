@@ -3,10 +3,12 @@
 Status: options and migration notes, not a decision or scheduled change.
 
 For the broader private PocketBase editing/static publishing workflow in issue #5,
-see the [decision proposal](docs/publishing-decisions.md) and
+see the [decision record](docs/publishing-decisions.md) and
 [current provider research](docs/research/private-publishing-storage.md).
-Owner approval is still required; AWS CLI access alone is not a provider decision.
-The proposal keeps the MP3 hosting described below unchanged.
+The owner selected private S3 originals and static Netlify delivery for published
+images/downloads, with the S3 region chosen to suit the existing Fly backend.
+Budget thresholds remain pending; provisioning requires non-root access (#16).
+The owner explicitly agreed to keep the MP3 hosting described below unchanged.
 
 ## Current setup
 

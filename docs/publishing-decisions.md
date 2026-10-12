@@ -1,8 +1,8 @@
 # Private editing and static publishing decisions
 
-Status: **partially agreed**. The owner approved unified Save/Publish semantics, the administration approach, normal removal delay, and monthly backups conditional on cheap/free operation on 2026-10-12; potential loss since the last recovery checkpoint is acceptable. Other proposed decisions still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the explicitly agreed choices below from the remaining recommendations.
+Status: **partially agreed**. The owner approved unified Save/Publish semantics, the administration approach, normal removal delay, and monthly backups conditional on cheap/free operation on 2026-10-12; potential loss since the last recovery checkpoint is acceptable. The owner also approved private S3 originals and static Netlify delivery, with the S3 region chosen to suit the existing Fly backend and MP3 hosting unchanged. Numeric budget/alert thresholds still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the explicitly agreed choices below from the remaining recommendations.
 
-## Proposed defaults
+## Decisions and remaining cost approvals
 
 ### Publication and drafts — agreed 2026-10-12
 
@@ -15,15 +15,15 @@ Status: **partially agreed**. The owner approved unified Save/Publish semantics,
 
 ### Storage and delivery
 
-- Prefer private Amazon S3 originals in the existing AWS account, provisionally in `us-west-2` (the CLI's configured region, not evidence of the backend's location). Compare current options in [provider research](research/private-publishing-storage.md) before adoption. That provider-only research favors R2; this proposal favors S3 because AWS access already exists and Netlify would handle public delivery, reducing the benefit of adding another provider. This trade-off still needs owner approval.
+- **Owner approved:** private Amazon S3 originals in the existing AWS account and static Netlify delivery. Choose the S3 region to suit the existing Fly backend after verifying its location; `us-west-2` is only the current CLI setting, not an adopted region. The [provider research](research/private-publishing-storage.md) favors R2 in isolation; S3 was selected because AWS access already exists and Netlify handles public delivery, reducing the benefit of adding another provider.
 - Verified [AWS regional list prices](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-west-2/index.json) on 2026-10-12: S3 Standard in Oregon is $0.023/GB-month (first 50 TB), $0.005/1,000 writes/list requests and $0.0004/1,000 reads. For illustration, 1 GB + 10,000 writes + 100,000 reads is **$0.113/month**, excluding transfer, backups, versions, taxes and existing hosting. This is not a forecast or verified free-tier entitlement. Propose a **$5/month incremental AWS spending alert**, not a cap; confirm the owner's budget and existing account usage first.
 - Publish an allowlisted subset of files with the static Netlify deployment, including locally generated responsive images and any intentionally public Likes PDFs. Public HTML and these files must remain usable with PocketBase offline. Do not rely on runtime image transformations fetching a private/live PocketBase origin.
-- Keep existing MP3 hosting unchanged. No CloudFront distribution, public bucket, custom media DNS, or audio migration is required by this proposal.
+- **Owner approved:** keep existing MP3 hosting unchanged: the current EP's MP3s are already static files on Netlify, copied from `public/audio/watery-grave/`. They are not on a separate audio host. No CloudFront distribution, public bucket, custom media DNS, or audio migration is required.
 - Private originals stay private: enable S3 Block Public Access, use authenticated/protected PocketBase file handling, and never include drafts, protected-file tokens, secrets, or private source payloads in public build output or logs.
 - Build access should be a dedicated read-only published-snapshot API identity, including only files referenced by those snapshots. Do not use a PocketBase superuser or broad S3 reader in the site build. The backend's separate S3 credential needs bucket/prefix-scoped file-management permissions; implementation must verify the exact calls PocketBase needs.
 - Treat PocketBase's storage setting as a migration affecting existing assets, not a per-new-collection switch. Inventory and preserve existing Likes and unrelated consumers before enabling it.
 
-**Owner approval needed:** S3 versus alternatives, region, incremental monthly spending-alert threshold, and offline media availability. An alert is not a hard spending cap. Existing Netlify delivery and Fly costs remain separate from S3 storage/request charges.
+**Owner approved:** S3 with region selected to suit Fly, static Netlify delivery, and published media available with PocketBase offline. **Owner approval needed:** incremental monthly spending-alert threshold and backup cost expectations. An alert is not a hard spending cap. Existing Netlify delivery and Fly costs remain separate from S3 storage/request charges.
 
 ### Private administration — agreed 2026-10-12
 
@@ -60,15 +60,15 @@ Before affected implementation proceeds:
 
 | Requirement | Status / boundary |
 | --- | --- |
-| Owner provider/budget approvals; backup approach | Open; publication/privacy and monthly backups with three successful recovery sets and failure notification agreed, cost/implementation to verify; this issue cannot yet be closed |
-| Scoped non-root AWS provisioning identity | [Human setup #16](https://github.com/GVPproj/gvp.fyi/issues/16) blocks #11 if AWS is selected; authenticate locally, never paste keys into issues/chat |
+| Owner budget approvals; backup approach | Open; provider/delivery and monthly backup policy agreed, numeric cost/alert thresholds still pending; this issue cannot yet be closed |
+| Scoped non-root AWS provisioning identity | [Human setup #16](https://github.com/GVPproj/gvp.fyi/issues/16) blocks AWS provisioning in #11; authenticate locally, never paste keys into issues/chat |
 | PocketBase access and production hosting administration | Not verified in this task; preserve the shared backend and coordinate with #1 |
 | Administration security verification | Public HTTPS with owner-authenticated administration agreed; verify deployed version, superuser MFA, access rules and protected files before rollout. No tailnet prerequisite |
 | S3 runtime credentials | Provision narrowly scoped credentials server-side using PocketBase's supported configuration; no `PUBLIC_` variables or Git secrets |
 | Netlify build authorization and server-side build hook | Not verified/provisioned; separate published-read build access from build-trigger secret |
 | Independent recovery storage and restoration access | Not verified; mandatory before migration |
 
-AWS CLI availability does not establish Netlify/Fly/PocketBase authorization. Non-root authorization is tracked in #16; close that conditional blocker if AWS is not selected. No new provider signup or dashboard visit is presumed necessary. If MFA, account authorization, billing, or dashboard-only setup actually requires the owner, create a separate `ready-for-human` setup issue with the exact action and link it as a blocker to the affected implementation. Never request secrets in issue comments.
+AWS CLI availability does not establish Netlify/Fly/PocketBase authorization. Non-root authorization for the selected AWS approach is tracked in #16. No new provider signup or dashboard visit is presumed necessary. If MFA, account authorization, billing, or dashboard-only setup actually requires the owner, create a separate `ready-for-human` setup issue with the exact action and link it as a blocker to the affected implementation. Never request secrets in issue comments.
 
 ## Completion gate
 
