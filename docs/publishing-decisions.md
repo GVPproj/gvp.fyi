@@ -1,17 +1,17 @@
 # Private editing and static publishing decisions
 
-Status: **partially agreed**. The owner approved the administration approach and normal removal delay, accepted potential loss since the last recovery checkpoint, and expressed interest in cheap/free automatic backups on 2026-10-12. Other proposed decisions still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the explicitly agreed choices below from the remaining recommendations.
+Status: **partially agreed**. The owner approved unified Save/Publish semantics, the administration approach, normal removal delay, and monthly backups conditional on cheap/free operation on 2026-10-12; potential loss since the last recovery checkpoint is acceptable. Other proposed decisions still await approval. This is not authorization to provision resources. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must distinguish the explicitly agreed choices below from the remaining recommendations.
 
 ## Proposed defaults
 
-### Publication and drafts
+### Publication and drafts — agreed 2026-10-12
 
-- New collection items retain the existing **published by default** behavior unless explicitly saved as drafts: the initial non-draft save automatically creates the first published snapshot, without a second publication action. An explicit draft save creates no published snapshot. On the static site, publication takes effect after a successful deployment, not immediately on save.
-- For already-published content, saving edits updates a private working version. Explicit publication creates a published snapshot; unrelated builds only read published snapshots. New releases and software projects start as drafts.
+- Use the same **Save/Publish** behavior for Likes, releases, and software. All new items start as drafts: Save retains a private working version; explicit Publish creates a published snapshot eligible for the next successful deployment. Save alone never publishes.
+- For already-published content, saving edits updates a private working version. Explicit publication creates a published snapshot; unrelated builds only read published snapshots. Existing published Likes remain published throughout migration.
 - Snapshots include dependent metadata, named-collection membership, and retained file versions. Replacing/deleting a working file must not destroy the version referenced by a published snapshot. Builds use one coherent published revision rather than mixing records during concurrent edits.
 - Unpublish and delete requests participate in the rebuild workflow. Failed fetches or builds preserve the last successful site; a successful build-hook HTTP request is not proof of deployment.
 
-**Owner approval needed:** private edits to published records, snapshot complexity, and the new-release/software draft default.
+**Owner approved:** one consistent private-save/explicit-publish workflow for all content. This expressly changes the old Likes published-by-default behavior permitted by #5's owner-approval exception. Current Likes code still uses the old default; this records the target behavior, not an implemented change.
 
 ### Storage and delivery
 
@@ -60,7 +60,7 @@ Before affected implementation proceeds:
 
 | Requirement | Status / boundary |
 | --- | --- |
-| Owner publication/privacy and provider/budget approvals; backup approach | Open; monthly backups with three successful recovery sets and failure notification agreed, cost/implementation to verify; this issue cannot yet be closed |
+| Owner provider/budget approvals; backup approach | Open; publication/privacy and monthly backups with three successful recovery sets and failure notification agreed, cost/implementation to verify; this issue cannot yet be closed |
 | Scoped non-root AWS provisioning identity | [Human setup #16](https://github.com/GVPproj/gvp.fyi/issues/16) blocks #11 if AWS is selected; authenticate locally, never paste keys into issues/chat |
 | PocketBase access and production hosting administration | Not verified in this task; preserve the shared backend and coordinate with #1 |
 | Administration security verification | Public HTTPS with owner-authenticated administration agreed; verify deployed version, superuser MFA, access rules and protected files before rollout. No tailnet prerequisite |
