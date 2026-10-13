@@ -27,6 +27,9 @@ importers:
       playwright-core:
         specifier: ^1.63.0
         version: 1.63.0
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@26.6.4)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -7752,7 +7755,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 26.6.4
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:

@@ -4,6 +4,10 @@ Custom PocketBase executable pinned to **v0.40.4**; requires **Go 1.27+** (Go to
 
 Backend additions 02–07 remain pending deployment per the recorded status; this document describes the local implementation, not verified live routes. See [deployment coordination and recovery](../README.md) for required migrations/hooks, shared-consumer safeguards and the explicitly historical production baseline. No deployment was performed during documentation cleanup.
 
+## Isolated release publishing tracer
+
+The same custom binary also registers the [release publishing contract](../publishing-contract.md), with additive migration `1782086400_publishing.js`. This is local-only work for #7, not a production rollout or a change to Likes publication behavior. See that contract for dashboard Save/Publish, dedicated build authentication, retained snapshots and disposable HTTP verification.
+
 ## Build / deploy
 
 From this directory:

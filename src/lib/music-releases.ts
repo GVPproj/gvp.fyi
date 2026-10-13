@@ -2,8 +2,12 @@ import grahamVanPelt from '../data/releases/graham-van-pelt.json';
 import miracleFortress from '../data/releases/miracle-fortress.json';
 import thinkAboutLife from '../data/releases/think-about-life.json';
 import otherCredits from '../data/releases/other-credits.json';
+import publishedRelease from 'virtual:published-release';
+import { releaseSlug, tracerSlug } from './release-source.js';
 
-type ReleaseData = {
+export type ReleaseData = {
+  slug?: string;
+  publishedArtwork?: { src: string; thumbnail: string; srcset: string; width: number; height: number };
   title: string;
   artist: string;
   release_date: string;
@@ -26,7 +30,7 @@ function prepareReleases(catalogue: ReleaseData[]) {
     return {
       ...release,
       title,
-      slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      slug: release.slug ?? releaseSlug(release),
       artwork: release.artwork_url ?? `https://f4.bcbits.com/img/a${release.art_id}_16.jpg`,
       // Preserve year/month precision rather than inventing an exact day.
       date: /^\d{4}(?:-\d{2})?$/.test(release.release_date)
@@ -38,7 +42,8 @@ function prepareReleases(catalogue: ReleaseData[]) {
 
 export const releaseCategories = [
   { id: 'graham-van-pelt', name: 'as Graham Van Pelt', releases: prepareReleases(grahamVanPelt) },
-  { id: 'miracle-fortress', name: 'as Miracle Fortress', releases: prepareReleases(miracleFortress) },
+  { id: 'miracle-fortress', name: 'as Miracle Fortress', releases: prepareReleases(miracleFortress.map(release =>
+    publishedRelease && releaseSlug(release) === tracerSlug ? publishedRelease : release)) },
   { id: 'think-about-life', name: 'with Think About Life', releases: prepareReleases(thinkAboutLife) },
   { id: 'other-credits', name: 'Other Credits', releases: prepareReleases(otherCredits) },
 ];

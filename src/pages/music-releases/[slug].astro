@@ -30,7 +30,11 @@ const streaming = [
       <p><time datetime={release.date}>{release.display_date ?? release.date}</time></p>
     </header>
     <div class="release-media">
-      <img src={release.artwork} alt={`${release.title} album cover`} width="700" height="700" />
+      <img src={release.artwork} alt={`${release.title} album cover`}
+        width={release.publishedArtwork?.width ?? 700} height={release.publishedArtwork?.height ?? 700}
+        srcset={release.publishedArtwork?.srcset}
+        sizes={release.publishedArtwork ? '(max-width: 48rem) calc(100vw - 2rem), 65ch' : undefined}
+        loading="eager" decoding="async" />
       {release.album_id && <iframe
         title={`Bandcamp player — ${release.title} by ${release.artist}`}
         src={`https://bandcamp.com/EmbeddedPlayer/album=${release.album_id}/size=large/bgcol=2e3440/linkcol=88c0d0/artwork=none/transparent=true/`}

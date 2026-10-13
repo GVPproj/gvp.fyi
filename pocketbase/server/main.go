@@ -16,6 +16,7 @@ import (
 	"github.com/pocketbase/pocketbase/tools/hook"
 	"gvp.fyi/pocketbase/server/duplicates"
 	"gvp.fyi/pocketbase/server/preview"
+	"gvp.fyi/pocketbase/server/publishing"
 )
 
 func main() {
@@ -40,6 +41,7 @@ func main() {
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{Dir: migrationsDir, TemplateLang: migratecmd.TemplateLangJS, Automigrate: automigrate})
 	preview.NewAPI(preview.NewFetcher(preview.Network{})).Register(app)
 	duplicates.Register(app)
+	publishing.Register(app)
 	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{Priority: 999, Func: func(e *core.ServeEvent) error {
 		if !e.Router.HasRoute(http.MethodGet, "/{path...}") {
 			e.Router.GET("/{path...}", apis.Static(os.DirFS(publicDir), indexFallback))

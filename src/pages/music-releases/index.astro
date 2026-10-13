@@ -14,7 +14,8 @@ import { releaseCategories } from '../../lib/music-releases';
       items={category.releases.map(release => ({
         href: `/music-releases/${release.slug}`,
         title: release.title,
-        image: { src: release.artwork, width: 320, height: 320 },
+        image: { src: release.publishedArtwork?.thumbnail ?? release.artwork,
+          width: release.publishedArtwork?.width ?? 320, height: release.publishedArtwork?.height ?? 320 },
         subtitle: release.credit ? release.artist : undefined,
         metadata: release.credit,
       }))}
