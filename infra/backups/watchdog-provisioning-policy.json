@@ -1,0 +1,51 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageBackupWatchdogFunction",
+      "Effect": "Allow",
+      "Action": ["lambda:CreateFunction", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:AddPermission", "lambda:GetPolicy", "lambda:InvokeFunction", "lambda:PutFunctionConcurrency", "lambda:GetFunctionConcurrency", "lambda:PutFunctionEventInvokeConfig", "lambda:GetFunctionEventInvokeConfig", "lambda:TagResource"],
+      "Resource": "arn:aws:lambda:us-west-2:524178179132:function:gvp-backup-watchdog"
+    },
+    {
+      "Sid": "ManageBackupWatchdogRole",
+      "Effect": "Allow",
+      "Action": ["iam:CreateRole", "iam:GetRole", "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:UpdateAssumeRolePolicy", "iam:TagRole"],
+      "Resource": "arn:aws:iam::524178179132:role/gvp-backup-watchdog"
+    },
+    {
+      "Sid": "PassWatchdogRoleToLambdaOnly",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::524178179132:role/gvp-backup-watchdog",
+      "Condition": {"StringEquals": {"iam:PassedToService": "lambda.amazonaws.com"}}
+    },
+    {
+      "Sid": "ManageBackupWatchdogSchedule",
+      "Effect": "Allow",
+      "Action": ["events:PutRule", "events:DescribeRule", "events:PutTargets", "events:ListTargetsByRule", "events:EnableRule", "events:DisableRule", "events:TagResource"],
+      "Resource": "arn:aws:events:us-west-2:524178179132:rule/gvp-backup-watchdog-daily"
+    },
+    {
+      "Sid": "ManageBackupAlertTopic",
+      "Effect": "Allow",
+      "Action": ["sns:CreateTopic", "sns:GetTopicAttributes", "sns:SetTopicAttributes", "sns:Subscribe", "sns:ListSubscriptionsByTopic", "sns:Publish", "sns:TagResource"],
+      "Resource": "arn:aws:sns:us-west-2:524178179132:gvp-backup-alerts"
+    },
+    {
+      "Sid": "ManageWatchdogAlarms",
+      "Effect": "Allow",
+      "Action": ["cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:TagResource"],
+      "Resource": "arn:aws:cloudwatch:us-west-2:524178179132:alarm:gvp-backup-watchdog-*"
+    },
+    {
+      "Sid": "ManageWatchdogLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogGroup", "logs:PutRetentionPolicy"],
+      "Resource": [
+        "arn:aws:logs:us-west-2:524178179132:log-group:/aws/lambda/gvp-backup-watchdog",
+        "arn:aws:logs:us-west-2:524178179132:log-group:/aws/lambda/gvp-backup-watchdog:*"
+      ]
+    }
+  ]
+}

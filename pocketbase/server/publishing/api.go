@@ -1,4 +1,4 @@
-// Package publishing implements an isolated, additive release publishing tracer.
+// Package publishing captures immutable release catalogue revisions.
 package publishing
 
 import (
@@ -35,6 +35,9 @@ func Register(app core.App) {
 	app.OnRecordUpdateRequest(snapshots).BindFunc(deny)
 	app.OnRecordDeleteRequest(snapshots).BindFunc(deny)
 	save := func(e *core.RecordEvent) error {
+		if !e.Record.IsNew() && e.Record.GetString("slug") != e.Record.Original().GetString("slug") {
+			return apis.NewBadRequestError("Release slug is immutable after creation.", nil)
+		}
 		publishing := e.Record.GetBool("published")
 		withdrawing := !publishing && e.Record.Original().GetBool("published")
 		recreating := e.Record.IsNew() && !publishing
@@ -84,14 +87,30 @@ func Register(app core.App) {
 	app.OnRecordCreate("publishing_releases").BindFunc(save)
 	app.OnRecordUpdate("publishing_releases").BindFunc(save)
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+		e.Router.GET("/api/publishing/releases", func(e *core.RequestEvent) error {
+			if err := authorize(e); err != nil {
+				return err
+			}
+			records, err := e.App.FindRecordsByFilter(snapshots, "", "-sequence", 0, 0)
+			if err != nil {
+				return e.InternalServerError("Publication unavailable.", nil)
+			}
+			latest := []any{}
+			seen := map[string]bool{}
+			for _, record := range records {
+				slug := record.GetString("slug")
+				if !seen[slug] {
+					latest = append(latest, record.Get("payload"))
+					seen[slug] = true
+				}
+			}
+			return e.JSON(http.StatusOK, latest)
+		})
 		e.Router.GET("/api/publishing/releases/{slug}", func(e *core.RequestEvent) error {
 			if err := authorize(e); err != nil {
 				return err
 			}
-			if e.Request.PathValue("slug") != "watery-grave-ep" {
-				return e.NotFoundError("Not published.", nil)
-			}
-			records, err := e.App.FindRecordsByFilter(snapshots, "slug = 'watery-grave-ep'", "-sequence", 1, 0)
+			records, err := e.App.FindRecordsByFilter(snapshots, "slug = {:slug}", "-sequence", 1, 0, dbx.Params{"slug": e.Request.PathValue("slug")})
 			if err != nil {
 				return e.InternalServerError("Publication unavailable.", nil)
 			}
@@ -132,10 +151,7 @@ func authorize(e *core.RequestEvent) error {
 // distinguish intentional removal from an unavailable or incomplete publication.
 // Older artwork stays readable so a build already pinned to a revision can finish.
 func unpublish(app core.App, release *core.Record) error {
-	if release.GetString("slug") != "watery-grave-ep" {
-		return errors.New("unsupported release")
-	}
-	previous, err := app.FindRecordsByFilter(snapshots, "slug = 'watery-grave-ep'", "-sequence", 1, 0)
+	previous, err := app.FindRecordsByFilter(snapshots, "slug = {:slug}", "-sequence", 1, 0, dbx.Params{"slug": release.GetString("slug")})
 	if err != nil {
 		return err
 	}
@@ -159,12 +175,15 @@ func unpublish(app core.App, release *core.Record) error {
 }
 
 func publish(app core.App, release *core.Record) error {
-	if release.GetString("slug") != "watery-grave-ep" {
-		return errors.New("unsupported release")
+	category := release.GetString("category")
+	if category == "" && release.GetString("slug") != "watery-grave-ep" {
+		return errors.New("category required")
 	}
-	var list []map[string]any
-	if err := json.Unmarshal([]byte(release.GetString("tracks")), &list); err != nil || len(list) == 0 {
-		return errors.New("missing or invalid tracks")
+	list := []map[string]any{}
+	if raw := release.GetString("tracks"); raw != "" && raw != "null" {
+		if err := json.Unmarshal([]byte(raw), &list); err != nil {
+			return errors.New("invalid tracks")
+		}
 	}
 	for i, row := range list {
 		for key := range row {
@@ -192,8 +211,17 @@ func publish(app core.App, release *core.Record) error {
 	for _, key := range []string{"slug", "title", "artist", "release_date", "about"} {
 		data[key] = release.GetString(key)
 	}
-	for _, key := range []string{"url", "display_date"} {
+	for _, key := range []string{"url", "display_date", "category", "credit", "display_title", "youtube_video_id"} {
 		if value := release.GetString(key); value != "" {
+			data[key] = value
+		}
+	}
+	// Older tracer records/snapshots predate categories.
+	if _, ok := data["category"]; !ok && release.GetString("slug") == "watery-grave-ep" {
+		data["category"] = "miracle-fortress"
+	}
+	for _, key := range []string{"album_id", "art_id", "player_height"} {
+		if value := release.GetFloat(key); value != 0 {
 			data[key] = value
 		}
 	}
@@ -237,7 +265,7 @@ func publish(app core.App, release *core.Record) error {
 		return err
 	}
 	record := core.NewRecord(collection)
-	record.Set("slug", "watery-grave-ep")
+	record.Set("slug", release.GetString("slug"))
 	record.Set("artwork", file)
 	count, err := app.CountRecords(snapshots)
 	if err != nil {

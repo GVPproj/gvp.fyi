@@ -1,0 +1,43 @@
+---
+import PublishedItem from './PublishedItem.astro';
+import { publishedLikes, publishedCollections } from '../../lib/published-likes.js';
+import { MISC_COLLECTION } from '../../lib/likes.js';
+const groups = [...publishedCollections, { id: MISC_COLLECTION, name: 'Misc.' }];
+const grouped = groups.map(group => ({ ...group, items: publishedLikes.filter(item => group.id === MISC_COLLECTION
+  ? !item.collections?.length : item.collections?.some((collection: { id: string }) => collection.id === group.id)) }));
+---
+<div class="static-likes">
+<nav aria-label="Collections">
+  <a href="/likes">Collections</a>
+  <a href="#all-items">All items</a>
+  {grouped.map(group => <a href={`#collection-${group.id}`}>{group.name}</a>)}
+</nav>
+{grouped.map(group => <section id={`collection-${group.id}`}>
+  <h2>{group.name}</h2>
+  {group.items.length ? <ul>{group.items.map((item: Record<string, any>) => <PublishedItem {item} assetURL={item.publishedAsset?.url} />)}</ul> : <p>No published items in this collection.</p>}
+</section>)}
+<section id="all-items">
+  <h2>All items</h2>
+  {publishedLikes.length ? <ul>{publishedLikes.map(item => <PublishedItem {item} assetURL={item.publishedAsset?.url} />)}</ul> : <p>No published items to show.</p>}
+</section>
+</div>
+<script>
+  // Preserve incoming query-based collection links from the former live reader.
+  // All content remains readable and navigable with JavaScript disabled.
+  function selectIncomingCollection() {
+    const query = new URLSearchParams(location.search);
+    const collection = query.get('collection');
+    const target = collection ? document.getElementById(`collection-${collection}`)
+      : query.get('view') === 'all' || query.has('afterId') ? document.getElementById('all-items') : null;
+    if (target && !location.hash) location.replace(`#${encodeURIComponent(target.id)}`);
+  }
+  document.addEventListener('astro:page-load', selectIncomingCollection);
+  selectIncomingCollection();
+</script>
+<style>
+  nav { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
+  section { margin-block: 2rem; scroll-margin-top: 5rem; }
+  #all-items:not(:target) { display: none; }
+  .static-likes:has(section:target) section:not(:target) { display: none; }
+  ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; align-items: start; }
+</style>

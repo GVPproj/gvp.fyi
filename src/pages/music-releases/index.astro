@@ -2,11 +2,12 @@
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
 import { releaseCategories } from '../../lib/music-releases';
+import { sectionLabel } from '../../lib/editorial-content';
 ---
 
-<Layout title="Music Releases">
+<Layout title={sectionLabel('music-releases')}>
   <div class="music-releases">
-    <h1>Music Releases</h1>
+    <h1>{sectionLabel('music-releases')}</h1>
     {releaseCategories.map(category => <ContentRow
       id={`category-${category.id}`}
       title={category.name}
@@ -14,7 +15,7 @@ import { releaseCategories } from '../../lib/music-releases';
       items={category.releases.map(release => ({
         href: `/music-releases/${release.slug}`,
         title: release.title,
-        image: { src: release.publishedArtwork?.thumbnail ?? release.artwork,
+        image: { src: release.publishedArtwork?.thumbnail ?? release.artwork, srcset: release.publishedArtwork?.srcset,
           width: release.publishedArtwork?.width ?? 320, height: release.publishedArtwork?.height ?? 320 },
         subtitle: release.credit ? release.artist : undefined,
         metadata: release.credit,

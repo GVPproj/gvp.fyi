@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from 'astro:transitions';
 import SiteHeader from '../components/SiteHeader.astro';
+import { siteSettings, fullEditorialMode } from '../lib/editorial-content';
 import '../styles/global.css';
 
 interface Props {
@@ -17,25 +18,25 @@ const { title, wide = false, clientRouter = true } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Graham Van Pelt's home on the web." />
+    <meta name="description" content={siteSettings.description} />
     <meta name="generator" content={Astro.generator} />
     <link rel="preload" href="/fonts/gohu-400-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <title>{title ? `${title} · gvp.fyi` : 'gvp.fyi'}</title>
+    <title>{title ? `${title}${siteSettings.title ? ` · ${siteSettings.title}` : ''}` : siteSettings.title}</title>
     {/* Without router metadata, entering/leaving this page uses native navigation. */}
     {clientRouter && <ClientRouter />}
   </head>
-  <body>
+  <body data-owner-editing={!fullEditorialMode ? 'true' : undefined}>
     <div id="navigation-status" role="status" aria-atomic="true"><span></span></div>
     <SiteHeader />
-    <main class:list={{ 'likes-layout': wide }} aria-label={title ?? 'Graham Van Pelt'}>
+    <main class:list={{ 'likes-layout': wide }} aria-label={title ?? (siteSettings.identity || undefined)}>
       <slot />
     </main>
-    <aside id="owner-session" aria-label="Owner session" hidden>
+    {!fullEditorialMode && <aside id="owner-session" aria-label="Owner session" hidden>
       <button type="button" popovertarget="owner-session-menu">Logged In</button>
       <div id="owner-session-menu" popover>
         <button id="owner-logout" type="button">Log out</button>
       </div>
-    </aside>
+    </aside>}
   </body>
 </html>
 

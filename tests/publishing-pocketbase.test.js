@@ -58,7 +58,7 @@ test('one release Save publishes JSON tracks and subsequent edits; withdrawal an
   assert.notEqual(second.revision, first.revision);
   assert.equal(second.release.title, 'Updated release');
   assert.equal(second.release.tracks[0].title, 'Updated track');
-  for (const invalid of [[], {}, [{ title: 'Bad order', track_num: 2 }], [{ title: '', track_num: 1 }], [{ title: '   ', track_num: 1 }], [{ title: 'Bad duration', track_num: 1, duration: -1 }], [{ title: 'Unknown', track_num: 1, secret: true }]]) {
+  for (const invalid of [42, {}, [{ title: 'Bad order', track_num: 2 }], [{ title: '', track_num: 1 }], [{ title: '   ', track_num: 1 }], [{ title: 'Bad duration', track_num: 1, duration: -1 }], [{ title: 'Unknown', track_num: 1, secret: true }]]) {
     assert.equal((await request(route, { token, method: 'PATCH', body: { title: 'Must roll back', tracks: invalid } })).status, 400);
     assert.deepEqual(await current(), second);
     assert.equal((await request(route, { token })).data.title, 'Updated release');
@@ -103,7 +103,7 @@ test('one release Save publishes JSON tracks and subsequent edits; withdrawal an
   };
   assert.deepEqual(await workingBytes(), webp);
   replacement.set('artwork', new Blob([png], { type: 'image/png' }), 'must-not-replace.png');
-  for (const invalidTracks of ['{invalid JSON', JSON.stringify([])]) {
+  for (const invalidTracks of ['{invalid JSON', JSON.stringify({})]) {
     replacement.set('tracks', invalidTracks);
     assert.equal((await request(route, { token, method: 'PATCH', body: replacement })).status, 400);
     const afterFailedSave = await request(route, { token });

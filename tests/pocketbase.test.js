@@ -888,7 +888,14 @@ test('asset record and file HTTP contract', {
     assert.deepEqual((await request(`${records}/${item.id}`)).data.previewProvenance, previewProvenance);
     assert.equal((await fetch(fileURL(item, '?thumb=400x400'))).status, 200);
     assert.equal((await save({ asset: '' }, item.id)).status, 200);
-    assert.deepEqual(await storedFiles(), before, 'Removing a copied preview removes original and thumbnail');
+    const after = await storedFiles();
+    const snapshotCollection = await request('collections/editorial_snapshots', { token: adminToken });
+    assert.equal(snapshotCollection.status, 200);
+    const retainedPrefix = `storage/${snapshotCollection.data.id}/`;
+    assert.deepEqual(after.filter(name => !name.startsWith(retainedPrefix)), before.filter(name => !name.startsWith(retainedPrefix)),
+      'Removing a copied preview removes its working original and thumbnail');
+    assert.ok(after.filter(name => name.startsWith(retainedPrefix)).length > before.filter(name => name.startsWith(retainedPrefix)).length,
+      'Previously published media remains retained for pinned builds');
     assert.equal((await request(`${records}/${item.id}`)).data.url, 'https://example.com/source');
     await api.remove(token, item.id);
   });

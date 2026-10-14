@@ -3,8 +3,12 @@ import Layout from '../layouts/Layout.astro';
 import PublishedItems from '../components/likes/PublishedItems.astro';
 import { createLikesAPI, MISC_COLLECTION } from '../lib/likes.js';
 import type { CollectionRow } from '../components/likes/CollectionRows.astro';
+import { sectionLabel } from '../lib/editorial-content';
 
-export const prerender = false;
+import StaticLikes from '../components/likes/StaticLikes.astro';
+import { staticLikesEnabled } from '../lib/published-likes.js';
+
+export const prerender = false; // The publishing integration enables static routes at cutover.
 
 // Netlify Functions need this variable at runtime as well as at build time.
 const endpoint = process.env.PUBLIC_POCKETBASE_URL ?? import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
@@ -18,12 +22,14 @@ let items = [], collections = [], nextCursor = null, error = '';
 let overview: CollectionRow[] | null = isOverview ? [] : null;
 
 // Start uncached: publication changes should be reflected on the next request.
-Astro.response.headers.set('Cache-Control', 'no-store');
+if (!staticLikesEnabled) Astro.response.headers.set('Cache-Control', 'no-store');
 const api = createLikesAPI(endpoint, (url, options) => fetch(url, {
   ...options, signal: AbortSignal.timeout(8000),
 }));
 try {
-  if (isOverview) {
+  if (staticLikesEnabled) {
+    // Static snapshots are already loaded and validated by the build integration.
+  } else if (isOverview) {
     overview = await api.listCollectionOverview();
     collections = overview.filter(collection => collection.id !== MISC_COLLECTION);
   } else {
@@ -41,16 +47,18 @@ try {
 }
 ---
 
-<Layout title="Likes" wide>
+<Layout title={sectionLabel('likes')} wide>
   <section id="likes">
-    <h1>Likes</h1>
-    <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} {overview} />
-    <p id="manage-likes" class="manage" hidden><a href="/likes/manage">Manage Likes</a></p>
+    <h1>{sectionLabel('likes')}</h1>
+    {staticLikesEnabled ? <StaticLikes /> : <>
+      <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} {overview} />
+      <p id="manage-likes" class="manage" hidden><a href="/likes/manage">Manage Likes</a></p>
+    </>}
   </section>
 </Layout>
 
 <script>
-  import '../scripts/manage-likes-link.js';
+  if (document.getElementById('manage-likes')) import('../scripts/manage-likes-link.js');
 </script>
 
 <style>

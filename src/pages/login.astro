@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { staticLikesEnabled } from '../lib/published-likes.js';
+if (staticLikesEnabled) return Astro.redirect('/likes', 301);
 const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
 ---
 

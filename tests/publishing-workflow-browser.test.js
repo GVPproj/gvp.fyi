@@ -174,7 +174,8 @@ test('one native release form saves private drafts, updates published revisions,
   assert.equal(beforeSnapshots.status, 200);
   await openRecord('publishing_releases', 'Updated published release');
   await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Invalid edit must roll back');
-  await editTracks([]);
+  // Empty tracks are valid for credits-only catalogue entries; malformed order is not.
+  await editTracks([{ title: 'Invalid order', track_num: 2 }]);
   await saveRecord('publishing_releases', draft.id, 400);
   assert.deepEqual(await request(`${releases}/${draft.id}`, { token: adminToken }), beforeConflict,
     'Invalid published Save atomically rolls back metadata, tracks and Published state');

@@ -9,7 +9,8 @@ interface Props {
 
 const { item, assetURL } = Astro.props;
 const url = webURL(item.url);
-const asset = webURL(assetURL);
+const localAsset = typeof assetURL === 'string' && /^\/published-content\/[a-f0-9]+\.(jpg|png|webp|gif|pdf)$/.test(assetURL);
+const asset = localAsset ? assetURL : webURL(assetURL);
 const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
 const textItem = item.type === 'quote' || item.type === 'note';
 const body = item.body ?? '';
@@ -20,7 +21,7 @@ const preview = body.slice(0, 400) + (body.length > 400 ? '…' : '');
   <article>
     <a href={likesItemURL(item)}>
       <div class:list={['like-preview', { 'text-preview': textItem }]}>
-        {textItem ? preview : asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="contain" format="webp" loading="lazy" /> : pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
+        {textItem ? preview : asset && !pdf && localAsset ? <img src={item.publishedAsset?.thumbnail ?? asset} srcset={item.publishedAsset?.srcset || undefined} sizes="(max-width: 540px) 100vw, 320px" alt="" width={item.publishedAsset?.width} height={item.publishedAsset?.height} loading="lazy" /> : asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="contain" format="webp" loading="lazy" /> : pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
       </div>
       <h2>{likeItemTitle(item)}</h2>
     </a>

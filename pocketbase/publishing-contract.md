@@ -1,4 +1,13 @@
-# Release publishing tracer contract
+# Release publishing contract
+
+**Full-catalogue extension (local, not deployed):** see [release catalogue](../docs/release-catalogue.md).
+Migration `1782345600_release_catalogue.js` removes the tracer-only publication restriction,
+adds category/credit/display-title/provider metadata and supports omitted/empty tracks.
+Slugs are immutable after creation. Build-only `GET /api/publishing/releases` returns the
+latest snapshot for every published slug, including withdrawals. The per-slug endpoint
+and legacy build mode remain compatible. `PUBLISHING_CONTENT=true` selects authoritative
+full-catalogue builds without repository fallback. The historical tracer description below
+records the preceding contract; its only-slug/nonempty-track limitations are superseded.
 
 **Implemented #9 LOCAL contract — not deployed.** Requires the
 custom v0.40.4 server and forward migration `1782259200_release_toggle.js` after

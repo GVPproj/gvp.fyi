@@ -14,7 +14,9 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/hook"
+	"github.com/spf13/cobra"
 	"gvp.fyi/pocketbase/server/duplicates"
+	"gvp.fyi/pocketbase/server/editorial"
 	"gvp.fyi/pocketbase/server/preview"
 	"gvp.fyi/pocketbase/server/publishing"
 )
@@ -42,6 +44,18 @@ func main() {
 	preview.NewAPI(preview.NewFetcher(preview.Network{})).Register(app)
 	duplicates.Register(app)
 	publishing.Register(app)
+	editorial.Register(app)
+	app.RootCmd.AddCommand(&cobra.Command{
+		Use: "editorial-seed-likes", Short: "Explicitly seed retained snapshots for existing published Likes (rehearse on a backup first)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !app.IsBootstrapped() {
+				if err := app.Bootstrap(); err != nil {
+					return err
+				}
+			}
+			return editorial.SeedLikes(app)
+		},
+	})
 	app.OnServe().Bind(&hook.Handler[*core.ServeEvent]{Priority: 999, Func: func(e *core.ServeEvent) error {
 		if !e.Router.HasRoute(http.MethodGet, "/{path...}") {
 			e.Router.GET("/{path...}", apis.Static(os.DirFS(publicDir), indexFallback))

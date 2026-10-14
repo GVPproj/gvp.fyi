@@ -305,7 +305,7 @@ test('real PocketBase published Saves update static metadata and tracks while fa
   assert.equal(retainedImage, firstImage, 'unchanged artwork retains its content-hashed public URL');
   assert.ok((await readFile(path.join(rebuilt.dir, 'dist', retainedImage))).length > 0);
   assert.equal((await pb.request(recordPath, { method: 'PATCH', token: pb.adminToken,
-    body: { title: 'UNPUBLISHED PRIVATE TITLE', about: 'UNPUBLISHED PRIVATE COPY', tracks: [] } })).status, 400);
+    body: { title: 'UNPUBLISHED PRIVATE TITLE', about: 'UNPUBLISHED PRIVATE COPY', tracks: {} } })).status, 400);
   const afterFailure = await build(t, { backend });
   assert.equal(afterFailure.code, 0, afterFailure.logs);
   const retainedHTML = await readFile(path.join(afterFailure.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8');

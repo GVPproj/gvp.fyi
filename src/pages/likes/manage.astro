@@ -7,6 +7,8 @@ import TextReader from '../../components/likes/TextReader.astro';
 import ImageViewer from '../../components/likes/ImageViewer.astro';
 import '../../styles/likes.css';
 
+import { staticLikesEnabled } from '../../lib/published-likes.js';
+if (staticLikesEnabled) return Astro.redirect('/likes', 301);
 const endpoint = import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
 ---
 

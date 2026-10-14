@@ -1,18 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { softwareProjects, type SoftwareProjectCategory } from '../../data/software-projects';
+import { softwareProjects, categorySettings, sectionLabel } from '../../lib/editorial-content';
 
-const categories: { id: SoftwareProjectCategory; title: string }[] = [
-  { id: 'portfolio', title: 'Applications' },
-  { id: 'small-websites', title: 'Small websites' },
-  { id: 'early-projects', title: 'Early projects' },
-];
+const categories = categorySettings('software');
+const title = sectionLabel('software');
 ---
 
-<Layout title="Software">
+<Layout title={title}>
   <div class="software">
-    <h1>Software</h1>
+    <h1>{title}</h1>
     {categories.map(category => {
       const projects = softwareProjects.filter(project => project.category === category.id);
       return <ContentRow
@@ -22,7 +19,7 @@ const categories: { id: SoftwareProjectCategory; title: string }[] = [
         items={projects.map(project => ({
           href: `/software/${project.slug}`,
           title: project.title,
-          image: { src: project.screenshot, width: project.screenshotWidth, height: project.screenshotHeight },
+          image: { src: project.screenshot, srcset: project.screenshotSrcset, width: project.screenshotWidth, height: project.screenshotHeight },
           metadata: project.tooling.join(' · '),
         }))}
       />;

@@ -64,7 +64,11 @@ function initialize() {
   });
 }
 
-document.addEventListener('owner-session-change', renderSession);
-document.addEventListener('astro:page-load', initialize);
-window.addEventListener('pageshow', initialize);
-initialize();
+// Full-content builds retain no public owner workflow. Keep legacy initialization
+// synchronous for the pre-cutover app; deferred imports race native form submits.
+if (document.body.dataset.ownerEditing === 'true') {
+  document.addEventListener('owner-session-change', renderSession);
+  document.addEventListener('astro:page-load', initialize);
+  window.addEventListener('pageshow', initialize);
+  initialize();
+}

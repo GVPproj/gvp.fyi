@@ -4,7 +4,7 @@ import { Image } from 'astro:assets';
 export interface ContentRowItem {
   href: string;
   title: string;
-  image?: { src: string; width: number; height: number; optimized?: boolean };
+  image?: { src: string; srcset?: string; width: number; height: number; optimized?: boolean };
   text?: string;
   label?: string;
   subtitle?: string;
@@ -35,7 +35,7 @@ const heading = `${id}-heading`;
             {item.image ? item.image.optimized ? (
               <Image src={item.image.src} alt="" width={320} height={320} widths={[160, 320, 640]} sizes="192px" fit="contain" format="webp" loading="lazy" />
             ) : (
-              <img src={item.image.src} alt="" width={item.image.width} height={item.image.height} loading="lazy" />
+              <img src={item.image.src} srcset={item.image.srcset} sizes="192px" alt="" width={item.image.width} height={item.image.height} loading="lazy" />
             ) : <span>{item.text ?? item.label ?? item.title}</span>}
           </div>
           <span class="content-title">{item.title}</span>

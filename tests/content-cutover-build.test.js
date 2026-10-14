@@ -1,0 +1,79 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
+import { spawn } from 'node:child_process';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright-core';
+
+// Real Astro build: the public Likes output must not need a running backend.
+test('full-content mode emits static Likes and ignores draft/withdrawn items', { timeout: 90000 }, async t => {
+  const settings = JSON.parse(await readFile(new URL('../src/data/site-settings.json', import.meta.url)));
+  const entries = [
+    { revision: 'settings1', kind: 'settings', slug: 'site', state: 'published', data: settings, assets: [] },
+    { revision: 'note1', kind: 'like', slug: 'publicnote00001', state: 'published', data: { title: 'Static publication fixture', type: 'note', body: 'Works with the backend offline.', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [] },
+    { revision: 'note2', kind: 'like', slug: 'withdrawn000001', state: 'unpublished' },
+  ];
+  const server = createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'private-fixture-token', record: { collectionName: 'publishing_builds' } }));
+    if (req.headers.authorization !== 'private-fixture-token') return res.writeHead(403).end('{}');
+    if (req.url === '/api/publishing/content') return res.end(JSON.stringify(entries));
+    if (req.url === '/api/publishing/releases') return res.end('[]');
+    res.writeHead(404).end('{}');
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  const dir = await mkdtemp(fileURLToPath(new URL('../.astro/content-build-', import.meta.url)));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const child = spawn(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build', '--outDir', dir], {
+    env: { ...process.env, PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`, PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'private-fixture-password', ASTRO_TELEMETRY_DISABLED: '1' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  t.after(() => { if (child.exitCode === null) child.kill(); });
+  let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
+  const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
+  server.closeAllConnections(); server.close();
+  const overview = await readFile(join(dir, 'likes/index.html'), 'utf8');
+  const detail = await readFile(join(dir, 'likes/publicnote00001/index.html'), 'utf8');
+  assert.match(overview, /Static publication fixture/);
+  assert.match(overview, /Reading/);
+  assert.match(detail, /Works with the backend offline/);
+  for (const html of [overview, detail]) {
+    assert.doesNotMatch(html, /private-fixture|withdrawn000001|api\/files/);
+  }
+  await assert.rejects(readFile(join(dir, 'likes/withdrawn000001/index.html')));
+  assert.doesNotMatch(overview, /id="owner-session"|id="manage-likes"/);
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE) {
+    const staticServer = createServer(async (req, res) => {
+      const pathname = new URL(req.url, 'http://localhost').pathname;
+      if (pathname.includes('..')) return res.writeHead(400).end();
+      const file = pathname.endsWith('/') ? `${pathname}index.html` : pathname.includes('.') ? pathname : `${pathname}/index.html`;
+      try {
+        const bytes = await readFile(join(dir, file));
+        res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : 'application/octet-stream');
+        res.end(bytes);
+      } catch { res.writeHead(404).end(); }
+    });
+    staticServer.listen(0, '127.0.0.1'); await once(staticServer, 'listening');
+    t.after(() => { staticServer.closeAllConnections(); staticServer.close(); });
+    const origin = `http://127.0.0.1:${staticServer.address().port}`;
+    const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
+    t.after(() => browser.close());
+    const page = await browser.newPage();
+    const apiRequests = [];
+    page.on('request', request => { if (request.url().includes('/api/')) apiRequests.push(request.url()); });
+    await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+    await page.goto(`${origin}/likes/?collection=group1`);
+    await page.waitForFunction(() => document.querySelector('#collection-group1')?.matches(':target'));
+    assert.equal(await page.locator('#collection-group1').isVisible(), true);
+    assert.equal(await page.locator('#all-items').isVisible(), false);
+    await page.getByRole('link', { name: 'All items', exact: true }).click();
+    assert.equal(await page.locator('#all-items').isVisible(), true);
+    await page.locator('#all-items').getByRole('link', { name: /Static publication fixture/ }).click();
+    await page.locator('#like-detail').getByText('Works with the backend offline.', { exact: true }).waitFor();
+    assert.deepEqual(apiRequests, []);
+  }
+});

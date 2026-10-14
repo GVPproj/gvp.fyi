@@ -1,8 +1,7 @@
 ---
-import { Image } from 'astro:assets';
 import type { InferGetStaticPropsType } from 'astro';
 import Layout from '../../layouts/Layout.astro';
-import { softwareProjects } from '../../data/software-projects';
+import { softwareProjects, sectionLabel } from '../../lib/editorial-content';
 
 export function getStaticPaths() {
   return softwareProjects.map(project => ({
@@ -17,13 +16,13 @@ const { project } = Astro.props;
 
 <Layout title={project.title}>
   <article class="software-detail">
-    <a href="/software">← Software</a>
+    <a href="/software">← {sectionLabel('software')}</a>
     <header>
       <h1>{project.title}</h1>
       <p>{project.description}</p>
       {project.tagline && <p>{project.tagline}</p>}
     </header>
-    <img class="screenshot" src={project.screenshot} alt={`Screenshot of ${project.title}`} width={project.screenshotWidth} height={project.screenshotHeight} />
+    <img class="screenshot" src={project.screenshot} srcset={project.screenshotSrcset} sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} width={project.screenshotWidth} height={project.screenshotHeight} />
     <section aria-labelledby="tooling-heading">
       <h2 id="tooling-heading">Built with</h2>
       <ul class="tooling">{project.tooling.map(tool => <li>{tool}</li>)}</ul>
@@ -37,14 +36,13 @@ const { project } = Astro.props;
       {project.role.paragraphs.map(paragraph => <p>{paragraph}</p>)}
     </section>}
     {project.gallery && <section aria-label="Project screenshots" class="gallery">
-      {project.gallery.map(image => <Image
+      {project.gallery.map(image => <img
         src={image.src}
+        srcset={image.srcset}
+        sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)"
         alt={image.alt}
         width={image.width}
         height={image.height}
-        widths={[480, 960, 1440].filter(width => width <= image.width)}
-        sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)"
-        format="webp"
         loading="lazy"
       />)}
     </section>}

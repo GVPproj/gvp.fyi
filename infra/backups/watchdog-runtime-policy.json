@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadVerifiedRecoveryObjects",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::gvp-pocketbase-backups-524178179132-us-west-2/monthly/*",
+        "arn:aws:s3:::gvp-pocketbase-backups-524178179132-us-west-2/artifacts/*"
+      ]
+    },
+    {
+      "Sid": "NotifyBackupAlerts",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:us-west-2:524178179132:gvp-backup-alerts"
+    },
+    {
+      "Sid": "WriteOwnLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:us-west-2:524178179132:log-group:/aws/lambda/gvp-backup-watchdog:*"
+    }
+  ]
+}

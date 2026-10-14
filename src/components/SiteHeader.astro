@@ -4,24 +4,15 @@ import ChevronDown from './ChevronDown.astro'
 
 const path = Astro.url.pathname
 
-const [software, ...links] = [
-  { href: '/software', label: 'Software' },
-  { href: '/likes', label: 'Likes' },
-  { href: '/blog', label: 'Blog' },
-].map((link) => ({
-  ...link,
-  match: (p: string) => p === link.href || p.startsWith(`${link.href}/`),
-}))
-
-const groups = [
-  { label: 'Music', id: 'music', children: ['Releases', 'Video', 'Film'] },
-].map((group) => {
-  const children = group.children.map((label) => {
-    const href = label === 'Releases' ? '/music-releases' : `/${label.toLowerCase()}`
-    return { label, href, current: path === href || path.startsWith(`${href}/`) }
-  })
-  return { ...group, children, current: children.some((child) => child.current) }
+import { siteSettings } from '../lib/editorial-content'
+const matches = (href?: string) => !!href && (path === href || path.startsWith(`${href}/`))
+const navigation = siteSettings.navigation.map((item, index) => {
+  const children = item.children?.map(child => ({ ...child, current: matches(child.href) }))
+  const id = item.id ?? `nav-${index}`
+  if (!/^[a-z][a-z0-9-]*$/.test(id)) throw new Error('Navigation IDs must be stable lowercase identifiers')
+  return { ...item, id, children, current: children ? children.some(child => child.current) : matches(item.href) }
 })
+if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw new Error('Navigation IDs must be unique')
 ---
 
 <header class="site-header">
@@ -36,12 +27,7 @@ const groups = [
 
   <nav class="desktop" aria-label="Main navigation">
     <ul>
-      <li>
-        <a href={software.href} class:list={{ current: software.match(path) }} aria-current={software.match(path) ? 'page' : undefined}>
-          {software.label}
-        </a>
-      </li>
-      {groups.map((group) => (
+      {navigation.map((group) => group.children ? (
         <li class="nav-group" style={`anchor-name: --${group.id}`}>
           <button type="button" class:list={['group-toggle', { current: group.current }]} popovertarget={`${group.id}-menu`}>
             {group.label}<ChevronDown />
@@ -54,16 +40,9 @@ const groups = [
             </ul>
           </div>
         </li>
+      ) : (
+        <li><a href={group.href} class:list={{ current: group.current }} aria-current={group.current ? 'page' : undefined}>{group.label}</a></li>
       ))}
-      {
-        links.map((link) => (
-          <li>
-            <a href={link.href} class:list={{ current: link.match(path) }} aria-current={link.match(path) ? 'page' : undefined}>
-              {link.label}
-            </a>
-          </li>
-        ))
-      }
 
     </ul>
   </nav>
@@ -101,16 +80,11 @@ const groups = [
     <ul>
       <li>
         <a href="/" class:list={{ current: path === '/' }} aria-current={path === '/' ? 'page' : undefined}>
-          <span>Home</span>
+          <span>{siteSettings.homeLabel}</span>
           <span class="chev" aria-hidden="true">›</span>
         </a>
       </li>
-      <li>
-        <a href={software.href} class:list={{ current: software.match(path) }} aria-current={software.match(path) ? 'page' : undefined}>
-          <span>{software.label}</span>
-        </a>
-      </li>
-      {groups.map((group) => (
+      {navigation.map((group) => group.children ? (
         <li>
           <details open={group.current}>
             <summary class:list={{ current: group.current }}>{group.label}<ChevronDown /></summary>
@@ -121,17 +95,9 @@ const groups = [
             </ul>
           </details>
         </li>
+      ) : (
+        <li><a href={group.href} class:list={{ current: group.current }} aria-current={group.current ? 'page' : undefined}><span>{group.label}</span>{group.href !== '/software' && <span class="chev" aria-hidden="true">›</span>}</a></li>
       ))}
-      {
-        links.map((link) => (
-          <li>
-            <a href={link.href} class:list={{ current: link.match(path) }} aria-current={link.match(path) ? 'page' : undefined}>
-              <span>{link.label}</span>
-              <span class="chev" aria-hidden="true">›</span>
-            </a>
-          </li>
-        ))
-      }
 
     </ul>
     <button

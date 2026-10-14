@@ -1,17 +1,18 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { siteSettings } from '../lib/editorial-content';
 
 export function getStaticPaths() {
-  return ['Video', 'Film', 'Projects', 'Utils'].map((title) => ({
-    params: { section: title.toLowerCase() },
-    props: { title },
+  return siteSettings.placeholders.map(({ slug, title, body }) => ({
+    params: { section: slug },
+    props: { title, body },
   }));
 }
 
-const { title } = Astro.props;
+const { title, body } = Astro.props;
 ---
 
 <Layout title={title}>
   <h1>{title}</h1>
-  <p>Coming soon...</p>
+  <p>{body}</p>
 </Layout>

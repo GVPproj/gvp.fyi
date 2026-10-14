@@ -1,6 +1,20 @@
 # Dashboard-only publishing with local originals
 
-Active plan: [#21](https://github.com/GVPproj/gvp.fyi/issues/21). This replaces the S3-led #3 plan, not its privacy, recovery or static-delivery requirements. This document records repository inspection and next steps, not production acceptance.
+Active plan: [#21](https://github.com/GVPproj/gvp.fyi/issues/21). This replaces the S3-led #3 plan, not its privacy, recovery or static-delivery requirements. See [all-content implementation](content-cutover-implementation.md) for the new local schemas, import/build paths and verification, and [operational readiness](content-cutover-readiness.md) for fresh live inspection. The historical tracer-only gaps below predate that implementation; nothing here claims production cutover or acceptance.
+
+## Owner-approved content boundary (current implementation session)
+
+The owner approved moving all inventoried editorial content: releases/artwork,
+software, Likes, blog prose, navigation, site metadata and placeholder copy.
+MP3s, executable blog demonstrations, SVG/design assets, instrument sounds and
+behavior-related UI text remain repository-managed. Manual Likes editing is
+accepted: dashboard URL-preview acquisition and duplicate warnings are not
+required. Preserve existing content, routes and relationships; do not silently
+interpret this convenience waiver as permission to drop data or privacy checks.
+
+Implementation and cutover work are approved. Production readiness still needs
+fresh backup/restore, security and deployment verification; this approval is not
+evidence that those checks passed. The historical state below predates this work.
 
 ## Architecture and first milestone
 
@@ -40,10 +54,10 @@ Likes parity and the outstanding owner decision register.
 
 Release MP3 files remain repo-managed for now; dashboard editing covers track metadata and audio references, not uploading/replacing audio. Revisit if additions become frequent or repository/build size becomes burdensome.
 
-### Remaining exceptions to confirm
+### Accepted repository-managed exceptions
 - Instrument sounds: 16 generated WAV fixtures in `public/audio/ambient-test/` (12 mapped by `src/lib/lib-ambient-pad/ambient-kit.ts`); future sound libraries may be editorial. `ambient-silence.mp3` is technical.
-- Inline identity/illustration SVGs in `Sig.astro` and `Face.astro` mix artwork with animation. Confirm whether artwork stays code-owned.
-- Fonts, licenses and UI icons are proposed design/runtime exceptions. Layouts, CSS, player behavior, validation and interaction messages remain application code.
+- Inline identity/illustration SVGs in `Sig.astro` and `Face.astro` mix artwork with animation. Artwork stays code-owned (owner approved).
+- Fonts, licenses and UI icons are accepted design/runtime exceptions. Layouts, CSS, player behavior, validation and interaction messages remain application code.
 
 ## Verification and incomplete work
 

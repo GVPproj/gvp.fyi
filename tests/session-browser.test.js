@@ -146,9 +146,14 @@ for (const cause of ['expiry', 'rejection']) {
     assert.equal(await page.locator('#owner-login').count(), 0);
     const writes = state.writes.length;
     await page.locator('#session-expired a[href="/login"]').click();
+    // Unlike goto() in login(), clicking can return before the login module loads.
+    // Exercise reauthentication, not a native POST racing script initialization.
+    await page.waitForURL(`${base}/login`, { waitUntil: 'load' });
     state.rejectLogin = true;
+    const authRequests = state.authRequests.length;
     await submitLogin(page);
     await page.locator('#auth-status').filter({ hasText: /failed|credentials|sign in/i }).waitFor();
+    assert.equal(state.authRequests.length, authRequests + 1, 'Reauthentication reaches the auth API');
     await page.goto(`${base}/likes/manage`);
     assert.equal(await page.locator('#save-link').isVisible(), false);
     assert.equal(await page.locator('[name=body]').inputValue(), '', 'Recovery is not exposed anonymously');

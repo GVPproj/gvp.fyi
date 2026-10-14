@@ -1,5 +1,12 @@
 # Editorial inventory
 
+**Implementation update:** the owner accepted the proposed content boundaries and
+manual Likes editing. The full catalogue/editorial/static Likes implementation is
+now local; see [current implementation and verification](content-cutover-implementation.md).
+The gaps and open decisions below describe the inventory-time baseline, not the
+new working tree. Production migration/cutover and operational acceptance remain
+outstanding; the inventory is not live verification.
+
 ## Scope and status
 
 Repository inspection only: checked-in public content, source schemas, rendering paths and publishing documentation. No live PocketBase records, credentials, GitHub issues, deployment settings or remote media were inspected. Counts below are repository counts, not a production audit. No tests or deployment rehearsals were run for this inventory.

@@ -1,28 +1,31 @@
 ---
-import { getCollection, render } from 'astro:content';
-import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+import { blogPosts, fullEditorialMode, sectionLabel } from '../../lib/editorial-content';
+import { renderBlogMarkdown } from '../../lib/blog-markdown.js';
+import Face from '../../components/Face.astro';
 import Layout from '../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog');
+  const posts = await blogPosts();
   return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
 }
 
 interface Props {
-  post: CollectionEntry<'blog'>;
+  post: Awaited<ReturnType<typeof blogPosts>>[number];
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
+const Content = !fullEditorialMode ? (await render(post as import('astro:content').CollectionEntry<'blog'>)).Content : null;
+const parts = 'assets' in post ? renderBlogMarkdown(post.data.markdown, { assets: post.assets, assetNames: post.data.assetNames }) : [];
 ---
 
 <Layout title={post.data.title}>
   <article>
     <header>
-      <a href="/blog/">← Blog</a>
+      <a href="/blog/">← {sectionLabel('blog')}</a>
       <h1>{post.data.title}</h1>
     </header>
-    <div class="post-body"><Content /></div>
+    <div class="post-body">{Content ? <Content /> : parts.map(part => part.demo === 'face' ? <Face /> : <Fragment set:html={part.html} />)}</div>
   </article>
 </Layout>
 

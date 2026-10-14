@@ -3,13 +3,14 @@ import netlify from '@astrojs/netlify';
 import mdx from '@astrojs/mdx';
 import { loadEnvFile } from 'node:process';
 import publishedRelease from './scripts/published-release.mjs';
+import publishedContent from './scripts/published-content.mjs';
 
 try { loadEnvFile(); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const pocketbase = process.env.PUBLIC_POCKETBASE_URL ? new URL(process.env.PUBLIC_POCKETBASE_URL) : null;
 
 export default defineConfig({
   site: 'https://gvp.fyi',
-  integrations: [publishedRelease(), mdx()],
+  integrations: [publishedRelease(), publishedContent(), mdx()],
   redirects: {
     '/blog/drawing-my-face/': '/blog/the-animated-face/',
   },
