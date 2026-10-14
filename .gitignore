@@ -6,5 +6,9 @@ dist/
 !.env.example
 .DS_Store
 
+# Python backup tooling
+__pycache__/
+*.py[cod]
+
 # Local Netlify folder
 .netlify

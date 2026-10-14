@@ -51,3 +51,16 @@ The owner selected and authorized provisioning an AWS-only watchdog instead of H
 The initial provisioning access denied both `lambda:GetFunctionConfiguration` for `gvp-backup-watchdog` and `sns:GetTopicAttributes` for `gvp-backup-alerts`. No watchdog cloud resource was created. The role needs the additional narrowly named provisioning statements in [`infra/backups/watchdog-provisioning-policy.json`](../infra/backups/watchdog-provisioning-policy.json); these are not runtime permissions and must be appended without replacing existing permissions. Their IAM role-editing/PassRole capability is privileged and should be removed after setup. Owner confirmation of SNS email delivery is still required. Before implementation tests, confirm the handler/notification seam (fresh, stale, absent or invalid marker and AWS failures) and deployed alarm behavior.
 
 After the owner updated permissions, created the SNS alert topic/subscription request, separate read-only watchdog IAM role, 14-day log group, and disabled daily EventBridge rule with no targets. Topic/role policies and disabled targetless rule were read-back verified. The owner has now confirmed the email subscription; a subsequent read-only `ListSubscriptionsByTopic` returned an active subscription ARN. This is not an end-to-end failure/missed-run alert test. No Lambda function, alarms or active monitor exists yet; no production backup or interruption occurred. Current detail and installed policies: [`infra/backups/README.md`](../infra/backups/README.md#aws-only-watchdog-provisioning-status).
+
+## Local automation continuation
+
+The owner confirmed the capture/resume, verified promotion/retention and watchdog
+notification test boundaries. Local safety components and fault tests now exist;
+see [implementation status](../infra/backups/implementation.md). This does not
+change the cloud provisioning status above. Captured-runtime isolated startup,
+the real Fly transport and archive normalization remain unimplemented; the
+verifier deliberately refuses successful recovery until those gates are met.
+The reviewed runtime Dockerfile does not supply the capture supervisor's Python
+prerequisite; it has not been established in the deployed image.
+No cloud action, production capture, credential, workflow or schedule activation
+was performed by this local continuation.

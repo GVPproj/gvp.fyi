@@ -19,9 +19,25 @@ No lifecycle expiry, application-file S3, customer-managed KMS key, AWS access k
 
 Runtime access is limited to recovery prefixes. It can delete monthly/candidate objects but not rollback/artifact objects. It **can overwrite existing object keys** via PutObject, including rollback/artifact keys; this is not immutable/ransomware-proof storage. Use unique keys and verify hashes. Artifact/rollback cleanup requires separate owner approval and access.
 
+## Local implementation candidate (not activated)
+
+Local fault-tested code now covers the monthly watchdog/marker contract,
+restore-gated S3 promotion and three-distinct-month retention, archive/SQLite/file
+validation, and a sibling-backend capture/resume state machine. See
+[implementation status and gates](implementation.md) and
+[verification limits](verification.md).
+
+This is **not a working scheduled backup yet**: captured-runtime startup fails
+closed, the real Fly transport and normalized capture metadata are missing, and
+the reviewed runtime Dockerfile does not supply the local capture supervisor's
+Python runtime.
+No real recovery marker, credential, workflow, Lambda, alarm or schedule was
+created/activated by this implementation. The provisioning status below is
+unchanged.
+
 ## Still required
 
-1. Implement and verify quiescent capture/resume safety, full-set restore verification, promotion/three-successful-month retention and failure handling. Confirm test seams before writing tests per the TDD skill.
+1. Complete and integrate the locally tested capture/resume, restore verification and promotion/retention components; verify them against real provider boundaries. The owner confirmed these test seams before implementation. Local tests alone do not satisfy the full-set restore or operational gate.
 2. Establish a scoped unattended Fly access/recovery mechanism; no superuser credential or MFA bypass was created. Avoid indefinite maintenance after runner cancellation.
 3. Owner selected an AWS-only watchdog instead of Healthchecks. The SNS email subscription is confirmed; implement the checker and verify explicit failure and absent-success alerts before activation. See current provisioning status below.
 4. Configure the runner in the existing private backend repository without deploying its pending application changes. Main-branch pushes currently deploy production; do not blindly push local work to enable a workflow.
