@@ -2,6 +2,23 @@
 
 Status: **owner-approved decisions, 2026-10-12**. The owner approved unified Save/Publish semantics, the administration approach, normal removal delay, and monthly backups conditional on cheap/free operation on 2026-10-12; potential loss since the last recovery checkpoint is acceptable. The owner also approved private S3 originals and static Netlify delivery, with the S3 region chosen to suit the existing Fly backend and MP3 hosting unchanged. The owner approved a $5/month incremental AWS alert and a backup cost target under $1/month, included in that AWS total; ask before adopting a backup approach estimated at $1/month or more. Estimates and access must be verified before provisioning. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must implement the agreed choices below and verify the remaining operational prerequisites.
 
+## Implementation checkpoint — 2026-10-13
+
+#11 selected **`us-west-1` (Northern California)** for private originals against
+verified Fly `sjc` placement, within the region-selection scope approved below.
+[Current regional prices and explicit cost scenarios](research/s3-region-costs.md)
+and [pinned runtime/recovery requirements](research/pocketbase-s3-runtime-recovery.md)
+are research evidence, not provisioning or a verified all-in backup quote.
+[Storage preflight](storage-preflight.md) records the current remaining gates.
+
+#16 is closed for human non-root provisioning identity/intended scope; historical
+root/setup-blocker language below is superseded. That policy does not grant
+billing or IAM administration. Owner setup is isolated in
+[#19 (spending alert)](https://github.com/GVPproj/gvp.fyi/issues/19) and
+[#20 (runtime credentials)](https://github.com/GVPproj/gvp.fyi/issues/20).
+Independent recovery, security/MFA, actual alert delivery and separate provisioning/
+rollout approvals remain required. No production storage was changed.
+
 ## Agreed decisions
 
 ### Publication and drafts — agreed 2026-10-12
