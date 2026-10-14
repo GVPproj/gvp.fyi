@@ -57,10 +57,21 @@ The named-collection migration refuses an existing `likes_collections`; existing
 items acquire empty memberships. Automatic destructive down migrations are not a
 rollback plan (named-collection and text migrations intentionally refuse them).
 
+## Storage migration preflight
+
+For #11's sanitized read-only schema/settings and file reconciliation tool, fresh
+infrastructure observations, and remaining storage gates, see
+[`docs/storage-preflight.md`](../docs/storage-preflight.md). Inventory is not a
+backup or authorization to switch storage.
+
 ## Backup and rollback safety
 
 Normal predeployment backup safety is required. Repeatable backup automation
-(Ticket 09) was declined; it is **not** a pending implementation task.
+(Ticket 09) was originally declined. The owner-approved
+[#5 publishing decisions](../docs/publishing-decisions.md#backup-and-recovery)
+reopened a limited monthly database-and-files backup scope under #11, retaining
+three successful recovery sets with failure notification and a backup cost target
+under $1/month. That automation is not yet implemented or verified.
 
 - Keep content, credentials, databases, backups and encryption keys outside Git.
   Back up **complete `pb_data` including storage**, plus separately retain the matching

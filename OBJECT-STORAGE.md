@@ -6,7 +6,10 @@ For the broader private PocketBase editing/static publishing workflow in issue #
 see the [decision record](docs/publishing-decisions.md) and
 [current provider research](docs/research/private-publishing-storage.md).
 The owner selected private S3 originals and static Netlify delivery for published
-images/downloads, with the S3 region chosen to suit the existing Fly backend.
+images/downloads. #11 selected **`us-west-1` (Northern California)** against the
+existing Fly machine's verified `sjc` placement; see
+[regional cost research](docs/research/s3-region-costs.md) and
+[remaining preflight gates](docs/storage-preflight.md). No bucket is provisioned.
 Approved cost guardrails: a $5/month incremental AWS alert (not a cap), with
 backups targeted under $1/month within that total. Verify actual estimates before
 provisioning; seek approval for backup approaches estimated at $1/month or more.
