@@ -1,5 +1,11 @@
 # One-release publishing rehearsal (#7)
 
+**Existing Fly development trial:** the owner approved deploying this backend slice
+to the existing app. Watery Grave is now a private dashboard draft; see
+[deployment status and limits](dashboard-publishing.md#existing-fly-development-trial).
+The instructions below remain the disposable local rehearsal. Do not point the
+loopback-only importer at Fly or reuse test credentials. Netlify remains unchanged.
+
 This is an **isolated tracer bullet**, not a production cutover. It implements the
 [approved Save/Publish decisions](publishing-decisions.md) for **Watery Grave EP**.
 All other releases retain their checked-in source. The existing public route
@@ -53,9 +59,35 @@ release, and the build additionally checks the five existing MP3 references.
 
 This uses supported dashboard record editing, not a fictional custom button. Publication
 makes a snapshot eligible for a build; it does **not** trigger a Netlify build or claim
-successful deployment. Request/build/deployment status and unpublish/delete workflows
-belong to #9. Deleting a working record does not unpublish it. Snapshots and their own
-artwork copies are retained without automatic pruning in this tracer.
+successful deployment. The owner-approved first-milestone workflow is manual Netlify
+deployment after dashboard Publish, using Netlify's existing status UI rather than
+#9's custom status machinery.
+
+### Unpublish, republish and delete
+
+To remove the release, open its working record, tick **unpublish** (leave **publish**
+unticked), then Save. The server resets the command and appends an explicit withdrawal
+revision. It does not need complete working artwork/tracks, but requires a previous
+publication. Selecting both commands is an error and saves nothing.
+
+The next successful build omits the release from the overview and generated detail
+routes; no missing-record/error response is treated as permission to remove content.
+Ordinary Save keeps it withdrawn. To restore it, complete the working content and
+Publish again, then deploy. Existing MP3 files/URLs stay in the repo and are not
+removed by Unpublish.
+
+Deleting a working record does **not** unpublish it or delete published artwork.
+Unpublish before deleting if removal is intended. If already deleted, recreate a
+working release with the same slug and required metadata, then Unpublish; no artwork
+or tracks are needed for withdrawal. Snapshots and their own artwork copies are
+retained without automatic pruning, including for a build already pinned to an older
+revision.
+
+After Publish or Unpublish, manually deploy in Netlify and check its deployment
+result. A failed fetch/build leaves the last good public deployment unchanged.
+Removal latency includes the build queue, successful deployment and cache lifetime;
+old deployments, caches and downloaded copies may remain. Local tests do not prove
+production Netlify deployment or cache behavior.
 
 ## Opt-in Astro source and static media
 
@@ -115,7 +147,8 @@ Measured with the checked-in 300×283 JPEG and Sharp 0.35.5, WebP quality 80:
 | Full-width 300px WebP | 22,528 |
 | 160px WebP | 8,712 |
 
-Do not enable this source in production yet. #11 must finish S3/security/cost/backup
-preflight and migration rehearsal; #14 gates concrete deployment approval and owner
-acceptance. Reverting the opt-in configuration restores the local source for this isolated
+Do not enable this source in production yet. #21 supersedes the S3 migration gates:
+keep local PocketBase storage and verify capacity, off-host recovery/restore, #18
+administrative security, shared consumers, concrete deployment approval and owner
+acceptance. No S3 provisioning is required. See [the current plan](dashboard-publishing.md). Reverting the opt-in configuration restores the local source for this isolated
 slice; it is not a destructive database rollback or a production data-recovery procedure.

@@ -42,8 +42,10 @@ function prepareReleases(catalogue: ReleaseData[]) {
 
 export const releaseCategories = [
   { id: 'graham-van-pelt', name: 'as Graham Van Pelt', releases: prepareReleases(grahamVanPelt) },
-  { id: 'miracle-fortress', name: 'as Miracle Fortress', releases: prepareReleases(miracleFortress.map(release =>
-    publishedRelease && releaseSlug(release) === tracerSlug ? publishedRelease : release)) },
+  { id: 'miracle-fortress', name: 'as Miracle Fortress', releases: prepareReleases(miracleFortress.flatMap<ReleaseData>(release => {
+    if (releaseSlug(release) !== tracerSlug || publishedRelease === null) return [release];
+    return publishedRelease === false ? [] : [publishedRelease];
+  })) },
   { id: 'think-about-life', name: 'with Think About Life', releases: prepareReleases(thinkAboutLife) },
   { id: 'other-credits', name: 'Other Credits', releases: prepareReleases(otherCredits) },
 ];

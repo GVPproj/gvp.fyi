@@ -1,6 +1,6 @@
 # Possible future object storage for music
 
-Status: options and migration notes, not a decision or scheduled change.
+Status: **historical/deferred object-storage research**. [#21](https://github.com/GVPproj/gvp.fyi/issues/21) supersedes the S3 selection described below: originals remain in PocketBase's local persistent Fly storage; published media is materialized into static Netlify output. No application-file S3 migration or provisioning is planned. Existing MP3 delivery/URLs remain unchanged; the owner confirmed MP3 files/uploads/replacements stay repo-managed for now, while track metadata and audio references remain dashboard-editable. See the [current plan](docs/dashboard-publishing.md). The earlier selection and candidate migration steps below are retained as history, not active instructions or rollout gates.
 
 For the broader private PocketBase editing/static publishing workflow in issue #5,
 see the [decision record](docs/publishing-decisions.md) and

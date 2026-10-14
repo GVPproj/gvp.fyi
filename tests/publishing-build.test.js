@@ -18,7 +18,7 @@ const artwork = await readFile(path.join(root, 'public/images/music-releases/wat
 const catalogue = JSON.parse(await readFile(path.join(root, 'src/data/releases/miracle-fortress.json'), 'utf8'));
 const original = catalogue.find(release => release.title === 'Watery Grave EP');
 
-async function build(t, { broken = false, incomplete = false, badArtwork = false, backend } = {}) {
+async function build(t, { broken = false, incomplete = false, badArtwork = false, backend, snapshot, status = 200, local = false, env = {} } = {}) {
   await mkdir(path.join(root, '.astro'), { recursive: true });
   const dir = await mkdtemp(path.join(root, '.astro/publishing-build-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -33,7 +33,8 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
     }
     if (req.headers.authorization !== token) { res.writeHead(401).end('{}'); return; }
     if (req.url === '/api/publishing/releases/watery-grave-ep') {
-      if (broken) { res.writeHead(503).end('{}'); return; }
+      if (broken || status !== 200) { res.writeHead(broken ? 503 : status).end('{}'); return; }
+      if (snapshot !== undefined) { res.end(JSON.stringify(snapshot)); return; }
       res.end(JSON.stringify({ revision: 'revision-one', release: { ...original, slug: 'watery-grave-ep', about: 'Published snapshot from PocketBase.', ...(incomplete && { tracks: [] }) },
         artwork: { path: '/api/publishing/artwork/revision-one', width: 300, height: 283,
           sha256: badArtwork ? '0'.repeat(64) : createHash('sha256').update(artwork).digest('hex') } }));
@@ -46,8 +47,8 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
   t.after(() => { server.closeAllConnections(); server.close(); });
   const endpoint = `http://127.0.0.1:${server.address().port}`;
   const child = spawn(process.execPath, [path.join(root, 'node_modules/astro/bin/astro.mjs'), 'build', '--outDir', path.join(dir, 'dist')], {
-    cwd: root, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: backend?.base ?? endpoint,
-      PUBLISHING_BUILD_EMAIL: backend?.email ?? 'build@example.test', PUBLISHING_BUILD_PASSWORD: backend?.password ?? 'private-build-password-never-public' },
+    cwd: root, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: local ? '' : backend?.base ?? endpoint,
+      PUBLISHING_BUILD_EMAIL: local ? '' : backend?.email ?? 'build@example.test', PUBLISHING_BUILD_PASSWORD: local ? '' : backend?.password ?? 'private-build-password-never-public', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logs = '';
@@ -134,6 +135,100 @@ test('Astro builds one published snapshot and deploys responsive artwork without
     }
     assert.ok(!outgoing.some(url => url.startsWith(result.endpoint) || url.endsWith('.mp3')), 'no backend requests or audio preloading');
   });
+});
+
+const withdrawal = { revision: 'abc123def456ghi', slug: 'watery-grave-ep', state: 'unpublished' };
+
+async function assertWithdrawn(result) {
+  assert.equal(result.code, 0, result.logs);
+  const all = await files(path.join(result.dir, 'dist'));
+  assert.ok(!all.some(file => file.includes('/music-releases/watery-grave-ep/')));
+  assert.ok(!all.some(file => file.includes('/published-releases/')), 'withdrawal needs no generated artwork');
+  const overview = await readFile(all.find(file => file.endsWith('/music-releases/index.html')), 'utf8');
+  assert.ok(!overview.includes('watery-grave-ep') && !overview.includes('Watery Grave EP'));
+  assert.ok(overview.includes('atlantis-tapes'));
+  assert.ok(all.some(file => file.endsWith('/music-releases/atlantis-tapes/index.html')));
+}
+
+test('explicit withdrawal removes the tracer; unset configuration retains the local fallback', { timeout: 120000 }, async t => {
+  const withdrawn = await build(t, { snapshot: withdrawal });
+  await assertWithdrawn(withdrawn);
+  assert.ok(!withdrawn.requests.some(route => route.startsWith('/api/publishing/artwork/')));
+  const local = await build(t, { local: true });
+  assert.equal(local.code, 0, local.logs);
+  assert.equal(local.requests.length, 0);
+  assert.match(await readFile(path.join(local.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8'), /Watery Grave EP/);
+});
+
+test('partial publishing configuration fails rather than restoring local content', { timeout: 120000 }, async t => {
+  for (const env of [
+    { PUBLISHING_POCKETBASE_URL: '' },
+    { PUBLISHING_BUILD_EMAIL: '' },
+    { PUBLISHING_BUILD_PASSWORD: '' },
+  ]) {
+    const result = await build(t, { snapshot: withdrawal, env });
+    assert.notEqual(result.code, 0);
+    assert.match(result.logs, /Incomplete publishing configuration|Published release build failed/);
+    assert.equal(result.requests.length, 0, 'incomplete configuration must fail before authentication');
+  }
+});
+
+test('malformed or mixed withdrawals and missing snapshots fail closed', { timeout: 240000 }, async t => {
+  for (const snapshot of [
+    null, {}, { ...withdrawal, revision: '' }, { ...withdrawal, revision: '   ' },
+    { ...withdrawal, revision: 123 }, { ...withdrawal, slug: 'other-release' },
+    { ...withdrawal, state: 'draft' }, { revision: withdrawal.revision, slug: withdrawal.slug },
+    { ...withdrawal, release: original }, { ...withdrawal, artwork: {} },
+    { ...withdrawal, title: 'Mixed private title' },
+  ]) {
+    const result = await build(t, { snapshot });
+    assert.notEqual(result.code, 0, JSON.stringify(snapshot));
+    assert.match(result.logs, /Published release build failed/);
+    assert.ok(!result.logs.includes('Mixed private title'));
+  }
+  const missing = await build(t, { status: 404 });
+  assert.notEqual(missing.code, 0);
+  assert.match(missing.logs, /Published release build failed/);
+});
+
+test('real PocketBase withdrawal removes static routes and republish restores them', {
+  skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY to the custom v0.40.4 server', timeout: 240000,
+}, async t => {
+  const pb = await start(t);
+  const draft = await importRelease({ endpoint: pb.base, token: pb.adminToken });
+  const email = 'withdrawal-build@example.test';
+  const password = randomBytes(24).toString('hex');
+  assert.equal((await pb.request('collections/publishing_builds/records', {
+    method: 'POST', token: pb.adminToken, body: { email, password, passwordConfirm: password },
+  })).status, 200);
+  const backend = { base: pb.base, email, password };
+  const recordPath = `collections/publishing_releases/records/${draft.id}`;
+  const save = body => pb.request(recordPath, { method: 'PATCH', token: pb.adminToken, body });
+  const missing = await build(t, { backend });
+  assert.notEqual(missing.code, 0, 'no snapshot is not withdrawal');
+  assert.equal((await save({ publish: true })).status, 200);
+  const published = await build(t, { backend });
+  assert.equal(published.code, 0, published.logs);
+  const initialFiles = await files(path.join(published.dir, 'dist'));
+  assert.ok(initialFiles.some(file => file.endsWith('/music-releases/watery-grave-ep/index.html')));
+  const withdrawn = await save({ unpublish: true });
+  assert.equal(withdrawn.status, 200);
+  assert.equal(withdrawn.data.unpublish, false, 'dashboard command resets');
+  const removed = await build(t, { backend });
+  await assertWithdrawn(removed);
+  const detailRoutes = resultFiles => resultFiles.filter(file => file.includes('/music-releases/') && file.endsWith('/index.html'))
+    .map(file => file.split('/dist/')[1]).sort();
+  assert.deepEqual(detailRoutes(await files(path.join(removed.dir, 'dist'))),
+    detailRoutes(initialFiles).filter(route => !route.includes('/watery-grave-ep/')));
+  assert.equal((await save({ title: 'Private withdrawn edit' })).status, 200);
+  await assertWithdrawn(await build(t, { backend }));
+  const unauthorized = await build(t, { backend: { ...backend, password: 'wrong-password' } });
+  assert.notEqual(unauthorized.code, 0, 'authentication failure is not withdrawal');
+  assert.equal((await save({ title: 'Republished Watery Grave', publish: true })).status, 200);
+  const republished = await build(t, { backend });
+  assert.equal(republished.code, 0, republished.logs);
+  assert.match(await readFile(path.join(republished.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8'), /Republished Watery Grave/);
+  assert.match(await readFile(path.join(republished.dir, 'dist/music-releases/index.html'), 'utf8'), /Republished Watery Grave/);
 });
 
 test('an incomplete published snapshot fails the build instead of dropping the track list', { timeout: 120000 }, async t => {

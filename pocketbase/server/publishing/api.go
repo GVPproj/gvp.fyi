@@ -33,16 +33,27 @@ func Register(app core.App) {
 	app.OnRecordUpdateRequest(snapshots).BindFunc(deny)
 	app.OnRecordDeleteRequest(snapshots).BindFunc(deny)
 	save := func(e *core.RecordEvent) error {
-		if !e.Record.GetBool("publish") {
+		publishing, withdrawing := e.Record.GetBool("publish"), e.Record.GetBool("unpublish")
+		if publishing && withdrawing {
+			return apis.NewBadRequestError("Choose Publish or Unpublish, not both.", nil)
+		}
+		if !publishing && !withdrawing {
 			return e.Next()
 		}
 		e.Record.Set("publish", false)
+		e.Record.Set("unpublish", false)
 		original := e.App
 		defer func() { e.App = original }()
 		return original.RunInTransaction(func(tx core.App) error {
 			e.App = tx
 			if err := e.Next(); err != nil {
 				return err
+			}
+			if withdrawing {
+				if err := unpublish(tx, e.Record); err != nil {
+					return apis.NewBadRequestError("Unpublish requires a previously published release.", nil)
+				}
+				return nil
 			}
 			if err := publish(tx, e.Record); err != nil {
 				return apis.NewBadRequestError("Publication requires a complete release, ordered tracks and valid artwork.", nil)
@@ -74,7 +85,7 @@ func Register(app core.App) {
 				return err
 			}
 			record, err := e.App.FindRecordById(snapshots, e.Request.PathValue("revision"))
-			if err != nil {
+			if err != nil || record.GetString("artwork") == "" {
 				return e.NotFoundError("Not published.", nil)
 			}
 			fs, err := e.App.NewFilesystem()
@@ -95,6 +106,36 @@ func authorize(e *core.RequestEvent) error {
 		return e.ForbiddenError("Build identity required.", nil)
 	}
 	return nil
+}
+
+// Withdrawal is an explicit revision, not a missing-record response. Builds must
+// distinguish intentional removal from an unavailable or incomplete publication.
+// Older artwork stays readable so a build already pinned to a revision can finish.
+func unpublish(app core.App, release *core.Record) error {
+	if release.GetString("slug") != "watery-grave-ep" {
+		return errors.New("unsupported release")
+	}
+	previous, err := app.FindRecordsByFilter(snapshots, "slug = 'watery-grave-ep'", "-sequence", 1, 0)
+	if err != nil {
+		return err
+	}
+	if len(previous) == 0 {
+		return errors.New("never published")
+	}
+	collection, err := app.FindCollectionByNameOrId(snapshots)
+	if err != nil {
+		return err
+	}
+	record := core.NewRecord(collection)
+	record.Id = core.GenerateDefaultRandomId()
+	record.Set("slug", release.GetString("slug"))
+	count, err := app.CountRecords(snapshots)
+	if err != nil {
+		return err
+	}
+	record.Set("sequence", count+1)
+	record.Set("payload", map[string]any{"revision": record.Id, "slug": release.GetString("slug"), "state": "unpublished"})
+	return app.Save(record)
 }
 
 func publish(app core.App, release *core.Record) error {

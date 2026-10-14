@@ -1,5 +1,12 @@
 # Storage migration preflight
 
+**Historical S3 preflight; superseded direction:** [#21](https://github.com/GVPproj/gvp.fyi/issues/21)
+keeps application files in local PocketBase storage. S3 region/bucket/IAM/provisioning
+steps below are deferred, not rollout prerequisites. Retain the inventory tool and
+local capacity, protected-file, recovery, security and shared-consumer checks.
+Observations below are historical, not a fresh production audit. No resource deletion
+or credential revocation is authorized. See [the current plan](dashboard-publishing.md).
+
 Tracks [#11](https://github.com/GVPproj/gvp.fyi/issues/11), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3).
 This is inventory evidence, **not migration, backup, provisioning or rollout approval**.
 The [owner-approved decisions](publishing-decisions.md) remain authoritative.

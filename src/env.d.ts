@@ -1,4 +1,5 @@
 declare module 'virtual:published-release' {
-  const release: import('./lib/music-releases').ReleaseData | null;
+  // null: local fallback; false: validated explicit withdrawal.
+  const release: import('./lib/music-releases').ReleaseData | null | false;
   export default release;
 }

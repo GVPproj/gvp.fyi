@@ -57,19 +57,25 @@ The named-collection migration refuses an existing `likes_collections`; existing
 items acquire empty memberships. Automatic destructive down migrations are not a
 rollback plan (named-collection and text migrations intentionally refuse them).
 
-## Storage migration preflight
+## Local storage and historical migration preflight
 
-For #11's sanitized read-only schema/settings and file reconciliation tool, fresh
-infrastructure observations, and remaining storage gates, see
-[`docs/storage-preflight.md`](../docs/storage-preflight.md). Inventory is not a
-backup or authorization to switch storage.
+[#21](https://github.com/GVPproj/gvp.fyi/issues/21) keeps originals on the existing
+persistent Fly volume in `pb_data/storage`. Do not enable application-file S3.
+Dashboard-only editing and static published delivery are the target; see the
+[current plan](../docs/dashboard-publishing.md). Capacity, protected files,
+shared-consumer compatibility, #18 security and off-host recovery remain rollout gates.
+
+For #11's reusable sanitized read-only inventory tool and historical observations,
+see [`docs/storage-preflight.md`](../docs/storage-preflight.md). Its S3-specific
+provisioning gates are superseded. Inventory is not a backup, a fresh capacity
+measurement or authorization to switch storage.
 
 ## Backup and rollback safety
 
 Normal predeployment backup safety is required. Repeatable backup automation
 (Ticket 09) was originally declined. The owner-approved
 [#5 publishing decisions](../docs/publishing-decisions.md#backup-and-recovery)
-reopened a limited monthly database-and-files backup scope under #11, retaining
+reopened a limited monthly database-and-files backup scope, retained by #21, retaining
 three successful recovery sets with failure notification and a backup cost target
 under $1/month. That automation is not yet implemented or verified.
 

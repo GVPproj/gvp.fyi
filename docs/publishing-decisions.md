@@ -1,6 +1,20 @@
 # Private editing and static publishing decisions
 
-Status: **owner-approved decisions, 2026-10-12**. The owner approved unified Save/Publish semantics, the administration approach, normal removal delay, and monthly backups conditional on cheap/free operation on 2026-10-12; potential loss since the last recovery checkpoint is acceptable. The owner also approved private S3 originals and static Netlify delivery, with the S3 region chosen to suit the existing Fly backend and MP3 hosting unchanged. The owner approved a $5/month incremental AWS alert and a backup cost target under $1/month, included in that AWS total; ask before adopting a backup approach estimated at $1/month or more. Estimates and access must be verified before provisioning. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must implement the agreed choices below and verify the remaining operational prerequisites.
+## Current direction — #21
+
+[#21](https://github.com/GVPproj/gvp.fyi/issues/21) supersedes #3's S3-led plan and the S3 selection below. Use the existing Fly-hosted PocketBase persistent `pb_data/storage` for originals; do not enable application-file S3 or provision originals buckets. PocketBase `/_/` is the target sole editorial interface, not the public app's management forms.
+
+Private Save/explicit Publish snapshots, independently retained referenced media, restricted build reads, and static Netlify pages/images/downloads remain required. Existing MP3 URLs and delivery stay on Netlify; the owner confirmed MP3 files/uploads/replacements stay repo-managed for now, with track metadata and audio references dashboard-editable. New content starts as drafts; preserve existing published Likes during migration.
+
+Owner-approved first-milestone workflow: Publish through a supported dashboard field, then manually deploy through Netlify's existing UI. No custom deployment-status service is required by default. Saving or requesting publication is not proof of deployment.
+
+Monthly automatic off-host database-and-file recovery sets (retain three successful sets), failure notification, immediate pre-change backups and isolated restore rehearsal remain required. Target backups under $1/month; ask before exceeding it. Account for Fly autostop, matching code/configuration and keys. No backup provider or production change is authorized yet. Local volume capacity and #18 administrative security remain rollout checks; S3 provisioning is no longer a gate.
+
+The records below preserve historical decisions and research, **not current S3 prerequisites**. Existing cloud resources/credentials have not been freshly audited; no deletion or revocation is authorized. See [the current work plan](dashboard-publishing.md).
+
+## Historical decision record
+
+Status: **owner-approved decisions, 2026-10-12; S3 selection superseded by #21**. The owner approved unified Save/Publish semantics, the administration approach, normal removal delay, and monthly backups conditional on cheap/free operation on 2026-10-12; potential loss since the last recovery checkpoint is acceptable. The owner also approved private S3 originals and static Netlify delivery, with the S3 region chosen to suit the existing Fly backend and MP3 hosting unchanged. The owner approved a $5/month incremental AWS alert and a backup cost target under $1/month, included in that AWS total; ask before adopting a backup approach estimated at $1/month or more. Estimates and access must be verified before provisioning. Tracks [#5](https://github.com/GVPproj/gvp.fyi/issues/5), part of [#3](https://github.com/GVPproj/gvp.fyi/issues/3). Implementation tickets must implement the agreed choices below and verify the remaining operational prerequisites.
 
 ## Implementation checkpoint — 2026-10-13
 

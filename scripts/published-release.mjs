@@ -71,6 +71,14 @@ async function preparePublishedRelease(env) {
     if (typeof auth.token !== 'string' || !auth.token || auth.record?.collectionName !== 'publishing_builds') throw new Error();
     const headers = { Authorization: auth.token };
     const snapshot = JSON.parse(await request(`/api/publishing/releases/${tracerSlug}`, { headers }));
+    // Only an exact explicit withdrawal can remove the checked-in tracer.
+    // null remains reserved for the configuration-unset local catalogue.
+    if (snapshot?.state === 'unpublished') {
+      if (Object.keys(snapshot).sort().join(',') !== 'revision,slug,state' ||
+        typeof snapshot.revision !== 'string' || !snapshot.revision.trim() || snapshot.slug !== tracerSlug) throw new Error();
+      return { release: false, files: [] };
+    }
+    if (!snapshot || 'state' in snapshot || 'slug' in snapshot) throw new Error();
     const release = publicRelease(snapshot.release);
     const { artwork } = snapshot;
     if (typeof snapshot.revision !== 'string' || !snapshot.revision || release?.slug !== tracerSlug) throw new Error();

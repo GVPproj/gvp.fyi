@@ -28,6 +28,54 @@ test('dashboard/API saves private releases and ordered tracks without changing L
   assert.equal((await request('collections/likes_items/records')).status, 200);
 });
 
+test('Unpublish is an explicit retained revision; conflicting commands roll back and ordinary Save stays private', options, async (t) => {
+  const { request, adminToken: token, base, restart } = await start(t);
+  const write = async (route, body, method = 'POST') => {
+    const response = await request(route, { token, method, body });
+    assert.equal(response.status, 200, JSON.stringify(response));
+    return response.data;
+  };
+  await write('collections/publishing_builds/records', { email: 'build@example.test', password: 'test-build-password', passwordConfirm: 'test-build-password' });
+  const auth = await request('collections/publishing_builds/auth-with-password', { method: 'POST', body: { identity: 'build@example.test', password: 'test-build-password' } });
+  const build = auth.data.token;
+  const endpoint = 'publishing/releases/watery-grave-ep';
+  const draft = await write(releases, upload(fields));
+  const route = `${releases}/${draft.id}`;
+  assert.equal((await request(route, { token, method: 'PATCH', body: { unpublish: true, title: 'Must not save' } })).status, 400);
+  assert.equal((await request(route, { token })).data.title, fields.title);
+  assert.equal((await request(endpoint, { token: build })).status, 404);
+  for (const track of originalTracks) await write(tracks, { release: draft.id, ...track });
+  await write(route, { publish: true }, 'PATCH');
+  const first = (await request(endpoint, { token: build })).data;
+  assert.equal((await request(route, { token, method: 'PATCH', body: { publish: true, unpublish: true, title: 'Conflict' } })).status, 400);
+  assert.equal((await request(route, { token })).data.title, fields.title);
+  assert.deepEqual((await request(endpoint, { token: build })).data, first);
+  // Withdrawal must work even when the working artwork is gone/incomplete.
+  const withdrawn = await write(route, { unpublish: true, artwork: '' }, 'PATCH');
+  assert.equal(withdrawn.publish, false);
+  assert.equal(withdrawn.unpublish, false);
+  const result = await request(endpoint, { token: build });
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.data, { revision: result.data.revision, slug: fields.slug, state: 'unpublished' });
+  assert.notEqual(result.data.revision, first.revision);
+  assert.equal((await request(`publishing/artwork/${result.data.revision}`, { token: build })).status, 404);
+  assert.deepEqual(Buffer.from(await (await fetch(base + first.artwork.path, { headers: { Authorization: build } })).arrayBuffer()), jpeg);
+  await write(route, { title: 'Private after withdrawal' }, 'PATCH');
+  await restart();
+  assert.deepEqual((await request(endpoint, { token: build })).data, result.data);
+  assert.equal((await request(route, { token, method: 'PATCH', body: { publish: true } })).status, 400);
+  assert.deepEqual((await request(endpoint, { token: build })).data, result.data);
+  await write(route, upload({ publish: true }), 'PATCH');
+  const republished = (await request(endpoint, { token: build })).data;
+  assert.equal(republished.release.title, 'Private after withdrawal');
+  assert.notEqual(republished.revision, first.revision);
+  await write(route, { unpublish: true }, 'PATCH');
+  const last = (await request(endpoint, { token: build })).data;
+  assert.equal((await request(route, { token, method: 'DELETE' })).status, 204);
+  assert.deepEqual((await request(endpoint, { token: build })).data, last);
+  assert.equal((await request(endpoint)).status, 403);
+});
+
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQAQAAAAB+XjmZAAAAPklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4NndAAAfVRSv0AAAAASUVORK5CYII=', 'base64');
 const webp = Buffer.from('UklGRjwAAABXRUJQVlA4IDAAAAAQAgCdASoNAAcAAUAmJaACdLoB+AH4AAPIAP7uCmf+rPpoRf2kf/rKr5Kj9swAAAA=', 'base64');
 function upload(fields, bytes = jpeg) {
@@ -109,7 +157,12 @@ test('explicit dashboard Publish creates a build-only retained revision; Save ne
   assert.equal(third.data.artwork.height, 7);
   assert.deepEqual(Buffer.from(await (await fetch(base + third.data.artwork.path, { headers: { Authorization: build } })).arrayBuffer()), webp);
   assert.equal((await request(`${releases}/${draft.id}`, { method: 'DELETE', token })).status, 204);
+  assert.deepEqual((await request(endpoint, { token: build })).data, third.data);
   assert.deepEqual(Buffer.from(await (await download()).arrayBuffer()), jpeg);
+  // A deleted working record can be recreated solely to request withdrawal.
+  const replacement = await write(releases, fields);
+  await write(`${releases}/${replacement.id}`, { unpublish: true }, 'PATCH');
+  assert.equal((await request(endpoint, { token: build })).data.state, 'unpublished');
   for (const denied of [undefined, token, ownerAuth.data.token]) {
     assert.equal((await request(endpoint, { token: denied })).status, 403);
     assert.equal((await fetch(base + first.data.artwork.path, { headers: denied ? { Authorization: denied } : {} })).status, 403);
