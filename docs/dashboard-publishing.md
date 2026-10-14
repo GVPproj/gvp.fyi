@@ -16,7 +16,9 @@ The runtime and forward migration `1782259200_release_toggle.js` are synced in s
 
 ## Repository editorial inventory
 
-Counts describe checked-in sources, not live PocketBase records.
+Counts describe checked-in sources, not live PocketBase records. See the detailed
+[editorial inventory](editorial-inventory.md) for field-level gaps, remote media,
+Likes parity and the outstanding owner decision register.
 
 | Content | Current source | Target editing home / remaining work |
 | --- | --- | --- |
@@ -50,6 +52,51 @@ See [release rehearsal](release-publishing.md) and [backend contract](../pocketb
 Dashboard Likes parity needs a separate audit of preview acquisition, duplicate lookup, named-collection membership, type changes and uploads. Essential validation belongs in hooks/services; any lost convenience needs explicit agreement. Current public Likes is not yet snapshot-based/static.
 
 Before production: fresh capacity checks; complete off-host database/file recovery and isolated restore; monthly automation retaining three successful sets with failure alerts; #18 MFA/rules/protected-file verification; shared-consumer checks; explicit production approval and paired rollback. Backup target remains under $1/month; ask before exceeding it. No backup destination has been selected here.
+
+## Next rollout slices and approval gates
+
+Do not make the release trial wait for the whole catalogue, but do not treat that
+trial as frontend cutover or operational completion.
+
+1. **Release toggle trial (#9/#14):** inspect current live revisions and records;
+   propose the exact backend revision and permitted smoke writes for approval.
+   Take a fresh off-host checkpoint, restore it in isolation with external effects
+   disabled, and rehearse the forward migration against those real records.
+   Compare drafts, retained snapshots/media and unrelated consumers before/after.
+   Deploy backend only after approval; ask the owner to try JSON track editing,
+   artwork replacement, Published Save and withdrawal. Keep Netlify unchanged.
+2. **Other content (#8/#10/#6/#12):** demonstrate one software project and
+   representative Likes types separately. Extend schemas/snapshots only for the
+   inventory's agreed fields; verify dashboard hooks rather than assuming custom
+   app endpoints run on Save. Preserve existing published Likes. Resolve remaining
+   editorial exceptions with the owner before claiming all content is editable.
+3. **Security and recovery (#18/#21):** verify MFA with the owner, protected-file
+   denial and scoped build reads. Record fresh volume usage/headroom before each
+   rollout and check it monthly alongside backup results. Stop if there is not
+   enough space for the proposed import, retained media and restore workspace;
+   do not reuse historical free-space figures as approval. A backup destination,
+   estimated monthly cost, scheduler that works with Fly autostop, and failure
+   notification destination require approval before provisioning. Test a failed
+   backup notification and isolated restore; retain three *verified successful*
+   off-host sets, never prune a good set after a failed run. Manual checkpoints
+   do not fulfill monthly automation.
+4. **Frontend cutover (#13/#14):** after the relevant backend slice and security/
+   recovery gates pass, obtain separate approval for scoped build credentials and
+   Netlify configuration. Record the last good deployment and rollback settings;
+   test draft exclusion, explicit withdrawal, failed-build preservation and
+   PocketBase-offline HTML/media. Use manual Netlify deployment, not new trigger
+   machinery. The existing opt-in release source is not general catalogue or
+   static Likes support.
+5. **Retirement (#15):** only after actual replacement acceptance, audit shared
+   dependencies and remove redundant site owner UI/session code. Do not remove
+   backend authentication or unrelated consumers' endpoints merely because the
+   site no longer needs them. Preserve the local login/session ticket until its
+   scope is explicitly resolved.
+
+Record evidence per slice in #14/#21, including revision IDs, checks actually run,
+remaining blockers and owner acceptance. No backup provider, paid resource,
+production write, credential revocation or cloud deletion is authorized by this
+sequence.
 
 ## Historical local withdrawal verification (OLD workflow)
 
@@ -90,6 +137,15 @@ monthly backup automation and the remaining rollout obligations are not complete
 by this development trial. Operational evidence and recovery locations are in the
 sibling repo's `docs/publishing-release-rollout.md`.
 
-## Issue reconciliation still pending
+## Issue reconciliation
 
-#3/#11/#19/#20 require supersession comments/closure, not completion claims. Review #6/#8/#9/#10/#12/#13/#14/#15 against this inventory; retain #18 security and #17 unrelated ambient failures. Inspect #1 and `tickets/10-dedicated-login-and-session-controls.md` before retiring overlapping work. Historical #5/#7/#16 and S3 research remain available. No issue closures, production resource audit, cloud deletion or key revocation are claimed by these documentation updates.
+[Reconciliation evidence](issue-reconciliation.md) records #3/#11/#19/#20 closed
+as superseded/not planned, not completed implementations. Active children are
+reparented to #21; obsolete S3 and all-or-nothing rollout dependency edges were
+removed. Retained tickets now reflect local originals, draft defaults, Published
+Save and manual Netlify. #18 security and #17 unrelated ambient failures remain
+open. #1 and the local login/session ticket were inspected; neither establishes
+current production acceptance, and the local ticket remains unchanged. Historical
+#5/#7/#16 received supersession notes; S3 research remains available. No fresh
+production resource audit, cloud deletion, budget deletion or key revocation was
+performed.

@@ -175,7 +175,7 @@ published edits, first-off withdrawal, republish, retained artwork and working d
 static route removal and fail-closed build responses. Generated-output scans check secrets/private content;
 mobile/desktop browser checks load deployed artwork after the fixture backend stops.
 They do not establish production Netlify deployment behavior or owner visual acceptance
-(#11/#14). Tests explicitly skip executable-dependent checks when executables are absent.
+(#21/#14). Tests explicitly skip executable-dependent checks when executables are absent.
 
 Measured with the checked-in 300×283 JPEG and Sharp 0.35.5, WebP quality 80:
 
