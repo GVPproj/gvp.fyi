@@ -6,6 +6,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { start } from './helpers/publishing-pocketbase.js';
+import { tracerRelease } from '../src/lib/release-source.js';
 
 function unavailable() {
   for (const name of ['POCKETBASE_BINARY', 'PLAYWRIGHT_CHROMIUM_EXECUTABLE']) {
@@ -22,13 +23,23 @@ const originalPath = fileURLToPath(new URL('../public/images/music-releases/wate
 const replacement = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQAQAAAAB+XjmZAAAAPklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4NndAAAfVRSv0AAAAASUVORK5CYII=', 'base64');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('owner dashboard Save keeps edits private and native checkboxes publish, withdraw and republish', {
+test('one native release form saves private drafts, updates published revisions, withdraws and republishes', {
   skip: unavailable(), timeout: 90000,
 }, async (t) => {
-  const { importRelease } = await import('../scripts/import-release.mjs');
   const { request, base, adminToken } = await start(t);
-  const draft = await importRelease({ endpoint: base, token: adminToken });
-  assert.equal(draft.publish, false);
+  const form = new FormData();
+  for (const key of ['title', 'artist', 'release_date', 'display_date', 'about']) form.set(key, tracerRelease[key] ?? '');
+  form.set('slug', 'watery-grave-ep');
+  form.set('tracks', JSON.stringify(tracerRelease.tracks));
+  form.set('artwork', new Blob([await readFile(originalPath)], { type: 'image/jpeg' }), 'watery-grave.jpg');
+  const created = await request(releases, { method: 'POST', token: adminToken, body: form });
+  assert.equal(created.status, 200, 'Create a release with inline tracks in one Save');
+  const draft = created.data;
+  assert.equal(draft.published, false);
+  assert.ok(Array.isArray(draft.tracks), 'Tracks belong to the release JSON field');
+  assert.equal(Object.hasOwn(draft, 'publish'), false);
+  assert.equal(Object.hasOwn(draft, 'unpublish'), false);
+  assert.equal((await request('collections/publishing_tracks', { token: adminToken })).status, 404);
 
   // A distinct, narrowly scoped build identity; never expose credentials in diagnostics.
   const email = `${randomBytes(12).toString('hex')}@example.test`;
@@ -41,7 +52,7 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
   });
   assert.equal(buildAuth.status, 200);
   const token = buildAuth.data.token;
-  assert.equal((await request(publication, { token })).status, 404, 'Imported drafts are not build-visible');
+  assert.equal((await request(publication, { token })).status, 404, 'New drafts are not build-visible');
 
   const auth = await request('collections/_superusers/auth-refresh', { method: 'POST', token: adminToken });
   assert.equal(auth.status, 200);
@@ -72,17 +83,22 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
       await page.getByRole('button', { name: 'Save changes', exact: true }).waitFor({ state: 'hidden' });
     }
   }
-  async function checkCommand(name) {
-    const command = page.getByRole('checkbox', { name, exact: true });
-    assert.equal(await command.evaluate(el => el.tagName === 'INPUT' && el.type === 'checkbox'), true);
-    assert.equal(await command.isChecked(), false, `${name} command resets after Save`);
-    await command.focus();
+  async function setPublished(value) {
+    const toggle = page.getByRole('checkbox', { name: 'published', exact: true });
+    assert.equal(await toggle.evaluate(el => el.tagName === 'INPUT' && el.type === 'checkbox'), true);
+    assert.equal(await toggle.isChecked(), !value, 'Published persists across form opens');
+    await toggle.focus();
     await page.keyboard.press('Space');
-    assert.equal(await command.isChecked(), true, `${name} is keyboard operable`);
+    assert.equal(await toggle.isChecked(), value, 'Published is keyboard operable');
+  }
+  async function editTracks(tracks) {
+    // Use the dashboard's native JSON editor, not a separate track record/API save.
+    const editor = page.locator('.code-editor[name="tracks"]').getByRole('textbox');
+    await editor.fill(JSON.stringify(tracks, null, 2));
   }
   async function publish(title) {
     await openRecord('publishing_releases', title);
-    await checkCommand('publish');
+    await setPublished(true);
     await saveRecord('publishing_releases', draft.id);
     const result = await request(publication, { token });
     assert.equal(result.status, 200);
@@ -98,6 +114,8 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
   }
 
   await openRecord('publishing_releases', 'Watery Grave EP');
+  assert.equal(await page.getByRole('checkbox', { name: 'published', exact: true }).isChecked(), false);
+  assert.equal(await page.getByRole('checkbox', { name: /^(publish|unpublish)$/ }).count(), 0);
   await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Watery Grave EP — dashboard edition');
   await page.getByRole('button', { name: 'Remove file', exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles(originalPath);
@@ -124,53 +142,49 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
   assert.equal(first.artwork.sha256, hash(original));
   assert.deepEqual(await artwork(first), original);
 
-  const tracks = await request('collections/publishing_tracks/records?sort=track_num', { token: adminToken });
-  assert.equal(tracks.status, 200);
-  await openRecord('publishing_tracks', 'Watery Grave');
-  await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Private track edit');
-  await saveRecord('publishing_tracks', tracks.data.items[0].id);
-  assert.deepEqual((await request(publication, { token })).data, first, 'Track Save leaves the publication untouched');
-
   await openRecord('publishing_releases', 'Watery Grave EP — dashboard edition');
-  await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Private release edit');
+  assert.equal(await page.getByRole('checkbox', { name: 'published', exact: true }).isChecked(), true);
+  await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Updated published release');
+  await editTracks([{ ...first.release.tracks[0], title: 'Updated published track' }, ...first.release.tracks.slice(1)]);
   await page.getByRole('button', { name: 'Remove file', exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: 'private-artwork.png', mimeType: 'image/png', buffer: replacement });
   await saveRecord('publishing_releases', draft.id);
-  // Repeated reads represent separate build fetches, not cached dashboard state.
+  const updated = await request(publication, { token });
+  assert.equal(updated.status, 200);
+  const second = updated.data;
+  // Repeated build reads see the same coherent revision until another Save.
   for (let build = 0; build < 2; build++) {
-    assert.deepEqual((await request(publication, { token })).data, first, 'Unrelated builds see only the last publication');
-    assert.deepEqual(await artwork(first), original, 'Working artwork replacement cannot change published bytes');
+    assert.deepEqual((await request(publication, { token })).data, second);
+    assert.deepEqual(await artwork(first), original, 'Saving retains earlier published artwork');
   }
-  const second = await publish('Private release edit');
   assert.notEqual(second.revision, first.revision);
-  assert.equal(second.release.title, 'Private release edit');
-  assert.equal(second.release.tracks[0].title, 'Private track edit');
+  assert.equal(second.release.title, 'Updated published release');
+  assert.equal(second.release.tracks[0].title, 'Updated published track');
   assert.deepEqual(second.release.tracks.slice(1), first.release.tracks.slice(1));
   assert.equal(second.artwork.sha256, hash(replacement));
   assert.equal(second.artwork.width, 800);
   assert.equal(second.artwork.height, 400);
   assert.deepEqual(await artwork(second), replacement);
   assert.deepEqual(await artwork(first), original, 'Previous revision remains downloadable after republishing');
-  assert.equal((await request(`${releases}/${draft.id}`, { token: adminToken })).data.publish, false);
+  assert.equal((await request(`${releases}/${draft.id}`, { token: adminToken })).data.published, true);
 
   const snapshots = 'collections/publishing_snapshots/records';
   const beforeConflict = await request(`${releases}/${draft.id}`, { token: adminToken });
   const beforeSnapshots = await request(snapshots, { token: adminToken });
   assert.equal(beforeSnapshots.status, 200);
-  await openRecord('publishing_releases', 'Private release edit');
-  await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Conflicting edit must roll back');
-  await checkCommand('publish');
-  await checkCommand('unpublish');
+  await openRecord('publishing_releases', 'Updated published release');
+  await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Invalid edit must roll back');
+  await editTracks([]);
   await saveRecord('publishing_releases', draft.id, 400);
   assert.deepEqual(await request(`${releases}/${draft.id}`, { token: adminToken }), beforeConflict,
-    'Conflicting commands atomically roll back working edits and command flags');
+    'Invalid published Save atomically rolls back metadata, tracks and Published state');
   assert.deepEqual(await request(snapshots, { token: adminToken }), beforeSnapshots,
-    'Conflicting commands create no snapshot');
+    'Invalid published Save creates no snapshot');
   assert.deepEqual((await request(publication, { token })).data, second);
 
   // Reload discards the rejected form; withdrawal uses only the native bool and Save.
-  await openRecord('publishing_releases', 'Private release edit');
-  await checkCommand('unpublish');
+  await openRecord('publishing_releases', 'Updated published release');
+  await setPublished(false);
   await saveRecord('publishing_releases', draft.id);
   const withdrawn = await request(publication, { token });
   assert.equal(withdrawn.status, 200);
@@ -180,8 +194,7 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
     revision: withdrawn.data.revision, slug: 'watery-grave-ep', state: 'unpublished',
   });
   const working = await request(`${releases}/${draft.id}`, { token: adminToken });
-  assert.equal(working.data.unpublish, false, 'Withdrawal command resets after Save');
-  assert.equal(working.data.publish, false);
+  assert.equal(working.data.published, false, 'Published stays off after withdrawal');
   const afterWithdrawal = await request(snapshots, { token: adminToken });
   assert.equal(afterWithdrawal.status, 200);
   const added = afterWithdrawal.data.items.filter(item =>
@@ -194,10 +207,11 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
     })).status, 403, 'Withdrawal snapshot is immutable even for the owner');
   }
 
-  await openRecord('publishing_releases', 'Private release edit');
-  assert.equal(await page.getByRole('checkbox', { name: 'unpublish', exact: true }).isChecked(), false);
-  assert.equal(await page.getByRole('checkbox', { name: 'publish', exact: true }).isChecked(), false);
+  await openRecord('publishing_releases', 'Updated published release');
+  assert.equal(await page.getByRole('checkbox', { name: 'published', exact: true }).isChecked(), false);
   await page.getByRole('textbox', { name: /^title\s*\*?$/ }).fill('Edited while withdrawn');
+  const privateTracks = [{ ...second.release.tracks[0], title: 'Track edited while withdrawn' }, ...second.release.tracks.slice(1)];
+  await editTracks(privateTracks);
   await saveRecord('publishing_releases', draft.id);
   assert.deepEqual(await request(publication, { token }), withdrawn, 'Save alone leaves the release unpublished');
   assert.deepEqual(await request(snapshots, { token: adminToken }), afterWithdrawal,
@@ -207,7 +221,7 @@ test('owner dashboard Save keeps edits private and native checkboxes publish, wi
   const restored = await publish('Edited while withdrawn');
   assert.notEqual(restored.revision, withdrawn.data.revision);
   assert.notEqual(restored.revision, second.revision);
-  assert.deepEqual(restored.release, { ...second.release, title: 'Edited while withdrawn' });
+  assert.deepEqual(restored.release, { ...second.release, title: 'Edited while withdrawn', tracks: privateTracks });
   assert.deepEqual(await artwork(restored), replacement);
   assert.deepEqual((await request(withdrawalRecord, { token: adminToken })).data, added[0],
     'Republishing does not rewrite the withdrawal snapshot');

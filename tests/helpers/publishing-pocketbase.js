@@ -13,8 +13,9 @@ const hooks = fileURLToPath(new URL('../../pocketbase/pb_hooks/', import.meta.ur
 const migrations = fileURLToPath(new URL('../../pocketbase/pb_migrations/', import.meta.url));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export async function start(t) {
-  assert.match(execFileSync(binary, ['--version'], { encoding: 'utf8' }), /version 0\.40\.4\s*$/);
+export async function start(t, { binaryPath = binary, omitMigrations = [] } = {}) {
+  let serverBinary = binaryPath;
+  assert.match(execFileSync(serverBinary, ['--version'], { encoding: 'utf8' }), /version 0\.40\.4\s*$/);
   const dir = await mkdtemp(path.join(tmpdir(), 'publishing-pocketbase-'));
   let child;
   let exited;
@@ -29,6 +30,7 @@ export async function start(t) {
   });
   await mkdir(path.join(dir, 'migrations'));
   await cp(migrations, path.join(dir, 'migrations'), { recursive: true });
+  for (const name of omitMigrations) await rm(path.join(dir, 'migrations', name));
   // Runtime validation must be exercised as deployed, not just the schema.
   await cp(hooks, path.join(dir, 'hooks'), { recursive: true });
   const socket = net.createServer();
@@ -43,13 +45,13 @@ export async function start(t) {
   const email = `${randomBytes(16).toString('hex')}@example.test`;
   // Suppress CLI output/errors containing private credentials; never use a shared database.
   try {
-    execFileSync(binary, ['superuser', 'create', email, password, ...flags], { cwd: dir, stdio: 'pipe' });
+    execFileSync(serverBinary, ['superuser', 'create', email, password, ...flags], { cwd: dir, stdio: 'pipe' });
   } catch {
     throw new Error('Temporary PocketBase superuser provisioning failed');
   }
   let logs = '';
   async function boot() {
-    child = spawn(binary, ['serve', '--http', `127.0.0.1:${port}`, ...flags], { cwd: dir });
+    child = spawn(serverBinary, ['serve', '--http', `127.0.0.1:${port}`, ...flags], { cwd: dir });
     exited = once(child, 'exit');
     child.stdout.on('data', (data) => { logs += data; });
     child.stderr.on('data', (data) => { logs += data; });
@@ -62,9 +64,14 @@ export async function start(t) {
     assert.ok(ready, `Local PocketBase failed to start:\n${logs}`);
   }
   await boot();
-  async function restart() {
-    child.kill('SIGTERM');
+  async function restart(upgradeBinary, { copyMigrations = true } = {}) {
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
     await exited;
+    if (upgradeBinary) {
+      serverBinary = upgradeBinary;
+      if (copyMigrations) await cp(migrations, path.join(dir, 'migrations'), { recursive: true });
+    }
+    logs = '';
     await boot();
   }
   async function request(route, { method = 'GET', token, body } = {}) {

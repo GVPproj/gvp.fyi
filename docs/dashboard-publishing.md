@@ -6,11 +6,13 @@ Active plan: [#21](https://github.com/GVPproj/gvp.fyi/issues/21). This replaces 
 
 - Originals stay on the existing persistent Fly volume (`pb_data/storage`). No application-file S3 provisioning/migration.
 - Owner edits in PocketBase `/_/`; public visitors use static Astro/Netlify output. Retire app editing only after dashboard replacement acceptance and a shared-consumer audit.
-- New items are drafts. **Approved next change:** one persistent Published toggle. Save while off stays private; Save while on updates the eligible public version; turning it off and saving withdraws it. This replaces separate Publish/Unpublish commands and private working edits for published records. Builds still read coherent internal snapshots with retained media and restricted credentials. The deployed tracer has not yet been updated.
+- New items are drafts. **Implemented and component-tested #9 LOCAL change, pending real-data rehearsal and deployment:** native one-record editing with owner-accepted `tracks` JSON and one persistent Published toggle. Save while off stays private; Save while on updates the eligible public version; turning it off and saving withdraws it. This replaces separate Publish/Unpublish commands and private working edits for published records. Builds still read coherent internal snapshots with retained media and restricted credentials. The deployed tracer has not yet been updated.
 - Public pages and materialized media must work with PocketBase offline. Failed builds must not replace the last good deployment.
 - Owner-approved first-milestone workflow: set Published and Save in the dashboard, then manually deploy in Netlify using its existing status UI. Do not equate Save with deployment. Owners should not need to edit build identities or snapshots.
 
-Start with the existing Watery Grave EP tracer, preserved from `migration/pocketbase-s3` on `publishing/dashboard-local-storage`. Local release/import tests have been rerun against the rebuilt custom backend. This slice adds a native dashboard Unpublish command and explicit withdrawal revisions; working deletion retains the last published state. Verify static removal/republish and the real dashboard alongside file replacement/private edits before acceptance. Next demonstrate one software project and representative Likes types; do not wait for full catalogue conversion to accept useful slices.
+Start with the existing Watery Grave EP tracer, preserved from `migration/pocketbase-s3` on `publishing/dashboard-local-storage`. The OLD deployed slice uses separate Publish/Unpublish commands and track records. The approved replacement puts metadata, `tracks` JSON, artwork and persistent `published` on one release record: every true Save snapshots the full content; false Save stays private, with an explicit withdrawal on the first transition off. New unpublished slugs and repeated off Saves do not create withdrawals. Recreating a deleted, still-published slug with Published off withdraws the retained publication. Working deletion retains the latest snapshot/withdrawal and media. Pin `publishing_releases` in the native sidebar; internal builds/snapshots remain visible but are not owner tasks. There is no promise to hide them.
+
+The runtime and forward migration `1782259200_release_toggle.js` are synced in source and backend. Upgrade fixtures for draft, published-with-private-edits and withdrawn states preserve the latest snapshot/media without publishing working edits, copy ordered tracks to release JSON and remove the track collection transactionally. The Go importer CLI is copied into source and aligned with the backend; `scripts/import-release.mjs` also creates an atomic JSON-track release. Local verification: all 17 publishing tests pass, including Chromium dashboard/offline-output checks, migration refusal rollback and draft-file/upload rollback checks; source/backend Go race suites pass; backend Python publishing smoke 1 and build-hook 8 passed. The importer collision check also passes after adding retained-snapshot refusal. These are local fixture results, not a fresh live/private-data rehearsal. No deployment, owner trial or frontend cutover has occurred for this change. Next demonstrate one software project and representative Likes types; do not wait for full catalogue conversion to accept useful slices.
 
 ## Repository editorial inventory
 
@@ -18,7 +20,7 @@ Counts describe checked-in sources, not live PocketBase records.
 
 | Content | Current source | Target editing home / remaining work |
 | --- | --- | --- |
-| 36 releases, 138 track entries | Four JSON files in `src/data/releases/` | PocketBase release/track records. Preserve titles, artists, dates/display overrides, descriptions, credits, ordering, durations, links, Bandcamp/YouTube IDs and existing slugs. Tracer covers only Watery Grave EP. |
+| 36 releases, 138 track entries | Four JSON files in `src/data/releases/` | PocketBase release records with owner-accepted native `tracks` JSON. Preserve titles, artists, dates/display overrides, descriptions, credits, ordering, durations, links, Bandcamp/YouTube IDs and existing slugs. Tracer covers only Watery Grave EP. |
 | Release categories | `src/lib/music-releases.ts` | Dashboard labels/order; preserve four groupings. |
 | Release covers | 14 JPEGs in `public/images/music-releases/`, plus remote Bandcamp/Apple references | Local protected uploads with snapshot copies; inventory remote originals and attribution before importing. Preserve alt text. |
 | Five release MP3s | `public/audio/watery-grave/` | Owner-approved exception: files/uploads/replacements stay in the repo, delivered by Netlify at existing URLs. Track metadata/references remain dashboard-editable. |
@@ -49,9 +51,10 @@ Dashboard Likes parity needs a separate audit of preview acquisition, duplicate 
 
 Before production: fresh capacity checks; complete off-host database/file recovery and isolated restore; monthly automation retaining three successful sets with failure alerts; #18 MFA/rules/protected-file verification; shared-consumer checks; explicit production approval and paired rollback. Backup target remains under $1/month; ask before exceeding it. No backup destination has been selected here.
 
-## Local withdrawal verification
+## Historical local withdrawal verification (OLD workflow)
 
-The withdrawal slice has HTTP, real native-dashboard and actual Astro build coverage:
+The following records prior separate-command coverage, not #9 toggle/JSON-track
+verification or results from this session. The withdrawal slice has HTTP, real native-dashboard and actual Astro build coverage:
 private Save, Publish/republish, explicit Unpublish, conflicting commands, retained
 artwork, working deletion, delete/recreate withdrawal, static route removal,
 unrelated-route preservation and fail-closed malformed/missing responses or partial
@@ -62,6 +65,10 @@ static and are not removed by Unpublish.
 
 ## Existing Fly development trial
 
+**Historical deployment record; current live remains the OLD workflow.** No fresh
+live inspection or deployment was performed in this session. The approved #9
+native JSON-track / persistent Published Save change is local and pending deployment.
+
 The owner approved using the existing deployment rather than a temporary Fly
 instance. Backend commit `9183a9a` in `GVPproj/pocketbase-fly-starter` passed
 [CI and deployment](https://github.com/GVPproj/pocketbase-fly-starter/actions/runs/38573509809).
@@ -70,11 +77,11 @@ off-host backup and real-data migration/import rehearsal preceded deployment;
 existing application records, authentication and stored files were verified unchanged
 on live copies before and after importing.
 
-Watery Grave EP is a **private draft**, record `llcsvm8we43tdfi`, with five ordered
-tracks and original artwork. Open `publishing_releases` in
-[the dashboard](https://pocketbase-fly-starter.fly.dev/_/); edit tracks through
-`publishing_tracks`. Publish/Unpublish create eligible revisions, but **Netlify is
-unchanged and not yet connected to this source**. No build identity was created.
+At that historical checkpoint, Watery Grave EP was a **private draft**, record `llcsvm8we43tdfi`, with five ordered
+tracks and original artwork. The OLD workflow used `publishing_releases` in
+[the dashboard](https://pocketbase-fly-starter.fly.dev/_/) and edited tracks through
+`publishing_tracks`. Publish/Unpublish created eligible revisions, but **Netlify was
+unchanged and not connected to this source**. No build identity was created.
 Public MP3 delivery remains repo-managed.
 
 Live health/dashboard/shared reads and anonymous draft/file denial passed. Owner

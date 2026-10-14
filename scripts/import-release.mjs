@@ -23,19 +23,18 @@ export async function importRelease({ endpoint, token }) {
     try { return await response.json(); }
     catch { throw new Error('Invalid isolated import response'); }
   }
-  const existing = await request(`collections/publishing_releases/records?filter=${encodeURIComponent(`slug="${tracerSlug}"`)}`);
-  if (!Array.isArray(existing.items)) throw new Error('Invalid release inventory');
-  if (existing.totalItems !== 0) throw new Error('Release already exists; refusing to adopt or overwrite it');
+  for (const collection of ['publishing_releases', 'publishing_snapshots']) {
+    const existing = await request(`collections/${collection}/records?filter=${encodeURIComponent(`slug="${tracerSlug}"`)}`);
+    if (!Array.isArray(existing.items)) throw new Error('Invalid release inventory');
+    if (existing.totalItems !== 0) throw new Error('Release already exists; refusing to adopt or overwrite it');
+  }
   const form = new FormData();
   for (const key of ['title', 'artist', 'release_date', 'display_date', 'about']) form.set(key, original[key] ?? '');
   form.set('slug', tracerSlug);
-  form.set('publish', 'false');
+  form.set('published', 'false');
+  form.set('tracks', JSON.stringify(original.tracks));
   form.set('artwork', new Blob([await readFile(new URL(`../public${original.artwork_url}`, import.meta.url))], { type: 'image/jpeg' }), 'watery-grave.jpg');
-  const release = await request('collections/publishing_releases/records', { method: 'POST', body: form });
-  for (const track of original.tracks) {
-    await request('collections/publishing_tracks/records', { method: 'POST', body: { ...track, release: release.id } });
-  }
-  return release;
+  return request('collections/publishing_releases/records', { method: 'POST', body: form });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

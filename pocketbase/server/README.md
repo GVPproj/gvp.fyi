@@ -6,7 +6,33 @@ Backend additions 02–07 remain pending deployment per the recorded status; thi
 
 ## Isolated release publishing tracer
 
-The same custom binary also registers the [release publishing contract](../publishing-contract.md), with additive migration `1782086400_publishing.js`. This is local-only work for #7, not a production rollout or a change to Likes publication behavior. See that contract for dashboard Save/Publish, dedicated build authentication, retained snapshots and disposable HTTP verification.
+The same custom binary registers the [release publishing contract](../publishing-contract.md).
+The recorded Fly development trial uses the OLD separate Publish/Unpublish commands
+and `publishing_tracks`, with migrations `1782086400_publishing.js` and
+`1782172800_release_unpublish.js`; it is not a public-site cutover.
+
+**Implemented and component-tested #9 LOCAL change — pending real-data rehearsal and deployment:** edit metadata,
+owner-accepted native `tracks` JSON and artwork on one release record. New records
+start with persistent **Published** off. Every Save with `published=true` captures
+full metadata/tracks/artwork; false Save stays private and the first transition off
+creates a withdrawal. Deletion retains the latest snapshot/withdrawal and media.
+Pin releases in the native sidebar; internal builds/snapshots remain visible but
+are not owner tasks. Save does not deploy: manually deploy in Netlify.
+
+The runtime and forward migration `1782259200_release_toggle.js` are synced in
+source and backend. Draft, published-with-private-edits and withdrawn upgrade
+fixtures preserve latest snapshots/media without publishing working edits, copy
+ordered tracks into JSON and remove the track collection transactionally. The Go
+importer CLI is copied into source and aligned with the backend;
+`scripts/import-release.mjs` also creates an atomic JSON-track release.
+
+All 17 publishing tests pass with no skips, including Chromium and migration
+refusal rollback. Source/backend Go race suites pass; backend Python publishing
+smoke 1 and build-hook 8 passed. These fixtures do not replace a fresh
+live/private-data rehearsal, which remains pending. No new deployment, owner trial
+or frontend cutover occurred. See the [source rehearsal](../../docs/release-publishing.md#local-verification-and-remaining-rehearsal)
+for commands, including old/new-binary upgrade verification. Likes publication
+behavior is unchanged.
 
 ## Build / deploy
 

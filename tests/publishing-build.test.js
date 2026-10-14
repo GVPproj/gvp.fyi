@@ -11,12 +11,26 @@ import { parseHTML } from 'linkedom';
 import { chromium } from 'playwright-core';
 import { randomBytes } from 'node:crypto';
 import { start } from './helpers/publishing-pocketbase.js';
-import { importRelease } from '../scripts/import-release.mjs';
+
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const artwork = await readFile(path.join(root, 'public/images/music-releases/watery-grave.jpg'));
 const catalogue = JSON.parse(await readFile(path.join(root, 'src/data/releases/miracle-fortress.json'), 'utf8'));
 const original = catalogue.find(release => release.title === 'Watery Grave EP');
+
+async function createDraft(pb) {
+  const form = new FormData();
+  for (const key of ['title', 'artist', 'release_date', 'display_date', 'about']) form.set(key, original[key] ?? '');
+  form.set('slug', 'watery-grave-ep');
+  form.set('tracks', JSON.stringify(original.tracks));
+  form.set('artwork', new Blob([artwork], { type: 'image/jpeg' }), 'watery-grave.jpg');
+  const result = await pb.request('collections/publishing_releases/records', {
+    method: 'POST', token: pb.adminToken, body: form,
+  });
+  assert.equal(result.status, 200, 'Create the complete release in one Save');
+  assert.equal(result.data.published, false, 'New releases default to private');
+  return result.data;
+}
 
 async function build(t, { broken = false, incomplete = false, badArtwork = false, backend, snapshot, status = 200, local = false, env = {} } = {}) {
   await mkdir(path.join(root, '.astro'), { recursive: true });
@@ -195,7 +209,7 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY to the custom v0.40.4 server', timeout: 240000,
 }, async t => {
   const pb = await start(t);
-  const draft = await importRelease({ endpoint: pb.base, token: pb.adminToken });
+  const draft = await createDraft(pb);
   const email = 'withdrawal-build@example.test';
   const password = randomBytes(24).toString('hex');
   assert.equal((await pb.request('collections/publishing_builds/records', {
@@ -206,14 +220,16 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   const save = body => pb.request(recordPath, { method: 'PATCH', token: pb.adminToken, body });
   const missing = await build(t, { backend });
   assert.notEqual(missing.code, 0, 'no snapshot is not withdrawal');
-  assert.equal((await save({ publish: true })).status, 200);
+  assert.equal(draft.published, false);
+  assert.ok(Array.isArray(draft.tracks));
+  assert.equal((await save({ published: true })).status, 200);
   const published = await build(t, { backend });
   assert.equal(published.code, 0, published.logs);
   const initialFiles = await files(path.join(published.dir, 'dist'));
   assert.ok(initialFiles.some(file => file.endsWith('/music-releases/watery-grave-ep/index.html')));
-  const withdrawn = await save({ unpublish: true });
+  const withdrawn = await save({ published: false });
   assert.equal(withdrawn.status, 200);
-  assert.equal(withdrawn.data.unpublish, false, 'dashboard command resets');
+  assert.equal(withdrawn.data.published, false, 'Published remains off');
   const removed = await build(t, { backend });
   await assertWithdrawn(removed);
   const detailRoutes = resultFiles => resultFiles.filter(file => file.includes('/music-releases/') && file.endsWith('/index.html'))
@@ -224,7 +240,7 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   await assertWithdrawn(await build(t, { backend }));
   const unauthorized = await build(t, { backend: { ...backend, password: 'wrong-password' } });
   assert.notEqual(unauthorized.code, 0, 'authentication failure is not withdrawal');
-  assert.equal((await save({ title: 'Republished Watery Grave', publish: true })).status, 200);
+  assert.equal((await save({ title: 'Republished Watery Grave', published: true })).status, 200);
   const republished = await build(t, { backend });
   assert.equal(republished.code, 0, republished.logs);
   assert.match(await readFile(path.join(republished.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8'), /Republished Watery Grave/);
@@ -246,11 +262,11 @@ test('failed snapshot fetch and corrupt artwork fail closed without logging secr
   }
 });
 
-test('real PocketBase dashboard-save APIs feed static builds while later working edits remain private', {
+test('real PocketBase published Saves update static metadata and tracks while failed Saves retain the last revision', {
   skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY to the custom v0.40.4 server', timeout: 120000,
 }, async t => {
   const pb = await start(t);
-  const draft = await importRelease({ endpoint: pb.base, token: pb.adminToken });
+  const draft = await createDraft(pb);
   const email = 'build@example.test';
   const password = randomBytes(24).toString('hex');
   assert.equal((await pb.request('collections/publishing_builds/records', {
@@ -261,25 +277,44 @@ test('real PocketBase dashboard-save APIs feed static builds while later working
   assert.notEqual(unpublished.code, 0, 'a draft cannot replace the local release');
   const recordPath = `collections/publishing_releases/records/${draft.id}`;
   assert.equal((await pb.request(recordPath, { method: 'PATCH', token: pb.adminToken,
-    body: { title: 'Published backend title', publish: true } })).status, 200);
+    body: { title: 'Published backend title', published: true } })).status, 200);
   const published = await build(t, { backend });
   assert.equal(published.code, 0, published.logs);
   const outputPath = path.join(published.dir, 'dist/music-releases/watery-grave-ep/index.html');
   const initialHTML = await readFile(outputPath, 'utf8');
   assert.match(initialHTML, /Published backend title/);
   assert.match(initialHTML, /Winter 2005, Self Released/);
-  assert.equal((await pb.request(recordPath, { method: 'PATCH', token: pb.adminToken,
-    body: { title: 'UNPUBLISHED PRIVATE TITLE', about: 'UNPUBLISHED PRIVATE COPY', artwork: '' } })).status, 200);
+  const tracks = [{ ...original.tracks[0], title: 'Saved published track' }, ...original.tracks.slice(1)];
+  const saved = await pb.request(recordPath, { method: 'PATCH', token: pb.adminToken,
+    body: { title: 'Saved published title', about: 'Saved published copy', tracks } });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.data.published, true, 'Save does not reset the Published toggle');
   const rebuilt = await build(t, { backend });
   assert.equal(rebuilt.code, 0, rebuilt.logs);
   const html = await readFile(path.join(rebuilt.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8');
-  assert.match(html, /Published backend title/);
-  assert.ok(!html.includes('UNPUBLISHED PRIVATE'));
+  assert.match(html, /Saved published title/);
+  assert.match(html, /Saved published copy/);
+  assert.match(html, /Saved published track/);
+  assert.ok(!html.includes('Published backend title'));
+  assert.deepEqual([...parseHTML(html).document.querySelectorAll('audio')].map(audio => audio.getAttribute('src')),
+    original.tracks.map(track => track.audio_url));
+  const overview = await readFile(path.join(rebuilt.dir, 'dist/music-releases/index.html'), 'utf8');
+  assert.match(overview, /Saved published title/);
   const firstImage = parseHTML(initialHTML).document.querySelector('.release-media img').getAttribute('src');
   const retainedImage = parseHTML(html).document.querySelector('.release-media img').getAttribute('src');
-  assert.equal(retainedImage, firstImage, 'working artwork deletion cannot remove published file version');
+  assert.equal(retainedImage, firstImage, 'unchanged artwork retains its content-hashed public URL');
   assert.ok((await readFile(path.join(rebuilt.dir, 'dist', retainedImage))).length > 0);
-  for (const file of (await files(path.join(rebuilt.dir, 'dist'))).filter(file => /\.(html|js|json)$/.test(file))) {
+  assert.equal((await pb.request(recordPath, { method: 'PATCH', token: pb.adminToken,
+    body: { title: 'UNPUBLISHED PRIVATE TITLE', about: 'UNPUBLISHED PRIVATE COPY', tracks: [] } })).status, 400);
+  const afterFailure = await build(t, { backend });
+  assert.equal(afterFailure.code, 0, afterFailure.logs);
+  const retainedHTML = await readFile(path.join(afterFailure.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8');
+  assert.match(retainedHTML, /Saved published title/);
+  assert.match(retainedHTML, /Saved published track/);
+  assert.ok(!retainedHTML.includes('UNPUBLISHED PRIVATE'));
+  // Already-generated output is immutable; Save is not deployment.
+  assert.equal(await readFile(outputPath, 'utf8'), initialHTML);
+  for (const file of (await files(path.join(afterFailure.dir, 'dist'))).filter(file => /\.(html|js|json)$/.test(file))) {
     const text = await readFile(file, 'utf8');
     assert.ok(!text.includes(password) && !text.includes(pb.adminToken) && !text.includes('UNPUBLISHED PRIVATE'));
   }

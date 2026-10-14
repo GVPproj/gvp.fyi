@@ -14,10 +14,11 @@ test('isolated import preserves Watery Grave metadata, ordered MP3s and artwork 
   assert.equal(imported.release_date, '2005');
   assert.equal(imported.display_date, 'Winter 2005, Self Released');
   assert.equal(imported.about, 'A self-released EP from winter 2005.');
-  assert.equal(imported.publish, false);
+  assert.equal(imported.published, false);
+  assert.equal(Object.hasOwn(imported, 'publish'), false);
+  assert.equal(Object.hasOwn(imported, 'unpublish'), false);
   assert.ok(imported.artwork.endsWith('.jpg'));
-  const tracks = await request(`collections/publishing_tracks/records?sort=track_num&filter=${encodeURIComponent(`release="${imported.id}"`)}`, { token: adminToken });
-  assert.deepEqual(tracks.data.items.map(track => [track.title, track.track_num, track.audio_url]), [
+  assert.deepEqual(imported.tracks.map(track => [track.title, track.track_num, track.audio_url]), [
     ['Watery Grave', 1, '/audio/watery-grave/01-watery-grave.mp3'],
     ['Forgiven', 2, '/audio/watery-grave/02-forgiven.mp3'],
     ['Secret Passage Way', 3, '/audio/watery-grave/03-secret-passage-way.mp3'],
@@ -26,7 +27,14 @@ test('isolated import preserves Watery Grave metadata, ordered MP3s and artwork 
   ]);
   await assert.rejects(importRelease({ endpoint: base, token: adminToken }), /already exists/);
   assert.equal((await request('collections/publishing_releases/records', { token: adminToken })).data.totalItems, 1);
-  assert.equal((await request('collections/publishing_tracks/records', { token: adminToken })).data.totalItems, 5);
+  assert.equal((await request('collections/publishing_tracks/records', { token: adminToken })).status, 404);
+  assert.equal((await request('collections/publishing_snapshots/records', { token: adminToken })).data.totalItems, 0);
+  const route = `collections/publishing_releases/records/${imported.id}`;
+  assert.equal((await request(route, { token: adminToken, method: 'PATCH', body: { published: true } })).status, 200);
+  assert.equal((await request(route, { token: adminToken, method: 'DELETE' })).status, 204);
+  const snapshots = (await request('collections/publishing_snapshots/records', { token: adminToken })).data;
+  await assert.rejects(importRelease({ endpoint: base, token: adminToken }), /already exists/);
+  assert.deepEqual((await request('collections/publishing_snapshots/records', { token: adminToken })).data, snapshots);
 });
 
 test('tracer importer rejects non-loopback targets before sending any credentials', async () => {

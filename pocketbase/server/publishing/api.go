@@ -12,6 +12,8 @@ import (
 	_ "image/png"
 	"io"
 	"net/http"
+	"strings"
+	"unicode/utf8"
 
 	_ "golang.org/x/image/webp"
 
@@ -33,21 +35,39 @@ func Register(app core.App) {
 	app.OnRecordUpdateRequest(snapshots).BindFunc(deny)
 	app.OnRecordDeleteRequest(snapshots).BindFunc(deny)
 	save := func(e *core.RecordEvent) error {
-		publishing, withdrawing := e.Record.GetBool("publish"), e.Record.GetBool("unpublish")
-		if publishing && withdrawing {
-			return apis.NewBadRequestError("Choose Publish or Unpublish, not both.", nil)
-		}
-		if !publishing && !withdrawing {
+		publishing := e.Record.GetBool("published")
+		withdrawing := !publishing && e.Record.Original().GetBool("published")
+		recreating := e.Record.IsNew() && !publishing
+		if !publishing && !withdrawing && !recreating {
 			return e.Next()
 		}
-		e.Record.Set("publish", false)
-		e.Record.Set("unpublish", false)
 		original := e.App
 		defer func() { e.App = original }()
 		return original.RunInTransaction(func(tx core.App) error {
 			e.App = tx
 			if err := e.Next(); err != nil {
 				return err
+			}
+			if recreating {
+				// Saving a retained slug with Published off must allow withdrawal
+				// without reconstructing and publishing deleted working files first.
+				previous, err := tx.FindRecordsByFilter(snapshots, "slug = {:slug}", "-sequence", 1, 0, dbx.Params{"slug": e.Record.GetString("slug")})
+				if err != nil {
+					return err
+				}
+				if len(previous) == 0 {
+					return nil
+				}
+				var payload struct {
+					State string `json:"state"`
+				}
+				if err := json.Unmarshal([]byte(previous[0].GetString("payload")), &payload); err != nil {
+					return err
+				}
+				if payload.State == "unpublished" {
+					return nil
+				}
+				withdrawing = true
 			}
 			if withdrawing {
 				if err := unpublish(tx, e.Record); err != nil {
@@ -142,31 +162,31 @@ func publish(app core.App, release *core.Record) error {
 	if release.GetString("slug") != "watery-grave-ep" {
 		return errors.New("unsupported release")
 	}
-	tracks, err := app.FindRecordsByFilter("publishing_tracks", "release = {:release}", "track_num", 0, 0, dbx.Params{"release": release.Id})
-	if err != nil {
-		return err
+	var list []map[string]any
+	if err := json.Unmarshal([]byte(release.GetString("tracks")), &list); err != nil || len(list) == 0 {
+		return errors.New("missing or invalid tracks")
 	}
-	if len(tracks) == 0 {
-		return errors.New("missing tracks")
-	}
-	list := make([]map[string]any, 0, len(tracks))
-	for i, track := range tracks {
-		if track.GetInt("track_num") != i+1 {
-			return errors.New("incomplete order")
+	for i, row := range list {
+		for key := range row {
+			if key != "title" && key != "track_num" && key != "duration" && key != "audio_url" {
+				return errors.New("unknown track field")
+			}
 		}
-		row := map[string]any{"title": track.GetString("title"), "track_num": track.GetInt("track_num")}
-		var duration any
-		if err := json.Unmarshal([]byte(track.GetString("duration")), &duration); err == nil && duration != nil {
-			n, ok := duration.(float64)
+		title, ok := row["title"].(string)
+		if !ok || strings.TrimSpace(title) == "" || utf8.RuneCountInString(title) > 500 || row["track_num"] != float64(i+1) {
+			return errors.New("invalid track title or order")
+		}
+		if value, exists := row["duration"]; exists {
+			n, ok := value.(float64)
 			if !ok || n < 0 {
 				return errors.New("invalid duration")
 			}
-			row["duration"] = duration
 		}
-		if value := track.GetString("audio_url"); value != "" {
-			row["audio_url"] = value
+		if value, exists := row["audio_url"]; exists {
+			if _, ok := value.(string); !ok {
+				return errors.New("invalid audio reference")
+			}
 		}
-		list = append(list, row)
 	}
 	data := map[string]any{"tracks": list}
 	for _, key := range []string{"slug", "title", "artist", "release_date", "about"} {
