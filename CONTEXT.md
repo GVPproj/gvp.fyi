@@ -17,8 +17,8 @@ An optional, named grouping of collection items. An item can belong to several n
 _Avoid_: Folder, channel
 
 **Published item**:
-A collection item explicitly published for public visitors. Private edits do not replace its public version until published.
+A collection item designated for public visitors, including its saved edits.
 
 **Draft item**:
-A collection item visible only to its owner until explicitly published; all new collection items start as drafts.
+A collection item visible only to its owner until marked published; all new collection items start as drafts.
 _Avoid_: Inbox item

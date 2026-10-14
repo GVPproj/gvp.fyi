@@ -6,9 +6,9 @@ Active plan: [#21](https://github.com/GVPproj/gvp.fyi/issues/21). This replaces 
 
 - Originals stay on the existing persistent Fly volume (`pb_data/storage`). No application-file S3 provisioning/migration.
 - Owner edits in PocketBase `/_/`; public visitors use static Astro/Netlify output. Retire app editing only after dashboard replacement acceptance and a shared-consumer audit.
-- New items are drafts. Save changes a private working copy; explicit Publish captures coherent metadata and independently retained referenced files. Builds read only snapshots using restricted credentials.
+- New items are drafts. **Approved next change:** one persistent Published toggle. Save while off stays private; Save while on updates the eligible public version; turning it off and saving withdraws it. This replaces separate Publish/Unpublish commands and private working edits for published records. Builds still read coherent internal snapshots with retained media and restricted credentials. The deployed tracer has not yet been updated.
 - Public pages and materialized media must work with PocketBase offline. Failed builds must not replace the last good deployment.
-- Owner-approved first-milestone workflow: dashboard Publish, then manual deployment in Netlify using its existing status UI. Do not equate publication with deployment.
+- Owner-approved first-milestone workflow: set Published and Save in the dashboard, then manually deploy in Netlify using its existing status UI. Do not equate Save with deployment. Owners should not need to edit build identities or snapshots.
 
 Start with the existing Watery Grave EP tracer, preserved from `migration/pocketbase-s3` on `publishing/dashboard-local-storage`. Local release/import tests have been rerun against the rebuilt custom backend. This slice adds a native dashboard Unpublish command and explicit withdrawal revisions; working deletion retains the last published state. Verify static removal/republish and the real dashboard alongside file replacement/private edits before acceptance. Next demonstrate one software project and representative Likes types; do not wait for full catalogue conversion to accept useful slices.
 
