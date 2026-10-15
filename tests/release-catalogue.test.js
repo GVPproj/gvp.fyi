@@ -1,52 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import { start } from './helpers/publishing-pocketbase.js';
-import { repositoryCatalogue, captureArtwork, importCatalogue } from '../scripts/import-catalogue.mjs';
-import { preparePublishedRelease } from '../scripts/published-release.mjs';
+import { preparePublishedRelease } from '../src/integrations/published-release.mjs';
 
 const options = { skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY' };
 
-test('repository catalogue retains stable identities, categories and local originals', async () => {
-  const rows = await repositoryCatalogue();
-  assert.equal(rows.length, 36);
-  assert.equal(new Set(rows.map(row => row.slug)).size, 36);
-  assert.equal(rows.filter(row => row.category === 'other-credits').length, 9);
-  const tracer = rows.find(row => row.slug === 'watery-grave-ep');
-  assert.deepEqual((await captureArtwork(tracer)).bytes, await readFile(new URL('../public/images/music-releases/watery-grave.jpg', import.meta.url)));
-  await assert.rejects(captureArtwork({ artwork_url: 'http://127.0.0.1/private' }));
-  await assert.rejects(importCatalogue({ endpoint: 'https://production.example', token: 'unused' }));
+test('release builds require configuration in published mode and opt out otherwise', async () => {
   await assert.rejects(preparePublishedRelease({ PUBLISHING_CONTENT: 'true' }));
   assert.equal((await preparePublishedRelease({})).release, null);
-});
-
-test('catalogue importer captures all artwork additively and publishes only explicitly', options, async t => {
-  const realFetch = globalThis.fetch;
-  const jpeg = await readFile(new URL('../public/images/music-releases/watery-grave.jpg', import.meta.url));
-  let captures = 0;
-  globalThis.fetch = (url, options) => {
-    if (new URL(url).protocol === 'https:') {
-      captures++;
-      return Promise.resolve(new Response(jpeg, { headers: { 'Content-Type': 'image/jpeg' } }));
-    }
-    return realFetch(url, options);
-  };
-  t.after(() => { globalThis.fetch = realFetch; });
-  for (const publish of [false, true]) {
-    const { request, adminToken: token, base: endpoint } = await start(t);
-    const result = await importCatalogue({ endpoint, token, publish });
-    assert.equal(result.imported.length, 36);
-    const working = (await request('collections/publishing_releases/records?perPage=100', { token })).data.items;
-    assert.equal(working.length, 36);
-    assert.ok(working.every(row => row.published === publish && row.artwork));
-    const snapshots = (await request('collections/publishing_snapshots/records?perPage=100', { token })).data;
-    assert.equal(snapshots.totalItems, publish ? 36 : 0);
-    const again = await importCatalogue({ endpoint, token, publish: true });
-    assert.equal(again.imported.length, 0);
-    assert.equal(again.skipped.length, 36);
-    assert.equal((await request('collections/publishing_snapshots/records', { token })).data.totalItems, publish ? 36 : 0);
-  }
-  assert.equal(captures, 44);
 });
 
 test('catalogue lists latest immutable revisions, empty tracks and withdrawals; full builds have no fallback', options, async t => {
@@ -61,14 +23,13 @@ test('catalogue lists latest immutable revisions, empty tracks and withdrawals; 
   const build = (await request('collections/publishing_builds/auth-with-password', { method: 'POST', body: { identity: env.PUBLISHING_BUILD_EMAIL, password: env.PUBLISHING_BUILD_PASSWORD } })).data.token;
   assert.deepEqual((await preparePublishedRelease(env)).release, []);
   for (const denied of [undefined, token]) assert.equal((await request('publishing/releases', { token: denied })).status, 403);
-  const rows = await repositoryCatalogue();
-  const art = await captureArtwork(rows.find(row => row.slug === 'watery-grave-ep'));
+  const artwork = await sharp({ create: { width: 24, height: 16, channels: 3, background: '#123456' } }).jpeg().toBuffer();
   const ids = [];
   for (const [slug, tracks] of [['catalogue-a', []], ['catalogue-b', null]]) {
     const form = new FormData();
     const fields = { slug, title: slug, artist: 'Artist', release_date: '2020', category: 'other-credits', credit: 'Mixing', display_title: 'Display', album_id: 123, art_id: 456, youtube_video_id: 'abc123', player_height: 400, published: true, ...(tracks && { tracks: JSON.stringify(tracks) }) };
     for (const [key, value] of Object.entries(fields)) form.set(key, String(value));
-    form.set('artwork', new Blob([art.bytes], { type: art.type }), art.name);
+    form.set('artwork', new Blob([artwork], { type: 'image/jpeg' }), 'artwork.jpg');
     ids.push((await write('collections/publishing_releases/records', form)).id);
   }
   const listing = async () => (await request('publishing/releases', { token: build })).data;

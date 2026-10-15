@@ -17,7 +17,7 @@ Home has a silent-on-arrival, 12-pad sine instrument using native Web Audio. Poi
 
 Schedule against the audio clock, not animation frames. Timer callbacks feed a lookahead horizon; stalled callbacks skip expired occurrences rather than burst missed hits. Audio tails may cross loop boundaries. Dispose voices, timers and handlers on departure; restored pages start silent.
 
-The oscillator and sample engines share scheduled `{ soundId, when }` triggers and `stop()`. The UI currently uses sine tones only. Generated sample fixtures and their provenance are in [the fixture README](../public/audio/ambient-test/README.md). Future samples need distribution rights, trimmed/normalized audio, and new transfer, decoded-memory and polyphony checks; long recordings are not a tested drop-in replacement.
+The audio engine schedules sine tones with `{ soundId, when }` triggers and `stop()`; there are no sample downloads.
 
 ## Verification still needed
 

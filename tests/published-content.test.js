@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import publishedContent, { preparePublishedContent } from '../scripts/published-content.mjs';
+import publishedContent, { preparePublishedContent } from '../src/integrations/published-content.mjs';
 
 const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: 'http://127.0.0.1:8090', PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'secret-private' };
 function fixture(snapshots, asset = null) {

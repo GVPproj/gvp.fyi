@@ -1,73 +1,52 @@
 # Dashboard publishing
 
-This workflow is **live as of 2026-10-15**. Deployment evidence, remaining owner
-acceptance and rollback live in the [cutover record](content-cutover-readiness.md).
+Edit through PocketBase `/_/`. Visitors receive static Netlify pages and copied
+media; the published site works with PocketBase offline.
 
-## Scope
+## Workflow
 
-Originals stay in PocketBase's persistent Fly volume (`pb_data/storage`), not
-application-file S3. Edit through PocketBase `/_/`; visitors receive static Netlify
-pages, images and downloads that work with PocketBase offline.
+1. Open `publishing_releases` (music), `editorial_entries` (software/blog), or
+   `likes_items` / `likes_collections` (Likes). New items start unpublished.
+2. Edit and Save. **Published on + Save publishes the saved edits** into an
+   immutable revision. Turn Published off before saving private changes.
+3. To withdraw, turn Published off and Save. **Deleting a working record does
+   not withdraw its retained publication.** Unpublish before deleting.
+4. Manually deploy in Netlify and check the result. **Save is not deployment.**
+   Failed builds leave the last good deployment intact.
 
-| Dashboard collection | Editorial content |
-| --- | --- |
-| `publishing_releases` | All 36 releases / 138 track entries: metadata, stable slugs, categories, credits, display overrides, streaming/Bandcamp/YouTube fields, artwork and native `tracks` JSON. |
-| `editorial_entries` | Seven software projects (including Tipbox team/gallery) and one blog article. Edit `data` JSON and protected `assets`. Legacy `settings/site` records do not control the rendered site. |
-| `likes_items`, `likes_collections` | Collection items, text/attribution, protected image/PDF uploads, named collections and memberships. Existing item IDs remain public route keys. |
+Slugs and editorial kinds are immutable. Snapshot/build collections are internal;
+there is no automatic snapshot/media pruning. Old deployments, caches and downloads
+can retain previously public content.
 
-Manual Likes editing is accepted: URL-preview acquisition and duplicate warnings
-are not required. Server-side validation and preservation of existing publications
-are still required. Blog prose uses safe Markdown, not executable MDX; a fixed
-`<!-- demo:face -->` slot renders the code-owned demonstration.
+Named collection names have no draft toggle: renaming/deleting one updates retained
+public memberships without publishing private item edits. Membership edits become
+public on that item's Published Save.
 
-Release MP3 uploads/replacements stay in Git/Netlify at their existing URLs;
-track metadata and audio references are dashboard-editable. Layout, interaction,
-SVG/design assets, instrument sounds and behavior-related UI copy stay in code.
-Site settings—including navigation, identity/description, section/category labels and order,
-and placeholder routes/copy—come exclusively from `src/data/site-settings.json` in every
-build mode. CMS settings snapshots cannot override deployed code. There is no general-purpose page builder.
-The static Likes overview reuses shared ContentRow collection rows with links to
-individual item details. Collection headings are not navigation; there are no
-alternate collection/all-items grids or query/hash filter views.
+## Content and assets
 
-## Authoring
+- Release `tracks` JSON: `{title, track_num, duration?, audio_url?}`. Number from 1
+  consecutively; duration is nonnegative seconds. MP3s stay in `public/audio/`;
+  reference their existing `/audio/...mp3` URLs. Artwork is uploaded separately.
+- Software `data` retains the project's role/team/tooling/gallery fields. Numeric
+  `order` sorts ascending, then slug. Use `screenshotAlt` and gallery descriptions
+  for accessible images.
+- Blog `data`: `{title, markdown}`. Raw HTML/MDX does not execute. A standalone
+  `<!-- demo:face -->` paragraph inserts the fixed face demo once.
+- `data.assetNames` maps original basenames to PocketBase's saved upload filenames.
+  Replace **one file per Save** so references can be repaired unambiguously.
+  Multiple replacements require matching original names or an explicit mapping.
+  Images and local downloads must resolve to uploaded assets; missing references
+  fail the build. External reading links remain links.
+- Site identity, navigation, categories and placeholders come from
+  `src/data/site-settings.json`, not legacy CMS settings records. Layout, interaction,
+  instrument sounds and behavior-related copy also stay in Git.
 
-1. Open the relevant record in `/_/`. New records start with **Published off**.
-   Release tracks are edited as JSON on the release itself. See
-   [field shapes and asset handling](import-editorial.md#authoring-data-and-assets).
-2. Edit content and uploads, then Save. **Published on + Save publishes saved edits**
-   to an eligible immutable revision with independent media copies. There is no
-   separate private working edit for a record left on. Turn Published off before
-   saving changes that must remain private. An unchanged native Save makes no request.
-3. To withdraw content, turn Published off and Save. The next successful deployment
-   omits it; further off Saves stay private. **Deleting a working record does not
-   withdraw its retained publication.** Unpublish first if removal is intended.
-4. Manually deploy in Netlify using its existing UI, then check the result.
-   **Save is not deployment.** Failed reads/builds must preserve the last good site.
+Original uploads stay in `pb_data/storage` on Fly. Builds authenticate using
+`PUBLISHING_CONTENT=true`, `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL`
+and `PUBLISHING_BUILD_PASSWORD`. Use a restricted `publishing_builds` identity,
+never superuser credentials or public-prefixed secrets. Full-content builds have
+no editorial repository fallback. Likes uses this loader in development too;
+there is no website login/editor.
 
-Slugs (and editorial kinds) are immutable after creation; title edits do not rename
-routes. Replace software assets one at a time per Save to keep reference mapping
-unambiguous. Internal build/snapshot collections are not routine editing tasks;
-there is no automatic snapshot/media pruning.
-
-Named collection names have no draft toggle: renaming/deleting a publicly referenced
-collection updates retained published memberships without publishing private item
-edits. Item membership changes become eligible on that item's Published Save.
-
-Removal includes build/deployment/cache delay. Old deployments, caches and downloaded
-copies may retain previously public content; withdrawal cannot recall them.
-
-## Build and transition boundary
-
-Full mode uses `PUBLISHING_CONTENT=true` plus server-only
-`PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and `PUBLISHING_BUILD_PASSWORD`
-for a restricted `publishing_builds` identity. Never use superuser credentials or
-public-prefixed secrets. Configuration belongs to the approved rollout, not routine
-authoring. Full-mode editorial content has no repository fallback. Site settings remain
-code-owned; a published `settings/site` record is not required.
-
-Likes uses the shared publishing loader in both development and production. There is no separate dev fetch or repository Likes fallback; publishing configuration is required to populate its static overview. Website login,
-management and owner/session controls are removed. Use the PocketBase dashboard
-(`/_/`) for sign-in and editing. Shared backend endpoints remain available to other
-consumers. Disabling full mode is not a general rollback of subsequent dashboard edits. Follow the [runbook](content-cutover-readiness.md)
-and [import safety instructions](import-editorial.md) before any migration or cutover.
+Field/API details: [releases](../pocketbase/publishing-contract.md),
+[editorial](../pocketbase/server/editorial/README.md), [Likes](../pocketbase/contracts.md).

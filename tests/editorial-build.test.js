@@ -5,17 +5,17 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { editorialInventory } from '../scripts/editorial-source.mjs';
+import { editorialFixtures } from './helpers/editorial.js';
 
 for (const includeSettings of [true, false]) {
 test(`full-mode build keeps presentation repo-owned (${includeSettings ? 'stale' : 'missing'} CMS settings)`, { timeout: 90000 }, async t => {
-  const inventory = await editorialInventory();
+  const fixtures = await editorialFixtures();
   const files = new Map();
   const entries = [];
-  for (const entry of inventory.filter(entry => entry.kind !== 'software' || entry.slug === 'tipbox')) {
+  for (const entry of fixtures) {
     const assets = [];
     for (const file of entry.assets) {
-      const bytes = await readFile(new URL(`../public${file.source}`, import.meta.url));
+      const { bytes } = file;
       const path = `/api/publishing/content-assets/fixture/${file.name}`;
       files.set(path, bytes);
       assets.push({ name: file.name, path, sha256: createHash('sha256').update(bytes).digest('hex') });
@@ -49,19 +49,20 @@ test(`full-mode build keeps presentation repo-owned (${includeSettings ? 'stale'
   t.after(() => { if (child.exitCode === null) child.kill(); });
   let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
   const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
-  const software = await readFile(`${dir}/software/tipbox/index.html`, 'utf8');
-  assert.match(software, /A Tipbox.io project board with attached media/);
-  assert.match(software, /Dion Kodhyat/);
+  const software = await readFile(`${dir}/software/example-project/index.html`, 'utf8');
+  assert.match(software, /Project gallery detail/);
+  assert.match(software, /Example teammate/);
+  assert.match(software, /Built for a rendering test/);
   assert.match(software, /\/published-content\//);
-  assert.doesNotMatch(software, /\/images\/software\//);
+  assert.doesNotMatch(software, /\/images\/fixture\//);
   assert.doesNotMatch(software, /Snapshot-only description/);
   assert.match(software, /href="\/music"[^>]*>Music<\/a>/);
   assert.match(software, /href="\/software"/);
   assert.doesNotMatch(software, /id="music-menu"|<summary[^>]*>Music/);
   await assert.rejects(readFile(`${dir}/cms-only-page/index.html`));
   assert.match(await readFile(`${dir}/video/index.html`, 'utf8'), /Coming soon/);
-  const blog = await readFile(`${dir}/blog/the-animated-face/index.html`, 'utf8');
-  assert.match(blog, /sophiaburke.ca/);
+  const blog = await readFile(`${dir}/blog/example-post/index.html`, 'utf8');
+  assert.match(blog, /example.test\/reference/);
   assert.match(blog, /class="face"/);
   assert.match(blog, /language-astro/);
   await assert.rejects(readFile(`${dir}/software/biolink/index.html`));

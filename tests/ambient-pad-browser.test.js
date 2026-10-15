@@ -99,7 +99,7 @@ test('full-height volume fader supports vertical dragging and keyboard limits wi
 test('Home has a silent, accessible 3×4 instrument centered on desktop and mobile', browserOptions, async t => {
   const { page, base } = await realBrowser(t);
   const samples = [];
-  page.on('request', request => { if (request.url().includes('/audio/ambient-test/')) samples.push(request.url()); });
+  page.on('request', request => { if (/\.wav(?:\?|$)/i.test(request.url())) samples.push(request.url()); });
   assert.equal((await fetch(base)).ok, true);
   await page.goto(base);
   await page.waitForLoadState('networkidle');

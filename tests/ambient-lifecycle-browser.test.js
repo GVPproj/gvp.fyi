@@ -3,7 +3,7 @@ import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 // Observe the browser's audio boundary, not the instrument's private state. All
-// contexts, oscillators, sample sources and decoding remain real Chromium APIs.
+// contexts, oscillators and buffer sources remain real Chromium APIs.
 async function observeAudio(context, { rejectResumes = 0, requireActivation = false } = {}) {
   await context.addInitScript(({ rejectResumes, requireActivation }) => {
     const NativeAudioContext = window.AudioContext;

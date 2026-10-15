@@ -31,10 +31,6 @@ before(async () => {
           compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
         }).outputText);
       }
-      if (path.startsWith('/audio/ambient-test/')) {
-        response.setHeader('Content-Type', 'audio/wav');
-        return response.end(await readFile(new URL(`../public${path}`, import.meta.url)));
-      }
       response.writeHead(404).end();
     } catch {
       response.writeHead(404).end();
@@ -73,8 +69,6 @@ async function offlineFor(t, seconds = 3) {
       get destination() { return this.offline.destination; }
       createGain() { return this.offline.createGain(); }
       createOscillator() { return this.offline.createOscillator(); }
-      createBufferSource() { return this.offline.createBufferSource(); }
-      decodeAudioData(data) { return this.offline.decodeAudioData(data); }
       changeState(state) { this.state = state; this.dispatchEvent(new Event('statechange')); }
       async resume() { this.changeState('running'); }
       async suspend() { this.changeState('suspended'); }
@@ -100,7 +94,7 @@ for (const device of ['iPhone', 'iPad-desktop']) {
       HTMLMediaElement.prototype.pause = function () {};
       const audio = new AmbientAudio(() => {});
       const initial = elements.length;
-      const enabling = audio.enable('sine');
+      const enabling = audio.enable();
       const synchronous = elements.length === 1;
       await enabling;
       const first = elements[0];
@@ -110,11 +104,11 @@ for (const device of ['iPhone', 'iPad-desktop']) {
       const unloaded = !first.hasAttribute('src');
       window.dispatchEvent(new Event('click'));
       const noAutoResume = elements.length === 1 && !audio.ready;
-      await audio.enable('sine');
+      await audio.enable();
       const recreated = elements.length === 2 && elements[1] !== first;
       contexts[0].changeState('interrupted');
       const interrupted = !audio.ready && !elements[1].hasAttribute('src');
-      await audio.enable('sine');
+      await audio.enable();
       audio.dispose();
       return { initial, synchronous, settings, unloaded, noAutoResume, recreated, interrupted,
         disposed: !elements[2].hasAttribute('src') };
@@ -138,10 +132,10 @@ test('failed iOS media activation unloads the element and can be retried', async
     };
     const audio = new AmbientAudio(() => {});
     let error;
-    try { await audio.enable('sine'); } catch (e) { error = e.message; }
+    try { await audio.enable(); } catch (e) { error = e.message; }
     const failedReady = audio.ready;
     const unloaded = !elements[0].hasAttribute('src');
-    await audio.enable('sine');
+    await audio.enable();
     const ready = audio.ready;
     audio.dispose();
     return { error, failedReady, unloaded, ready, attempts: elements.length };
@@ -167,7 +161,7 @@ test('activation is explicit and resume is invoked synchronously in enable', asy
     };
     const audio = new AmbientAudio(() => {});
     const initial = { count: contexts.length, ready: audio.ready, time: audio.currentTime };
-    const enabling = audio.enable('sine');
+    const enabling = audio.enable();
     const synchronousResume = resumed;
     await enabling;
     const enabled = audio.ready;
@@ -188,7 +182,7 @@ test('twelve A3–C6 C-major pentatonic pads render scheduled, gently enveloped 
     const notes = [];
     for (const pad of pads) {
       const audio = new AmbientAudio(() => {});
-      await audio.enable('sine');
+      await audio.enable();
       audio.trigger({ soundId: pad.id, when: 0.25 });
       const data = await render(contexts.at(-1));
       const peak = (from, to) => Math.max(...data.slice(from * 24000, to * 24000).map(Math.abs));
@@ -221,7 +215,7 @@ test('overlapping voices include future starts in the 32-voice headroom budget',
   const page = await offlineFor(t);
   const result = await page.evaluate(async () => {
     const audio = new AmbientAudio(() => {});
-    await audio.enable('sine');
+    await audio.enable();
     for (let i = 0; i < 100; i++) audio.trigger({ soundId: 'a4', when: 0.25 });
     const data = await render(contexts[0]);
     audio.dispose();
@@ -235,7 +229,7 @@ test('stop silences both active and scheduled voices without disabling live play
   const page = await offlineFor(t);
   const result = await page.evaluate(async () => {
     const audio = new AmbientAudio(() => {});
-    await audio.enable('sine');
+    await audio.enable();
     audio.trigger({ soundId: 'a4', when: 0 });
     audio.trigger({ soundId: 'c6', when: 1 });
     const context = contexts[0];
@@ -255,74 +249,70 @@ test('stop silences both active and scheduled voices without disabling live play
   assert.equal(result.after, 0);
 });
 
-for (const mode of ['sine', 'samples']) {
-  for (const ending of ['natural', 'stop', 'steal']) {
-    test(`${mode} voices disconnect and leave the active set after ${ending} cleanup`, async t => {
-      const page = await offlineFor(t);
-      const result = await page.evaluate(async ({ mode, ending }) => {
-        const audio = new AmbientAudio(() => {});
-        await audio.enable(mode);
-        const context = contexts[0];
-        const sources = [];
-        const gains = [];
-        const ended = [];
-        // Observe real nodes without reaching into the engine's private voice set.
-        for (const method of ['createGain', mode === 'sine' ? 'createOscillator' : 'createBufferSource']) {
-          const create = context[method].bind(context);
-          context[method] = () => {
-            const node = create();
-            const counts = { disconnects: 0, stops: 0 };
-            const disconnect = node.disconnect.bind(node);
-            node.disconnect = (...args) => { counts.disconnects++; return disconnect(...args); };
-            if (method === 'createGain') gains.push(counts);
-            else {
-              sources.push(counts);
-              const stop = node.stop.bind(node);
-              node.stop = (...args) => { counts.stops++; return stop(...args); };
-              ended.push(new Promise(resolve => node.addEventListener('ended', resolve, { once: true })));
-            }
-            return node;
-          };
-        }
-        const count = ending === 'steal' ? 33 : 2;
-        for (let i = 0; i < count; i++) audio.trigger({ soundId: 'a4', when: 0.25 });
-        if (ending === 'stop') {
-          audio.stop();
-          audio.stop();
-        }
-        const immediate = sources.map((source, i) => [source.disconnects, gains[i].disconnects, source.stops]);
-        await render(context);
-        await Promise.all(ended);
-        // Neither stop nor disposal should revisit voices already released.
-        audio.stop();
-        const ready = audio.ready;
-        audio.dispose();
-        return { immediate, ready,
-          final: sources.map((source, i) => [source.disconnects, gains[i].disconnects, source.stops]) };
-      }, { mode, ending });
+for (const ending of ['natural', 'stop', 'steal']) {
+  test(`sine voices disconnect and leave the active set after ${ending} cleanup`, async t => {
+    const page = await offlineFor(t);
+    const result = await page.evaluate(async ending => {
+      const audio = new AmbientAudio(() => {});
+      await audio.enable();
+      const context = contexts[0];
+      const sources = [];
+      const gains = [];
+      const ended = [];
+      // Observe real nodes without reaching into the engine's private voice set.
+      for (const method of ['createGain', 'createOscillator']) {
+        const create = context[method].bind(context);
+        context[method] = () => {
+          const node = create();
+          const counts = { disconnects: 0, stops: 0 };
+          const disconnect = node.disconnect.bind(node);
+          node.disconnect = (...args) => { counts.disconnects++; return disconnect(...args); };
+          if (method === 'createGain') gains.push(counts);
+          else {
+            sources.push(counts);
+            const stop = node.stop.bind(node);
+            node.stop = (...args) => { counts.stops++; return stop(...args); };
+            ended.push(new Promise(resolve => node.addEventListener('ended', resolve, { once: true })));
+          }
+          return node;
+        };
+      }
       const count = ending === 'steal' ? 33 : 2;
-      const silenced = i => ending === 'stop' || (ending === 'steal' && i === 0);
-      assert.deepEqual(result.immediate, Array.from({ length: count }, (_, i) =>
-        silenced(i) ? [1, 1, 2] : [0, 0, 1]));
-      assert.deepEqual(result.final, Array.from({ length: count }, (_, i) =>
-        [1, 1, silenced(i) ? 2 : 1]));
-      assert.equal(result.ready, true);
-    });
-  }
+      for (let i = 0; i < count; i++) audio.trigger({ soundId: 'a4', when: 0.25 });
+      if (ending === 'stop') {
+        audio.stop();
+        audio.stop();
+      }
+      const immediate = sources.map((source, i) => [source.disconnects, gains[i].disconnects, source.stops]);
+      await render(context);
+      await Promise.all(ended);
+      // Neither stop nor disposal should revisit voices already released.
+      audio.stop();
+      const ready = audio.ready;
+      audio.dispose();
+      return { immediate, ready,
+        final: sources.map((source, i) => [source.disconnects, gains[i].disconnects, source.stops]) };
+    }, ending);
+    const count = ending === 'steal' ? 33 : 2;
+    const silenced = i => ending === 'stop' || (ending === 'steal' && i === 0);
+    assert.deepEqual(result.immediate, Array.from({ length: count }, (_, i) =>
+      silenced(i) ? [1, 1, 2] : [0, 0, 1]));
+    assert.deepEqual(result.final, Array.from({ length: count }, (_, i) =>
+      [1, 1, silenced(i) ? 2 : 1]));
+    assert.equal(result.ready, true);
+  });
 }
 
-test('volume clamps to [0,1], and mute preserves the chosen volume without unlocking audio', async t => {
+test('volume clamps to [0,1] without unlocking audio', async t => {
   const page = await offlineFor(t);
   const peaks = await page.evaluate(async () => {
     const peaks = [];
-    for (const [volume, mute, unmute] of [[1, false], [0.5, false], [10, false], [-1, false], [0.5, true], [0.5, true, true]]) {
+    for (const volume of [1, 0.5, 10, -1]) {
       const audio = new AmbientAudio(() => {});
       const before = contexts.length;
       audio.setVolume(volume);
-      audio.setMuted(mute);
-      if (unmute) audio.setMuted(false);
       if (contexts.length !== before) throw Error('Volume must not unlock audio');
-      await audio.enable('sine');
+      await audio.enable();
       audio.trigger({ soundId: 'a4', when: 0 });
       const data = await render(contexts.at(-1));
       peaks.push(Math.max(...data.map(Math.abs)));
@@ -334,56 +324,14 @@ test('volume clamps to [0,1], and mute preserves the chosen volume without unloc
   assert.equal(peaks[1], peaks[0] / 2);
   assert.equal(peaks[2], peaks[0]);
   assert.equal(peaks[3], 0);
-  assert.equal(peaks[4], 0);
-  assert.equal(peaks[5], peaks[1]);
 });
 
-test('samples load only on request with progress, and generated WAV voices match sine timing and pitches', async t => {
-  const page = await offlineFor(t);
-  const result = await page.evaluate(async () => {
-    const { pads } = await import('/src/lib/lib-ambient-pad/ambient-kit');
-    const nativeFetch = window.fetch;
-    let requests = 0;
-    window.fetch = (...args) => { requests++; return nativeFetch(...args); };
-    const audio = new AmbientAudio(() => {});
-    await audio.enable('sine');
-    const beforeSamples = requests;
-    const progress = [];
-    await audio.enable('samples', (loaded, total) => progress.push([loaded, total]));
-    const loadedReady = audio.ready;
-    await audio.enable('samples');
-    const cachedRequests = requests;
-    audio.dispose();
-    const errors = [];
-    for (const pad of pads) {
-      const outputs = [];
-      for (const mode of ['sine', 'samples']) {
-        const engine = new AmbientAudio(() => {});
-        await engine.enable(mode);
-        engine.trigger({ soundId: pad.id, when: 0.25 });
-        outputs.push(await render(contexts.at(-1)));
-        engine.dispose();
-      }
-      errors.push(Math.max(...outputs[0].map((value, i) => Math.abs(value - outputs[1][i]))));
-    }
-    return { beforeSamples, progress, loadedReady, cachedRequests, errors };
-  });
-  assert.equal(result.beforeSamples, 0);
-  assert.equal(result.loadedReady, true);
-  assert.equal(result.cachedRequests, 12);
-  assert.deepEqual(result.progress, Array.from({ length: 13 }, (_, i) => [i, 12]));
-  for (const error of result.errors) assert.ok(error < 0.00001, `PCM sine agreement: ${error}`);
-});
-
-test('intentional suspension stops audio, preserves the decoded kit, and needs explicit enable', async t => {
+test('intentional suspension stops audio and needs explicit enable', async t => {
   const page = await offlineFor(t);
   const result = await page.evaluate(async () => {
     let interruptions = 0;
-    let requests = 0;
-    const nativeFetch = window.fetch;
-    window.fetch = (...args) => { requests++; return nativeFetch(...args); };
     const audio = new AmbientAudio(() => { interruptions++; });
-    await audio.enable('samples');
+    await audio.enable();
     audio.trigger({ soundId: 'a4', when: 0 });
     audio.trigger({ soundId: 'a4', when: 1 });
     audio.suspend();
@@ -391,13 +339,13 @@ test('intentional suspension stops audio, preserves the decoded kit, and needs e
     contexts[0].changeState('running'); // An OS resume must not unlock the instrument.
     const unsolicitedReady = audio.ready;
     audio.trigger({ soundId: 'c6', when: 0 });
-    await audio.enable('samples');
+    await audio.enable();
     const enabledReady = audio.ready;
     const peak = Math.max(...(await render(contexts[0])).map(Math.abs));
     audio.dispose();
-    return { interruptions, requests, suspendedReady, unsolicitedReady, enabledReady, peak };
+    return { interruptions, suspendedReady, unsolicitedReady, enabledReady, peak };
   });
-  assert.deepEqual(result, { interruptions: 0, requests: 12, suspendedReady: false,
+  assert.deepEqual(result, { interruptions: 0, suspendedReady: false,
     unsolicitedReady: false, enabledReady: true, peak: 0 });
 });
 
@@ -407,14 +355,14 @@ for (const state of ['suspended', 'interrupted']) {
     const result = await page.evaluate(async state => {
       const callbackReadiness = [];
       const audio = new AmbientAudio(() => callbackReadiness.push(audio.ready));
-      await audio.enable('sine');
+      await audio.enable();
       audio.trigger({ soundId: 'a4', when: 1 });
       contexts[0].changeState(state);
       contexts[0].changeState(state);
       contexts[0].changeState('running');
       const unsolicitedReady = audio.ready;
       audio.trigger({ soundId: 'a4', when: 0 });
-      await audio.enable('sine');
+      await audio.enable();
       const enabledReady = audio.ready;
       const peak = Math.max(...(await render(contexts[0])).map(Math.abs));
       audio.suspend();
@@ -426,113 +374,38 @@ for (const state of ['suspended', 'interrupted']) {
   });
 }
 
-test('dispose aborts pending fetch, blocks late progress/readiness, and is terminal and idempotent', async t => {
-  const page = await offlineFor(t);
-  const result = await page.evaluate(async () => {
-    let release;
-    let started;
-    const gate = new Promise(resolve => { release = resolve; });
-    const entered = new Promise(resolve => { started = resolve; });
-    let signal;
-    let requests = 0;
-    const nativeFetch = window.fetch;
-    // Deliberately ignore abort: generation checks must also defend against late results.
-    window.fetch = async (url, options) => {
-      requests++;
-      signal = options?.signal;
-      started();
-      await gate;
-      return nativeFetch(url);
-    };
-    const audio = new AmbientAudio(() => { throw Error('Disposal is intentional'); });
-    const progress = [];
-    const pending = audio.enable('samples', (...counts) => progress.push(counts)).then(() => 'resolved', error => error.name);
-    await entered;
-    const loadingReady = audio.ready;
-    audio.dispose();
-    audio.dispose();
-    const aborted = signal?.aborted ?? false;
-    release();
-    const outcome = await pending;
-    const retry = await audio.enable('sine').then(() => 'resolved', () => 'rejected');
-    return { aborted, loadingReady, outcome, retry, ready: audio.ready, requests, progress,
-      state: contexts[0].state, contexts: contexts.length };
-  });
-  assert.deepEqual(result, { aborted: true, loadingReady: false, outcome: 'AbortError', retry: 'rejected',
-    ready: false, requests: 1, progress: [[0, 12]], state: 'closed', contexts: 1 });
-});
-
-for (const action of ['dispose', 'suspend', 'interrupt', 'switch']) {
-  test(`${action} invalidates in-flight decoding without late progress or cached stale buffers`, async t => {
+for (const action of ['dispose', 'suspend', 'interrupt', 'reenable']) {
+  test(`${action} invalidates pending activation without late readiness`, async t => {
     const page = await offlineFor(t);
     const result = await page.evaluate(async action => {
+      const resume = AudioContext.prototype.resume;
       let release;
-      let started;
-      const gate = new Promise(resolve => { release = resolve; });
-      const entered = new Promise(resolve => { started = resolve; });
-      let decodes = 0;
-      const originalDecode = AudioContext.prototype.decodeAudioData;
-      AudioContext.prototype.decodeAudioData = async function (data) {
-        const buffer = await originalDecode.call(this, data);
-        if (++decodes === 1) { started(); await gate; }
-        return buffer;
+      AudioContext.prototype.resume = function () {
+        this.changeState('running');
+        return new Promise(resolve => { release = resolve; });
       };
-      let signal;
-      let requests = 0;
-      const nativeFetch = window.fetch;
-      window.fetch = (url, options) => { requests++; signal = options?.signal; return nativeFetch(url, options); };
       let interruptions = 0;
       const audio = new AmbientAudio(() => { interruptions++; });
-      const progress = [];
-      const pending = audio.enable('samples', (...counts) => progress.push(counts)).then(() => 'resolved', error => error.name);
-      await entered;
+      const pending = audio.enable().then(() => 'resolved', error => error.name);
+      const pendingReady = audio.ready;
+      AudioContext.prototype.resume = resume;
       if (action === 'interrupt') contexts[0].changeState('interrupted');
-      else if (action === 'switch') await audio.enable('sine');
+      else if (action === 'reenable') await audio.enable();
       else audio[action]();
-      const aborted = signal?.aborted ?? false;
       // Even an unsolicited running transition cannot rehabilitate the old enable.
       if (action === 'interrupt') contexts[0].changeState('running');
       release();
       const outcome = await pending;
       const readyAfter = audio.ready;
-      if (action !== 'dispose') await audio.enable('samples');
+      const retry = await audio.enable().then(() => 'resolved', () => 'rejected');
       audio.dispose();
-      return { aborted, outcome, readyAfter, progress, requests, interruptions };
+      audio.dispose();
+      return { pendingReady, outcome, readyAfter, retry, interruptions,
+        ready: audio.ready, state: contexts[0].state, contexts: contexts.length };
     }, action);
-    assert.deepEqual(result, { aborted: true, outcome: 'AbortError', readyAfter: action === 'switch',
-      progress: [[0, 12]], requests: action === 'dispose' ? 1 : 13, interruptions: action === 'interrupt' ? 1 : 0 });
-  });
-}
-
-for (const failure of ['network', 'http', 'decode']) {
-  test(`sample ${failure} failure leaves the engine unready and can retry without reloading successful samples`, async t => {
-    const page = await offlineFor(t);
-    const result = await page.evaluate(async failure => {
-      let requests = 0;
-      const nativeFetch = window.fetch;
-      window.fetch = (url, options) => {
-        if (++requests === 2) {
-          if (failure === 'network') return Promise.reject(new TypeError('Network unavailable'));
-          if (failure === 'http') return Promise.resolve(new Response('', { status: 503 }));
-          return Promise.resolve(new Response('Not a WAV file'));
-        }
-        return nativeFetch(url, options);
-      };
-      const audio = new AmbientAudio(() => {});
-      await audio.enable('sine');
-      audio.trigger({ soundId: 'a4', when: 1 });
-      const outcome = await audio.enable('samples').then(() => 'resolved', () => 'rejected');
-      const failedReady = audio.ready;
-      audio.trigger({ soundId: 'a4', when: 0 });
-      const progress = [];
-      await audio.enable('samples', (...counts) => progress.push(counts));
-      const retryReady = audio.ready;
-      const peak = Math.max(...(await render(contexts[0])).map(Math.abs));
-      audio.dispose();
-      return { outcome, failedReady, retryReady, requests, progress, peak };
-    }, failure);
-    assert.deepEqual(result, { outcome: 'rejected', failedReady: false, retryReady: true, requests: 13,
-      progress: Array.from({ length: 12 }, (_, i) => [i + 1, 12]), peak: 0 });
+    assert.deepEqual(result, { pendingReady: false, outcome: 'AbortError', readyAfter: action === 'reenable',
+      retry: action === 'dispose' ? 'rejected' : 'resolved', interruptions: action === 'interrupt' ? 1 : 0,
+      ready: false, state: 'closed', contexts: 1 });
   });
 }
 
@@ -542,21 +415,21 @@ test('resume rejection can be retried, and suspension during pending resume cann
     const resume = AudioContext.prototype.resume;
     AudioContext.prototype.resume = () => Promise.reject(new Error('Activation denied'));
     const audio = new AmbientAudio(() => {});
-    const failed = await audio.enable('sine').then(() => false, () => true);
+    const failed = await audio.enable().then(() => false, () => true);
     const failedReady = audio.ready;
     let release;
     AudioContext.prototype.resume = function () {
       this.changeState('running');
       return new Promise(resolve => { release = resolve; });
     };
-    const pending = audio.enable('sine').then(() => 'resolved', error => error.name);
+    const pending = audio.enable().then(() => 'resolved', error => error.name);
     const loadingReady = audio.ready;
     audio.suspend();
     release();
     const outcome = await pending;
     const lateReady = audio.ready;
     AudioContext.prototype.resume = resume;
-    await audio.enable('sine');
+    await audio.enable();
     const retryReady = audio.ready;
     audio.dispose();
     return { failed, failedReady, loadingReady, outcome, lateReady, retryReady, contexts: contexts.length };
@@ -577,44 +450,21 @@ test('real AudioContext suspension notifies and disposal closes the owned contex
     const interrupted = new Promise(resolve => { notify = resolve; });
     let count = 0;
     const audio = new AmbientAudio(() => { count++; notify(); });
-    await audio.enable('sine');
+    await audio.enable();
     await context.suspend();
     await interrupted;
     const suspendedReady = audio.ready;
-    await audio.enable('sine');
+    await audio.enable();
     const resumedReady = audio.ready;
     // Rapid explicit re-enables must not mistake queued intentional suspension
     // events for fresh OS interruptions.
     for (let i = 0; i < 3; i++) {
       audio.suspend();
-      await audio.enable('sine');
+      await audio.enable();
     }
     audio.dispose();
     if (context.state !== 'closed') await new Promise(resolve => context.addEventListener('statechange', resolve, { once: true }));
     return { suspendedReady, resumedReady, disposedReady: audio.ready, count, state: context.state };
   });
   assert.deepEqual(result, { suspendedReady: false, resumedReady: true, disposedReady: false, count: 1, state: 'closed' });
-});
-
-test('sample mode uses the same overlap, polyphony, stop and mode-switch contract', async t => {
-  const page = await offlineFor(t);
-  const result = await page.evaluate(async () => {
-    const audio = new AmbientAudio(() => {});
-    await audio.enable('samples');
-    for (let i = 0; i < 100; i++) audio.trigger({ soundId: 'a4', when: 0 });
-    const context = contexts[0];
-    const paused = context.offline.suspend(0.5);
-    const rendering = render(context);
-    await paused;
-    audio.stop();
-    audio.trigger({ soundId: 'a4', when: 1 });
-    await audio.enable('sine'); // Must cancel the scheduled sample voice too.
-    await context.offline.resume();
-    const data = await rendering;
-    audio.dispose();
-    return { before: Math.max(...data.slice(2400, 9600).map(Math.abs)),
-      after: Math.max(...data.slice(12480).map(Math.abs)) };
-  });
-  assert.ok(result.before > 0.7 && result.before <= 0.801);
-  assert.equal(result.after, 0);
 });

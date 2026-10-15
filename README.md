@@ -1,43 +1,43 @@
 # gvp.fyi
 
-## Install
+Astro frontend, static Netlify publishing, custom PocketBase backend.
+
+## Development
 
 Requires Node.js 22.12+ and pnpm 11.17.
 
 ```sh
 pnpm install
 cp .env.example .env
-```
-
-Set `PUBLIC_POCKETBASE_URL` in `.env` to your PocketBase origin. See [`pocketbase/README.md`](pocketbase/README.md) for backend setup.
-
-## Development
-
-```sh
 pnpm dev
 ```
 
-The dev server uses `http://127.0.0.1:4324`. Keep `pnpm dev` running while viewing the site.
-
-On `asahi-mini`, Tailscale Serve proxies it at `https://asahi-mini.tail40c3ca.ts.net:4324/`. To recreate the tailnet-only HTTPS proxy:
-
-```sh
-tailscale serve --bg --https=4324 http://127.0.0.1:4324
-```
+Open `http://127.0.0.1:4324`. Without publishing credentials, development uses
+checked-in music/software/blog content; Likes is empty. Set the server-only
+publishing variables in `.env.example` to build from PocketBase.
 
 ## Testing
 
-Use the scripts in `package.json` for checks, tests and builds. Integration/browser tests require `POCKETBASE_BINARY`, `OLD_POCKETBASE_BINARY` where applicable, and `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; missing prerequisites skip tests rather than prove readiness.
+```sh
+pnpm check
+pnpm test
+pnpm build
+```
 
-Run browser suites with `--test-concurrency=1`. Keep builds and Astro servers from sharing the generated workspace during a test run. For tests supporting `PLAYWRIGHT_BASE_URL`, use a stable, already-built fixture server. Astro navigation assertions should wait for `astro:page-load`, not merely a URL change.
+Backend integration tests require `POCKETBASE_BINARY`; browser tests also require
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Upgrade tests need `OLD_POCKETBASE_BINARY`.
+Missing prerequisites skip tests. Run browser/build suites serially, without a
+dev server sharing the generated Astro/Netlify workspace.
 
-## Working docs
+## Where things live
 
-- [Dashboard workflow and content scope](docs/dashboard-publishing.md)
-- [Imports](docs/import-editorial.md)
-- [Cutover checklist and current blockers](docs/content-cutover-readiness.md)
-- [Backup implementation and activation](infra/backups/README.md)
-- [Admin access and recovery](docs/admin-recovery.md)
-- [Ambient instrument](docs/ambient-playground.md)
+- `src/`: pages, components, content and publishing build integrations.
+- `public/`: static audio, images, fonts and licenses.
+- `pocketbase/`: [backend setup and operations](pocketbase/README.md), migrations and hooks.
+- `tests/`: regression tests and disposable fixtures.
+
+Edit content through the [PocketBase dashboard](docs/dashboard-publishing.md),
+then deploy manually in Netlify. Site settings and interactions stay in code.
+See [ambient instrument behavior](docs/ambient-playground.md).
 
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).

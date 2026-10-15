@@ -3,17 +3,17 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
 import { start } from './helpers/publishing-pocketbase.js';
-import { importEditorial } from '../scripts/import-editorial.mjs';
-import { preparePublishedContent } from '../scripts/published-content.mjs';
+import { seedEditorial } from './helpers/editorial.js';
+import { preparePublishedContent } from '../src/integrations/published-content.mjs';
 import { materializeSoftware } from '../src/lib/editorial-source.js';
 
 test('native dashboard publishes software JSON, replaces its image and publishes a quote', {
   skip: !(process.env.POCKETBASE_BINARY && process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE) && 'Set PocketBase and Chromium paths', timeout: 90000,
 }, async t => {
   const pb = await start(t);
-  await importEditorial({ endpoint: pb.base, token: pb.adminToken });
+  await seedEditorial(pb);
   const records = await pb.request('collections/editorial_entries/records?perPage=100', { token: pb.adminToken });
-  const project = records.data.items.find(record => record.slug === 'tipbox');
+  const project = records.data.items.find(record => record.slug === 'example-project');
   const quote = await pb.request('collections/likes_items/records', { token: pb.adminToken, method: 'POST', body: { title: 'Quote fixture', type: 'quote', body: 'A fixture quotation.', attribution: 'Test author' } });
   assert.equal(quote.status, 200);
   const email = 'build@example.test', password = 'fixture-build-password';
@@ -39,19 +39,19 @@ test('native dashboard publishes software JSON, replaces its image and publishes
     assert.equal((await pending).status(), 200);
     await page.getByRole('button', { name: 'Save changes', exact: true }).waitFor({ state: 'hidden' });
   }
-  await open('editorial_entries', 'tipbox');
+  await open('editorial_entries', 'example-project');
   await page.locator('.code-editor[name="data"]').getByRole('textbox').fill(JSON.stringify({ ...project.data, title: 'Dashboard-edited project' }, null, 2));
   const toggle = page.getByRole('checkbox', { name: 'published', exact: true });
   await toggle.focus(); await page.keyboard.press('Space');
   await save('editorial_entries', project.id);
-  const before = (await preparePublishedContent(env)).content.find(entry => entry.slug === 'tipbox');
+  const before = (await preparePublishedContent(env)).content.find(entry => entry.slug === 'example-project');
   assert.equal(materializeSoftware(before).title, 'Dashboard-edited project');
-  await open('editorial_entries', 'tipbox');
+  await open('editorial_entries', 'example-project');
   await page.getByRole('button', { name: 'Remove file', exact: true }).first().click();
   const buffer = await sharp({ create: { width: 20, height: 10, channels: 3, background: '#123456' } }).png().toBuffer();
   await page.locator('input[type="file"]').setInputFiles({ name: 'new-screenshot.png', mimeType: 'image/png', buffer });
   await save('editorial_entries', project.id);
-  const after = (await preparePublishedContent(env)).content.find(entry => entry.slug === 'tipbox');
+  const after = (await preparePublishedContent(env)).content.find(entry => entry.slug === 'example-project');
   assert.notEqual(after.revision, before.revision);
   assert.notEqual(materializeSoftware(after).screenshot, materializeSoftware(before).screenshot);
   assert.equal(materializeSoftware(after).screenshotWidth, 20);

@@ -1,36 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { start } from './helpers/publishing-pocketbase.js';
-import { importEditorial } from '../scripts/import-editorial.mjs';
-import { preparePublishedContent } from '../scripts/published-content.mjs';
+import { seedEditorial } from './helpers/editorial.js';
+import { preparePublishedContent } from '../src/integrations/published-content.mjs';
 import { materializeSoftware } from '../src/lib/editorial-source.js';
 import sharp from 'sharp';
 
 const options = { skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY to the current custom server', timeout: 90000 };
-test('repository editorial import publishes seven projects, blog and settings with retained local media', options, async t => {
+test('editorial publishing retains snapshots and safely replaces uploaded media', options, async t => {
   const pb = await start(t);
-  const result = await importEditorial({ endpoint: pb.base, token: pb.adminToken, publish: true });
-  assert.equal(result.imported.length, 9);
-  assert.equal(result.skipped.length, 0);
-  const repeated = await importEditorial({ endpoint: pb.base, token: pb.adminToken, publish: true });
-  assert.equal(repeated.imported.length, 0);
-  assert.equal(repeated.skipped.length, 9);
+  await seedEditorial(pb, { publish: true });
   const email = 'build@example.test', password = 'fixture-build-password';
   const build = await pb.request('collections/publishing_builds/records', { token: pb.adminToken, method: 'POST', body: { email, password, passwordConfirm: password } });
   assert.equal(build.status, 200);
   const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: pb.base, PUBLISHING_BUILD_EMAIL: email, PUBLISHING_BUILD_PASSWORD: password };
   const prepared = await preparePublishedContent(env);
-  assert.equal(prepared.content.filter(entry => entry.kind === 'software').length, 7);
+  assert.equal(prepared.content.filter(entry => entry.kind === 'software').length, 1);
   assert.equal(prepared.content.filter(entry => entry.kind === 'blog').length, 1);
   assert.equal(prepared.content.filter(entry => entry.kind === 'settings').length, 1);
-  assert.equal(prepared.content.reduce((n, entry) => n + entry.assets.length, 0), 10);
-  assert.ok(prepared.files.length > 10);
-  const tipbox = prepared.content.find(entry => entry.slug === 'tipbox');
-  assert.equal(tipbox.assets.length, 4);
-  assert.equal(tipbox.data.team.length, 8);
-  for (const source of [tipbox.data.screenshot, ...tipbox.data.gallery.map(image => image.src)]) {
-    const name = tipbox.data.assetNames[source.split('/').at(-1)];
-    assert.ok(tipbox.assets.some(asset => asset.name === name));
+  assert.equal(prepared.content.reduce((n, entry) => n + entry.assets.length, 0), 2);
+  assert.ok(prepared.files.length > 2);
+  const project = prepared.content.find(entry => entry.slug === 'example-project');
+  assert.equal(project.assets.length, 2);
+  assert.equal(project.data.team.length, 1);
+  for (const source of [project.data.screenshot, ...project.data.gallery.map(image => image.src)]) {
+    const name = project.data.assetNames[source.split('/').at(-1)];
+    assert.ok(project.assets.some(asset => asset.name === name));
   }
   const buildAuth = await pb.request('collections/publishing_builds/auth-with-password', { method: 'POST', body: { identity: email, password } });
   const identitiesRoute = 'publishing/editorial-identities';
@@ -38,15 +33,15 @@ test('repository editorial import publishes seven projects, blog and settings wi
   assert.equal((await pb.request(identitiesRoute, { token: buildAuth.data.token })).status, 403);
   const inventory = await pb.request(identitiesRoute, { token: pb.adminToken });
   assert.equal(inventory.status, 200);
-  assert.equal(inventory.data.length, 9);
+  assert.equal(inventory.data.length, 3);
   for (const identity of inventory.data) assert.deepEqual(Object.keys(identity).sort(), ['kind', 'slug']);
 
   const working = await pb.request('collections/editorial_entries/records?perPage=100', { token: pb.adminToken });
-  const record = working.data.items.find(entry => entry.slug === 'tipbox');
+  const record = working.data.items.find(entry => entry.slug === 'example-project');
   const route = `collections/editorial_entries/records/${record.id}`;
-  const alias = tipbox.data.screenshot.split('/').at(-1);
+  const alias = project.data.screenshot.split('/').at(-1);
   const oldName = record.data.assetNames[alias];
-  const oldAsset = tipbox.assets.find(asset => asset.name === oldName);
+  const oldAsset = project.assets.find(asset => asset.name === oldName);
   const replacement = await sharp({ create: { width: 12, height: 8, channels: 3, background: '#12ab34' } }).png().toBuffer();
   const form = new FormData();
   form.append('assets-', oldName);
@@ -59,9 +54,9 @@ test('repository editorial import publishes seven projects, blog and settings wi
   const saved = await pb.request(route, { token: pb.adminToken });
   assert.equal(saved.data.data.assetNames[alias], newName);
   const refreshed = await preparePublishedContent(env);
-  const nextTipbox = refreshed.content.find(entry => entry.slug === 'tipbox');
-  const rendered = materializeSoftware(nextTipbox);
-  const nextAsset = nextTipbox.assets.find(asset => asset.name === newName);
+  const nextProject = refreshed.content.find(entry => entry.slug === 'example-project');
+  const rendered = materializeSoftware(nextProject);
+  const nextAsset = nextProject.assets.find(asset => asset.name === newName);
   assert.equal(rendered.screenshot, nextAsset.url);
   assert.deepEqual(refreshed.files.find(file => file.path === rendered.screenshot).bytes, replacement);
   assert.notEqual(nextAsset.sha256, oldAsset.sha256);
@@ -80,7 +75,7 @@ test('repository editorial import publishes seven projects, blog and settings wi
   const afterFailure = await pb.request(route, { token: pb.adminToken });
   assert.deepEqual(afterFailure.data.assets, saved.data.assets);
   assert.deepEqual(afterFailure.data.data, saved.data.data);
-  assert.equal((await preparePublishedContent(env)).content.find(entry => entry.slug === 'tipbox').revision, nextTipbox.revision);
+  assert.equal((await preparePublishedContent(env)).content.find(entry => entry.slug === 'example-project').revision, nextProject.revision);
   // Republish without uploads proves failed Save preserved the working files too.
   assert.equal((await pb.request(route, { token: pb.adminToken, method: 'PATCH', body: { published: true } })).status, 200);
   const invalid = await pb.request(route, { token: pb.adminToken, method: 'PATCH', body: {
@@ -101,20 +96,19 @@ test('repository editorial import publishes seven projects, blog and settings wi
     assert.notEqual(matched.data.data.assetNames[original], filename);
     assert.ok(matched.data.assets.includes(matched.data.data.assetNames[original]));
   }
-  materializeSoftware((await preparePublishedContent(env)).content.find(entry => entry.slug === 'tipbox'));
+  materializeSoftware((await preparePublishedContent(env)).content.find(entry => entry.slug === 'example-project'));
 
-  // Deleted working identities must not be recreated, for either retained state.
+  // Deleting working records preserves published snapshots and withdrawals.
   const blog = working.data.items.find(entry => entry.kind === 'blog');
   const blogRoute = `collections/editorial_entries/records/${blog.id}`;
   assert.equal((await pb.request(blogRoute, { token: pb.adminToken, method: 'PATCH', body: { published: false } })).status, 200);
+  const beforeDeletion = await preparePublishedContent(env);
+  assert.equal(beforeDeletion.content.find(entry => entry.slug === 'example-project').state, 'published');
+  assert.equal(beforeDeletion.content.find(entry => entry.slug === 'example-post').state, 'unpublished');
   for (const target of [route, blogRoute]) {
     assert.equal((await pb.request(target, { token: pb.adminToken, method: 'DELETE' })).status, 204);
   }
-  const beforeImport = await preparePublishedContent(env);
-  const skipped = await importEditorial({ endpoint: pb.base, token: pb.adminToken, publish: true });
-  assert.equal(skipped.imported.length, 0);
-  assert.equal(skipped.skipped.length, 9);
-  assert.deepEqual((await preparePublishedContent(env)).content, beforeImport.content);
+  assert.deepEqual((await preparePublishedContent(env)).content, beforeDeletion.content);
   assert.equal((await pb.request(route, { token: pb.adminToken })).status, 404);
   assert.equal((await pb.request(blogRoute, { token: pb.adminToken })).status, 404);
 

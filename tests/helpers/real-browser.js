@@ -45,7 +45,7 @@ async function startServer(t) {
   for (let attempt = 0; attempt < 200; attempt++) {
     if (spawnError || child.exitCode !== null) break;
     try {
-      // Probe a local-content page: public /likes performs server-side backend requests.
+      // Probe a page available without publishing credentials.
       if ((await fetch(`${base}/software`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 100));
