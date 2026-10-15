@@ -9,14 +9,16 @@ Tracking: [#21](https://github.com/GVPproj/gvp.fyi/issues/21).
 - Catalogue, editorial and static Likes implementation has passed targeted import, dashboard, migration and build rehearsals. A green final monolithic browser suite is not established; unrelated ambient failures remain in #17.
 - A complete off-host checkpoint and isolated old-runtime restore, forward migration and paired rollback rehearsal passed. See [checkpoint](admin-recovery.md#private-rollback-checkpoint). Refresh after intervening writes.
 - Superuser MFA and owner recovery/shared-consumer acceptance are complete (#18).
-- Recurring backups are **not operational**. The local verifier deliberately refuses success until captured-runtime startup verification is implemented. See [backup implementation and activation gates](../infra/backups/README.md).
+- Recurring backups are **not operational**. Local recovery work now includes normalized capture, isolated captured-runtime HTTP/preservation verification, and promotion/alert composition. Real Fly/AWS execution, unattended workflow activation and deployed alerts remain unproven. See [backup implementation and activation gates](../infra/backups/README.md).
 - Last recorded production state: old release-dashboard trial on Fly; Netlify still builds the legacy frontend from `main`, without publishing credentials/configuration.
 
 ## Rollout gates, in order
 
-### 1. Finish recurring recovery
+### 1. Recurring recovery deferred — not a cutover gate
 
-Complete and test captured-runtime verification, normalized archive metadata, real Fly transport, unattended scoped access, runner integration, off-host promotion/read-back, retention and independent failed/missed-run notifications. Prove one complete recovery set before activating the monthly schedule. Obtain approval for costs at or above $1/month.
+Owner direction: finish the pre-launch blog/CMS migration simply; existing content is not precious. Recurring backup automation, sandbox/transport development, retention and alert activation are deferred, not completed. Preserve the unfinished recovery work without including it in the deployment candidate. Do not provision more infrastructure for this cutover.
+
+Use one manual off-host checkpoint before changing the shared backend, primarily to preserve authentication/configuration and unrelated consumers. No monthly recovery or alerting guarantee is claimed. The existing CMS implementation and native dashboard remain the scope; no new migration framework is needed.
 
 ### 2. Freeze and rehearse the candidate
 

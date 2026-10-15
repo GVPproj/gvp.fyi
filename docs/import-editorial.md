@@ -3,9 +3,10 @@
 These commands write data. Rehearse on an **isolated restored database/storage pair**
 with the candidate custom PocketBase binary, all matching migrations and existing
 Likes hooks. Disable external effects and concurrent editorial writes. A stock
-PocketBase binary is insufficient. Never use a production tunnel to bypass the
-loopback restriction. Production execution requires the
-[rollout runbook](content-cutover-readiness.md) and separate approval.
+PocketBase binary is insufficient. Do not tunnel production through loopback.
+Production execution requires the [rollout runbook](content-cutover-readiness.md),
+explicit owner approval, a verified paired checkpoint and a successful isolated
+rehearsal; use the named endpoint with `--production` below.
 
 ## Catalogue and editorial imports
 
@@ -19,8 +20,20 @@ node scripts/import-editorial.mjs
 unset PUBLISHING_IMPORT_TOKEN
 ```
 
-Both accept literal loopback HTTP only (`127.0.0.1` or `[::1]`). Do not commit tokens,
-put them in tickets/logs, or reuse them for builds.
+By default both accept literal loopback HTTP only (`127.0.0.1` or `[::1]`).
+For the explicitly approved live cutover, after checkpoint and rehearsal:
+
+```sh
+export PUBLISHING_POCKETBASE_URL=https://pocketbase-fly-starter.fly.dev
+# Supply a temporary production superuser token privately in PUBLISHING_IMPORT_TOKEN.
+node scripts/import-catalogue.mjs --production --publish
+node scripts/import-editorial.mjs --production --publish
+unset PUBLISHING_IMPORT_TOKEN
+```
+
+`--production` additionally permits only this HTTPS root, without credentials,
+non-default port, query or fragment. It does not itself publish; `--publish` remains
+separate. Do not commit tokens, put them in tickets/logs, or reuse them for builds.
 
 - Catalogue: 36 releases / 138 tracks with stable slugs/categories and metadata.
   Local art is read from Git; remote originals are captured only from allowlisted

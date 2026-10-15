@@ -44,12 +44,14 @@ export async function captureArtwork(release) {
   return { bytes, type: `image/${meta.format}`, name: `artwork.${meta.format}` };
 }
 
-/** Additive, loopback-only import. Existing working or retained slugs are never adopted. */
-export async function importCatalogue({ endpoint, token, publish = false }) {
+/** Additive import; production requires explicit opt-in. Existing slugs are never adopted. */
+export async function importCatalogue({ endpoint, token, publish = false, allowProduction = false }) {
   const base = new URL(endpoint);
-  if (base.protocol !== 'http:' || !['127.0.0.1', '[::1]'].includes(base.hostname) ||
+  const loopback = base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname);
+  const production = allowProduction === true && base.href === 'https://pocketbase-fly-starter.fly.dev/';
+  if ((!loopback && !production) ||
     base.pathname !== '/' || base.username || base.password || base.search || base.hash || !token) {
-    throw new Error('Catalogue import requires an isolated loopback backend and administrative token');
+    throw new Error('Catalogue import requires an isolated loopback backend or explicit approved production opt-in, and administrative token');
   }
   async function request(route, body) {
     const response = await fetch(new URL(`/api/${route}`, base), {
@@ -84,9 +86,10 @@ export async function importCatalogue({ endpoint, token, publish = false }) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    if (process.argv.slice(2).some(arg => arg !== '--publish')) throw new Error('Unknown option');
+    if (process.argv.slice(2).some(arg => !['--publish', '--production'].includes(arg))) throw new Error('Unknown option');
     const result = await importCatalogue({ endpoint: process.env.PUBLISHING_POCKETBASE_URL,
-      token: process.env.PUBLISHING_IMPORT_TOKEN, publish: process.argv.includes('--publish') });
+      token: process.env.PUBLISHING_IMPORT_TOKEN, publish: process.argv.includes('--publish'),
+      allowProduction: process.argv.includes('--production') });
     console.log(`Imported ${result.imported.length}; skipped ${result.skipped.length}. Publication requires --publish or dashboard Save with Published on.`);
   } catch {
     console.error('Catalogue import failed. Inspect isolated records and artwork sources; no existing records were overwritten.');

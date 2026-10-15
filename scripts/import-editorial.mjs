@@ -2,12 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { editorialInventory } from './editorial-source.mjs';
 
-/** Loopback-only, additive migration. Existing records are never adopted or changed. */
-export async function importEditorial({ endpoint, token, publish = false, inventory, fetchImpl = fetch }) {
+/** Additive migration; production requires explicit opt-in. Existing records are never changed. */
+export async function importEditorial({ endpoint, token, publish = false, allowProduction = false, inventory, fetchImpl = fetch }) {
   const base = new URL(endpoint);
-  if (base.protocol !== 'http:' || !['127.0.0.1', '[::1]'].includes(base.hostname) ||
+  const loopback = base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname);
+  const production = allowProduction === true && base.href === 'https://pocketbase-fly-starter.fly.dev/';
+  if ((!loopback && !production) ||
       base.pathname !== '/' || base.username || base.password || base.search || base.hash) {
-    throw new Error('Editorial import requires an isolated loopback PocketBase URL');
+    throw new Error('Editorial import requires an isolated loopback PocketBase URL or explicit approved production opt-in');
   }
   if (!token) throw new Error('Local administrative token required');
   const entries = inventory ?? await editorialInventory();
@@ -61,9 +63,10 @@ export async function importEditorial({ endpoint, token, publish = false, invent
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    if (process.argv.slice(2).some(arg => arg !== '--publish')) throw new Error('Usage: node scripts/import-editorial.mjs [--publish]');
+    if (process.argv.slice(2).some(arg => !['--publish', '--production'].includes(arg))) throw new Error('Usage: node scripts/import-editorial.mjs [--publish] [--production]');
     const result = await importEditorial({ endpoint: process.env.PUBLISHING_POCKETBASE_URL,
-      token: process.env.PUBLISHING_IMPORT_TOKEN, publish: process.argv.includes('--publish') });
+      token: process.env.PUBLISHING_IMPORT_TOKEN, publish: process.argv.includes('--publish'),
+      allowProduction: process.argv.includes('--production') });
     console.log(JSON.stringify(result));
   } catch (error) {
     console.error(error instanceof TypeError ? 'Invalid isolated import configuration' : error.message);
