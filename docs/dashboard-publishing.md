@@ -26,6 +26,9 @@ SVG/design assets, instrument sounds and behavior-related UI copy stay in code.
 Site settings—including navigation, identity/description, section/category labels and order,
 and placeholder routes/copy—come exclusively from `src/data/site-settings.json` in every
 build mode. CMS settings snapshots cannot override deployed code. There is no general-purpose page builder.
+Static snapshots and live reads must share public presentation components: the data
+source must not select a different visual design. In particular, the Likes overview
+uses the same collection content rows in both modes.
 
 ## Authoring
 

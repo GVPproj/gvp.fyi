@@ -1,6 +1,7 @@
 ---
-import PublishedItem from './PublishedItem.astro';
-import CollectionRows, { type CollectionRow } from './CollectionRows.astro';
+import ItemsBoard from './ItemsBoard.astro';
+import CollectionRows from './CollectionRows.astro';
+import { collectionRows, type CollectionOverview } from '../../lib/likes-presentation';
 import { createLikesAPI, MISC_COLLECTION } from '../../lib/likes.js';
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
   nextCursor?: { created: string; id: string } | null;
   error?: string;
   endpoint?: string;
-  overview?: CollectionRow[] | null;
+  overview?: CollectionOverview[] | null;
 }
 
 const { items = [], collections = [], selectedCollection = '', nextCursor = null, error = '', endpoint = '', overview = null } = Astro.props;
@@ -45,17 +46,12 @@ function boardURL(collection = '', cursor: Props['nextCursor'] = null) {
 ) : unknownCollection ? (
   <p role="status">This named collection could not be found. <a href="/likes">View collections</a>.</p>
 ) : overview !== null ? (
-  <CollectionRows rows={overview} {endpoint} />
+  <CollectionRows rows={collectionRows(overview, item => api.assetURL(item), id => boardURL(id))} />
 ) : (
   <>
     <h2>{collectionName || 'All items'}</h2>
-    {items.length ? (
-      <ul id="likes-board" aria-label="Published likes">
-        {items.map(item => <PublishedItem item={item} assetURL={api.assetURL(item)} />)}
-      </ul>
-    ) : (
-      <p role="status">{selectedCollection ? 'No published items in this collection.' : 'No published items to show.'}</p>
-    )}
+    <ItemsBoard id="likes-board" {items} assetURL={item => api.assetURL(item)}
+      emptyMessage={selectedCollection ? 'No published items in this collection.' : 'No published items to show.'} />
     {nextCursor && <nav aria-label="Likes pagination"><a href={boardURL(selectedCollection, nextCursor)}>Older items</a></nav>}
   </>
 )}
@@ -63,5 +59,4 @@ function boardURL(collection = '', cursor: Props['nextCursor'] = null) {
 <style>
   #collection-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
   #collection-filters [aria-current="page"] { font-weight: bold; text-decoration: underline; }
-  #likes-board { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; align-items: start; }
 </style>

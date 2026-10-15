@@ -1,0 +1,21 @@
+---
+import PublishedItem from './PublishedItem.astro';
+
+interface Props {
+  items: Array<Record<string, any>>;
+  assetURL: (item: Record<string, any>) => string | null;
+  id?: string;
+  emptyMessage?: string;
+}
+const { items, assetURL, id, emptyMessage = 'No published items to show.' } = Astro.props;
+---
+
+{items.length ? (
+  <ul {id} aria-label="Published likes">
+    {items.map(item => <PublishedItem {item} assetURL={assetURL(item)} />)}
+  </ul>
+) : <p role="status">{emptyMessage}</p>}
+
+<style>
+  ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 2rem 1.5rem; align-items: start; }
+</style>

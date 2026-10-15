@@ -1,34 +1,19 @@
 ---
 import ContentRow, { type ContentRowItem } from '../ContentRow.astro';
-import { createLikesAPI, MISC_COLLECTION, webURL, likesItemURL, likeItemTitle } from '../../lib/likes.js';
+import { MISC_COLLECTION } from '../../lib/likes.js';
 
 export interface CollectionRow {
   id: string;
   name: string;
-  items: Array<Record<string, any>>;
+  items: ContentRowItem[];
+  headingHref: string;
   totalItems: number;
   updated: string | null;
 }
 interface Props {
   rows: CollectionRow[];
-  endpoint: string;
 }
-const { rows, endpoint } = Astro.props;
-const api = createLikesAPI(endpoint);
-function rowItem(item: Record<string, any>): ContentRowItem {
-  const asset = api.assetURL(item);
-  const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
-  const textItem = item.type === 'quote' || item.type === 'note';
-  const url = webURL(item.url);
-  return {
-    href: likesItemURL(item),
-    title: likeItemTitle(item),
-    image: !textItem && asset && !pdf ? { src: asset, width: 320, height: 320, optimized: true } : undefined,
-    text: textItem ? (item.body ?? '').slice(0, 400) : undefined,
-    label: pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable',
-    metadata: textItem ? item.attribution : undefined,
-  };
-}
+const { rows } = Astro.props;
 const now = Date.now();
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 function editedTime(value: string | null) {
@@ -55,8 +40,8 @@ function editedTime(value: string | null) {
           id={`collection-${index}`}
           title={row.name}
           summary={`${row.totalItems} ${row.totalItems === 1 ? 'block' : 'blocks'}`}
-          headingHref={`/likes?${new URLSearchParams({ collection: row.id })}`}
-          items={row.items.map(rowItem)}
+          headingHref={row.headingHref}
+          items={row.items}
         >
           {edited && <span slot="metadata" class="edited">Edited <time datetime={edited.datetime} title={edited.exact}>{edited.label}</time></span>}
         </ContentRow>

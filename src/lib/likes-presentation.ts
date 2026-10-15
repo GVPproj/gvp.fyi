@@ -1,0 +1,42 @@
+import type { ContentRowItem } from '../components/ContentRow.astro';
+import { webURL, likesItemURL, likeItemTitle } from './likes.js';
+
+export interface CollectionOverview {
+  id: string;
+  name: string;
+  items: Array<Record<string, any>>;
+  totalItems: number;
+  updated: string | null;
+}
+
+export function collectionRows(
+  rows: CollectionOverview[],
+  assetURL: (item: Record<string, any>) => string | null,
+  collectionURL: (id: string) => string,
+) {
+  return rows.map(row => ({
+    ...row,
+    headingHref: collectionURL(row.id),
+    items: row.items.map((item): ContentRowItem => {
+      const asset = assetURL(item);
+      const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
+      const textItem = item.type === 'quote' || item.type === 'note';
+      const url = webURL(item.url);
+      const published = item.publishedAsset;
+      return {
+        href: likesItemURL(item),
+        title: likeItemTitle(item),
+        image: !textItem && asset && !pdf ? {
+          src: published?.thumbnail || asset,
+          srcset: published?.srcset || undefined,
+          width: published?.width || 320,
+          height: published?.height || 320,
+          optimized: !published,
+        } : undefined,
+        text: textItem ? (item.body ?? '').slice(0, 400) : undefined,
+        label: pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable',
+        metadata: textItem ? item.attribution : undefined,
+      };
+    }),
+  }));
+}

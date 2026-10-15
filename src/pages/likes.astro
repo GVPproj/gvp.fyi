@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import PublishedItems from '../components/likes/PublishedItems.astro';
 import { createLikesAPI, MISC_COLLECTION } from '../lib/likes.js';
-import type { CollectionRow } from '../components/likes/CollectionRows.astro';
+import type { CollectionOverview } from '../lib/likes-presentation';
 import { sectionLabel } from '../lib/editorial-content';
 
 import StaticLikes from '../components/likes/StaticLikes.astro';
@@ -19,7 +19,7 @@ const cursor = afterCreated && afterId ? { created: afterCreated, id: afterId } 
 // Preserve all-items pagination links shared before the overview was introduced.
 const isOverview = !selectedCollection && !cursor && Astro.url.searchParams.get('view') !== 'all';
 let items = [], collections = [], nextCursor = null, error = '';
-let overview: CollectionRow[] | null = isOverview ? [] : null;
+let overview: CollectionOverview[] | null = isOverview ? [] : null;
 
 // Start uncached: publication changes should be reflected on the next request.
 if (!staticLikesEnabled) Astro.response.headers.set('Cache-Control', 'no-store');
