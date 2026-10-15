@@ -1,10 +1,9 @@
 # Likes API contracts
 
 These describe the retained Likes record API on custom **PocketBase 0.40.4**.
-The whole-content candidate is committed locally, not deployed. See
-[deployment safety](README.md), [static publishing API](server/editorial/README.md)
-and [dashboard authoring](../docs/dashboard-publishing.md). The legacy website
-client behavior below is not the dashboard/static publishing workflow.
+See [deployment safety](README.md), [static publishing API](server/editorial/README.md)
+and [dashboard authoring](../docs/dashboard-publishing.md). These retained endpoints
+serve shared consumers; the website uses static publishing.
 The [server README](server/README.md) owns the preview HTTP and network-security policy.
 
 ## Records, authorization and ordering
@@ -15,9 +14,8 @@ The [server README](server/README.md) owns the preview HTTP and network-security
   email and password of at least 12 characters; never use superuser credentials in
   website code. Administrative superuser writes still undergo runtime content
   validation; custom preview/duplicate endpoints explicitly reject superusers.
-- Anonymous/nonowner item list/view excludes drafts. Native records default to
-  draft; the retained website client's `api.save` defaults `published` to true unless
-  explicitly overridden. Optional commentary is independent of description.
+- Anonymous/nonowner item list/view excludes drafts. New records default to draft.
+  Optional commentary is independent of description.
 - Sort by `-created`, not `-updated`, for newest-saved order. Editing/publication does
   not change saved order. DELETE is permanent with no trash; clients confirm deletion.
   Returning to draft cannot recall downloaded or cached public content.
@@ -97,12 +95,8 @@ The [server README](server/README.md) owns the preview HTTP and network-security
 Fetching never writes records, stages uploads, returns/archives full page HTML or
 executes scripts. Manual saving remains independent of fetch success.
 
-The editor reviews/overrides metadata and locally held image bytes, then submits the
-adopted image as a `File` in the normal atomic multipart asset save. This uses the same
-protected FileField/publication/cleanup lifecycle, not remote hotlinks, a staging
-collection or asynchronous record mutations. Cancelling creates no durable storage.
-Explicit edits and existing metadata survive late responses. Ignore responses for a
-changed URL, cancelled/switched editor, signed-out session or already-started save.
+Consumers submit adopted image bytes as a `File` in the normal multipart asset
+save. Previewing alone creates no durable storage.
 
 `previewProvenance` is a **64 KiB-bounded JSON field**:
 
@@ -163,25 +157,6 @@ canonical-tag lookup, DNS, fetching or writes occur. No URL uniqueness constrain
 migration, index or stored canonical key is added. Lookup is advisory; saving another
 item deliberately remains legal.
 
-### Client WHATWG normalization
-
-`src/lib/likes.js` saves `webURL(value)`: JavaScript `new URL(value).href` for HTTP(S)
-without credentials. Pass **that same serialized value** to lookup, not a raw or
-independently normalized form. Both frontend `api.duplicates` and `api.save` use `webURL`.
-
-WHATWG serialization precedes backend comparison: it can collapse dot segments
-(including encoded ones), normalize IDNs/IPv4/IPv6 spellings, encode literal spaces/
-Unicode and interpret backslashes. Existing save turns `https://example.com/a/../b`
-into `https://example.com/b`; lookup must send the latter too. Those original
-distinctions are already lost on save.
-
-The backend is deliberately **not a WHATWG implementation**: raw API `/a/../b` does
-not match `/b`; raw embedded spaces/backslashes are rejected. It neither retroactively
-WHATWG-normalizes legacy URLs nor rewrites records. Conservatism applies to serialized
-URLs actually saved/submitted; remaining percent encodings and meaningful suffix
-distinctions are preserved. Legacy URLs saved outside the client can conservatively
-fail to match a WHATWG-normalized equivalent; this is preferable to silent merging.
-
 ### Scan, concurrency and client use
 
 Scan `likes_items` in ascending ID order with keyset pages of at most **200 records**,
@@ -190,9 +165,4 @@ parameter. Only matching records accumulate; response size grows with the comple
 match set. This small-site scan is **not a snapshot transaction**: concurrent edits/
 saves can race. It neither reserves URLs nor guarantees uniqueness.
 
-Public endpoints/rules are unchanged. Never cache private results publicly or render
-them to unauthenticated visitors; clear stale/private results on session/editor changes.
-The legacy editor checks only new items with URLs. Updates and uploads/text without
-URLs use normal save flow. Reuse uses the existing editor/memberships; explicit Save another
-retains native field validation. A newly built custom binary is required before
-exposing the prompt; copying JS hooks/frontend alone does not install this route.
+Never cache private results publicly or render them to unauthenticated visitors.

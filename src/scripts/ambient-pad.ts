@@ -143,7 +143,7 @@ function mount(root: HTMLElement) {
     }
     const attempt = activation;
     // Resume within the gesture; concurrent first touches share activation.
-    const ready = enabling ??= audio.enable('sine');
+    const ready = enabling ??= audio.enable();
     try {
       await ready;
       if (dead || attempt !== activation) return;

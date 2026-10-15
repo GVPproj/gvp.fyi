@@ -1,8 +1,7 @@
 # Release publishing contract
 
-Contract for the locally committed, **not deployed** whole-catalogue candidate on
-custom PocketBase **0.40.4**. See [dashboard authoring](../docs/dashboard-publishing.md),
-[imports](../docs/import-editorial.md) and [rollout safety](README.md).
+Contract for custom PocketBase **0.40.4**. See
+[dashboard authoring](../docs/dashboard-publishing.md) and [operations](README.md).
 Editorial content and Likes snapshots use the [editorial API](server/editorial/README.md).
 
 ## Working records
@@ -113,7 +112,7 @@ From the repository root:
 
 ```sh
 (cd pocketbase/server && go test -race ./... && go build -trimpath -o /tmp/gvp-pocketbase .)
-POCKETBASE_BINARY=/tmp/gvp-pocketbase node --test tests/publishing-pocketbase.test.js tests/publishing-import.test.js tests/publishing-build.test.js
+POCKETBASE_BINARY=/tmp/gvp-pocketbase node --test --test-concurrency=1 tests/publishing-pocketbase.test.js tests/publishing-build.test.js
 OLD_POCKETBASE_BINARY=/path/to/pre-toggle-custom-server POCKETBASE_BINARY=/tmp/gvp-pocketbase node --test tests/publishing-upgrade.test.js tests/publishing-migration-failure.test.js
 POCKETBASE_BINARY=/tmp/gvp-pocketbase PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium node --test tests/publishing-workflow-browser.test.js
 ```

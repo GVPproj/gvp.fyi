@@ -63,5 +63,3 @@ export const releaseCategories = fullCatalogue !== null
   { id: 'think-about-life', name: 'with Think About Life', releases: prepareReleases(thinkAboutLife) },
   { id: 'other-credits', name: 'Other Credits', releases: prepareReleases(otherCredits) },
 ];
-
-export type ReleaseCategory = (typeof releaseCategories)[number];

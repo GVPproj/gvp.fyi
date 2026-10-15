@@ -22,7 +22,7 @@ const heading = `${id}-heading`;
 <section class="content-row" aria-labelledby={heading}>
   <div class="content-row-info">
     <h2 id={heading}>{title}</h2>
-    <p>{summary}<slot name="metadata" /></p>
+    <p>{summary}</p>
   </div>
   <ul aria-label={`${title} items`}>
     {items.map(item => (
@@ -63,7 +63,7 @@ const heading = `${id}-heading`;
   .content-title, .subtitle, .item-metadata { display: block; }
   .subtitle, .item-metadata { margin-top: .25rem; }
   .item-metadata { color: var(--nord4); font-size: .8rem; }
-  a:hover .content-title, a:hover .subtitle, a:hover .item-metadata, h2 a:hover { text-decoration: underline; }
+  a:hover .content-title, a:hover .subtitle, a:hover .item-metadata { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--nord8); outline-offset: 2px; }
   .content-preview { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--nord1); margin-bottom: .5rem; color: var(--nord4); }
   .content-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }

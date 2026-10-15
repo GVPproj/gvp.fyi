@@ -1,10 +1,8 @@
 # Editorial publishing backend
 
-Part of the locally committed whole-content candidate, **not deployed**. Ship the
-custom binary, full migration history (including `1782432000_editorial.js`) and
-existing runtime hooks together. See [deployment safety](../../README.md),
-[dashboard authoring](../../../docs/dashboard-publishing.md) and
-[imports](../../../docs/import-editorial.md).
+Ship the custom binary, full migration history and existing runtime hooks together.
+See [deployment safety](../../README.md) and
+[dashboard authoring](../../../docs/dashboard-publishing.md).
 
 ## Exact build contract
 
@@ -53,11 +51,6 @@ owner and build identities receive 403). It returns a sorted array of `{kind, sl
 for retained software/blog/settings identities, including withdrawals and identities
 whose working records were deleted. It exposes no payload, revision, state or media;
 responses use `Cache-Control: no-store` and `Vary: Authorization`.
-
-The loopback importer reads this inventory before creating any draft and skips
-retained collisions as well as existing working records. An unavailable/invalid
-inventory aborts the import. Run against an isolated instance without concurrent
-editorial writes; this preflight is not a cross-request locking protocol.
 
 ## Dashboard records and validation
 
@@ -111,13 +104,12 @@ A group rename/delete refreshes affected **latest published snapshot data**, cop
 its retained files, never reading private working item edits. Deleted working items
 remain coherent too. Group deletion removes that group from retained memberships.
 A group name itself has no draft toggle: renaming a publicly referenced group is an
-intentional published edit. This privacy policy describes the new build API; legacy
-Likes record API visibility rules are deliberately unchanged pending frontend cutover.
-The old website editor's default-publish behavior is not changed by this package.
+intentional published edit. Legacy Likes record API visibility rules remain unchanged for shared consumers.
 
-## Explicit migration rehearsal
+## Seeding a legacy database
 
-No Likes records or files are implicitly backfilled by migration. Before cutover:
+No Likes records or files are implicitly backfilled by migration. For a database
+that predates editorial publishing:
 
 1. Take a paired database/storage/code backup; restore it to an isolated local path.
 2. Build the custom binary and apply its migrations against **that restored copy**.
@@ -147,6 +139,6 @@ From the repository root:
 POCKETBASE_BINARY=/path/to/custom/server node --test tests/editorial-pocketbase.test.js
 ```
 
-These tests use isolated real PocketBase databases/filesystems and HTTP import
+These tests use isolated real PocketBase databases/filesystems and HTTP publishing
 fixtures. They do not establish production deployment, live-data rehearsal or crash
 recovery. The HTTP suite skips without the custom binary.

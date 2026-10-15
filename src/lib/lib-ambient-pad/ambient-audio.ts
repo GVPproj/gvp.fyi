@@ -5,8 +5,6 @@ import { MAX_VOICES } from './ambient-limits.ts';
 const DURATION = 2;
 const VOICE_GAIN = 0.8 / MAX_VOICES;
 
-export type SoundMode = 'sine' | 'samples';
-
 type Voice = { source: AudioScheduledSourceNode; gain: GainNode };
 
 /** Owns one explicitly activated audio context; construction is silent. */
@@ -18,12 +16,8 @@ export class AmbientAudio {
   private resumeFrom?: AudioContextState;
   private disposed = false;
   private generation = 0;
-  private loading?: AbortController;
   private master?: GainNode;
   private volume = 1;
-  private muted = false;
-  private mode: SoundMode = 'sine';
-  private readonly buffers = new Map<string, AudioBuffer>();
   private readonly voices = new Set<Voice>();
 
   constructor(private readonly onInterruption: () => void) {}
@@ -31,21 +25,17 @@ export class AmbientAudio {
   get currentTime(): number { return this.context?.currentTime ?? 0; }
   get ready(): boolean { return this.enabled && this.context?.state === 'running'; }
 
-  async enable(mode: SoundMode, onProgress?: (loaded: number, total: number) => void): Promise<void> {
+  async enable(): Promise<void> {
     if (this.disposed) throw new Error('Audio engine has been disposed');
-    this.cancelLoading();
-    const generation = this.generation;
-    const controller = this.loading = new AbortController();
+    const generation = ++this.generation;
     this.enabled = false;
-    if (mode !== this.mode) this.stop();
-    this.mode = mode;
     this.expectRunning = true;
     try {
       if (!this.context) {
         this.context = new AudioContext();
         this.context.addEventListener('statechange', this.handleStateChange);
         this.master = this.context.createGain();
-        this.master.gain.value = this.muted ? 0 : this.volume;
+        this.master.gain.value = this.volume;
         this.master.connect(this.context.destination);
       }
       const context = this.context;
@@ -54,24 +44,6 @@ export class AmbientAudio {
       await Promise.all([context.resume(), this.mediaChannel.enable()]);
       this.checkGeneration(generation);
       this.resumeFrom = undefined;
-      if (mode === 'samples') {
-        onProgress?.(this.buffers.size, pads.length);
-        for (const pad of pads) {
-          this.checkGeneration(generation);
-          if (this.buffers.has(pad.id)) continue;
-          const response = await fetch(pad.sampleUrl, { signal: controller.signal });
-          this.checkGeneration(generation);
-          if (!response.ok) throw new Error(`Unable to load ${pad.label}: HTTP ${response.status}`);
-          const data = await response.arrayBuffer();
-          this.checkGeneration(generation);
-          const buffer = await context.decodeAudioData(data);
-          // decodeAudioData cannot be aborted: never publish a stale result.
-          this.checkGeneration(generation);
-          this.buffers.set(pad.id, buffer);
-          onProgress?.(this.buffers.size, pads.length);
-        }
-      }
-      this.checkGeneration(generation);
       if (context.state !== 'running') throw new Error('Audio context did not resume; enable sound again');
       this.enabled = true;
     } catch (error) {
@@ -81,18 +53,10 @@ export class AmbientAudio {
         this.resumeFrom = undefined;
         this.stop();
         this.mediaChannel.stop();
-        this.cancelLoading();
+        this.generation++;
       }
       throw error;
-    } finally {
-      if (generation === this.generation) this.loading = undefined;
     }
-  }
-
-  private cancelLoading(): void {
-    this.generation++;
-    this.loading?.abort();
-    this.loading = undefined;
   }
 
   private checkGeneration(generation: number): void {
@@ -123,23 +87,13 @@ export class AmbientAudio {
     if (this.voices.size >= MAX_VOICES) this.silence(this.voices.values().next().value!);
     const start = Math.max(when, context.currentTime);
     const gain = context.createGain();
-    let source: AudioScheduledSourceNode;
-    if (this.mode === 'sine') {
-      const oscillator = context.createOscillator();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = pad.frequency;
-      source = oscillator;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(VOICE_GAIN, start + 0.08);
-      gain.gain.setValueAtTime(VOICE_GAIN, start + 1.4);
-      gain.gain.linearRampToValueAtTime(0, start + DURATION);
-    } else {
-      const sample = context.createBufferSource();
-      sample.buffer = this.buffers.get(pad.id)!;
-      source = sample;
-      // Fixtures contain the same gentle envelope as the oscillator voice.
-      gain.gain.value = VOICE_GAIN;
-    }
+    const source = context.createOscillator();
+    source.type = 'sine';
+    source.frequency.value = pad.frequency;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(VOICE_GAIN, start + 0.08);
+    gain.gain.setValueAtTime(VOICE_GAIN, start + 1.4);
+    gain.gain.linearRampToValueAtTime(0, start + DURATION);
     source.connect(gain).connect(this.master!);
     const voice = { source, gain };
     this.voices.add(voice);
@@ -154,18 +108,13 @@ export class AmbientAudio {
     this.updateMaster();
   }
 
-  setMuted(value: boolean): void {
-    this.muted = value;
-    this.updateMaster();
-  }
-
   private updateMaster(): void {
     if (!this.master || !this.context) return;
     const gain = this.master.gain;
     const now = this.context.currentTime;
     gain.cancelScheduledValues(now);
     gain.setValueAtTime(gain.value, now);
-    gain.linearRampToValueAtTime(this.muted ? 0 : this.volume, now + 0.01);
+    gain.linearRampToValueAtTime(this.volume, now + 0.01);
   }
 
   /** Cancels future starts as well as audible tails, without changing readiness. */
@@ -187,13 +136,13 @@ export class AmbientAudio {
 
   private deactivate(): void {
     this.mediaChannel.stop();
-    this.cancelLoading();
+    this.generation++;
     this.expectRunning = false;
     this.enabled = false;
     this.stop();
   }
 
-  /** Keep decoded samples, but never automatically resume after returning. */
+  /** Never automatically resume after returning. */
   suspend(): void {
     this.deactivate();
     if (this.context && this.context.state !== 'closed') {
@@ -207,7 +156,6 @@ export class AmbientAudio {
     this.context?.removeEventListener('statechange', this.handleStateChange);
     this.deactivate();
     this.master?.disconnect();
-    this.buffers.clear();
     if (this.context && this.context.state !== 'closed') {
       void this.context.close().catch(() => {});
     }

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
-import { tracerRelease, tracerSlug, releaseCategoryIds } from '../src/lib/release-source.js';
+import { tracerRelease, tracerSlug, releaseCategoryIds } from '../lib/release-source.js';
 
 const virtualId = 'virtual:published-release';
 const resolvedId = '\0' + virtualId;
@@ -108,7 +108,7 @@ export async function preparePublishedRelease(env) {
     const release = publicRelease(snapshot.release, full);
     if (full) {
       for (const track of release.tracks) {
-        if (track.audio_url) await access(new URL(`../public${track.audio_url}`, import.meta.url));
+        if (track.audio_url) await access(new URL(`../../public${track.audio_url}`, import.meta.url));
       }
     }
     const { artwork } = snapshot;
