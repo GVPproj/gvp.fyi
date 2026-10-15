@@ -1,18 +1,23 @@
 # Likes API contracts
 
-These describe the coordinated local implementation targeting **PocketBase 0.40.4**,
-not verified production availability. Backend additions 02–07 remain pending; see
-[deployment/recovery](README.md) for exact migration/hook/binary dependencies.
+These describe the retained Likes record API on custom **PocketBase 0.40.4**.
+The whole-content candidate is committed locally, not deployed. See
+[deployment safety](README.md), [static publishing API](server/editorial/README.md)
+and [dashboard authoring](../docs/dashboard-publishing.md). The legacy website
+client behavior below is not the dashboard/static publishing workflow.
 The [server README](server/README.md) owns the preview HTTP and network-security policy.
 
 ## Records, authorization and ordering
 
 - Application mutations require both auth collection `likes_owners` and record
   `likesowner00001`. Other authenticated identities cannot mutate Likes. Public owner
-  signup/management is locked. Administrative superuser writes still undergo runtime
-  content validation; custom preview/duplicate endpoints explicitly reject superusers.
-- Anonymous/nonowner item list/view excludes drafts. New saves publish by default
-  unless explicitly saved as drafts. Optional commentary is independent of description.
+  signup/management is locked. Provision this identity administratively with a private
+  email and password of at least 12 characters; never use superuser credentials in
+  website code. Administrative superuser writes still undergo runtime content
+  validation; custom preview/duplicate endpoints explicitly reject superusers.
+- Anonymous/nonowner item list/view excludes drafts. Native records default to
+  draft; the retained website client's `api.save` defaults `published` to true unless
+  explicitly overridden. Optional commentary is independent of description.
 - Sort by `-created`, not `-updated`, for newest-saved order. Editing/publication does
   not change saved order. DELETE is permanent with no trash; clients confirm deletion.
   Returning to draft cannot recall downloaded or cached public content.
@@ -187,7 +192,7 @@ saves can race. It neither reserves URLs nor guarantees uniqueness.
 
 Public endpoints/rules are unchanged. Never cache private results publicly or render
 them to unauthenticated visitors; clear stale/private results on session/editor changes.
-The client checks only new items with URLs. Updates and uploads/text without URLs use
-normal save flow. Reuse uses the existing editor/memberships; explicit Save another
+The legacy editor checks only new items with URLs. Updates and uploads/text without
+URLs use normal save flow. Reuse uses the existing editor/memberships; explicit Save another
 retains native field validation. A newly built custom binary is required before
 exposing the prompt; copying JS hooks/frontend alone does not install this route.

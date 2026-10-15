@@ -1,40 +1,18 @@
-# Likes URL preview extension
+# Custom PocketBase server
 
-Custom PocketBase executable pinned to **v0.40.4**; requires **Go 1.27+** (Go toolchain auto-download works). Registers JS hooks, JS migrations, the migration CLI, static files, `POST /api/likes/preview`, and the owner-only `POST /api/likes/duplicates` ([comparison policy](../contracts.md#repeated-url-lookup)). Existing hooks/migrations are **not embedded**: ship the full existing backend directories, including hooks for other consumers. Upstream self-update is deliberately absent because it would replace this extension.
+Pinned to **PocketBase v0.40.4**; requires **Go 1.27+** (Go toolchain auto-download
+is supported). Registers JS hooks/migrations, migration CLI, static files,
+[Likes previews](#frontend-contract), [duplicate lookup](../contracts.md#repeated-url-lookup),
+[release publishing](../publishing-contract.md), [editorial publishing](editorial/README.md)
+and explicit `editorial-seed-likes`.
 
-Backend additions 02–07 remain pending deployment per the recorded status; this document describes the local implementation, not verified live routes. See [deployment coordination and recovery](../README.md) for required migrations/hooks, shared-consumer safeguards and the explicitly historical production baseline. No deployment was performed during documentation cleanup.
+The whole-content candidate is committed locally, **not deployed**. See
+[deployment and recovery safety](../README.md). Existing hooks/migrations are
+**not embedded**; ship the full backend directories, including other consumers'
+hooks. Upstream self-update is deliberately absent because it would erase this
+extension.
 
-## Isolated release publishing tracer
-
-The same custom binary registers the [release publishing contract](../publishing-contract.md).
-The recorded Fly development trial uses the OLD separate Publish/Unpublish commands
-and `publishing_tracks`, with migrations `1782086400_publishing.js` and
-`1782172800_release_unpublish.js`; it is not a public-site cutover.
-
-**Implemented and component-tested #9 LOCAL change — pending real-data rehearsal and deployment:** edit metadata,
-owner-accepted native `tracks` JSON and artwork on one release record. New records
-start with persistent **Published** off. Every Save with `published=true` captures
-full metadata/tracks/artwork; false Save stays private and the first transition off
-creates a withdrawal. Deletion retains the latest snapshot/withdrawal and media.
-Pin releases in the native sidebar; internal builds/snapshots remain visible but
-are not owner tasks. Save does not deploy: manually deploy in Netlify.
-
-The runtime and forward migration `1782259200_release_toggle.js` are synced in
-source and backend. Draft, published-with-private-edits and withdrawn upgrade
-fixtures preserve latest snapshots/media without publishing working edits, copy
-ordered tracks into JSON and remove the track collection transactionally. The Go
-importer CLI is copied into source and aligned with the backend;
-`scripts/import-release.mjs` also creates an atomic JSON-track release.
-
-All 17 publishing tests pass with no skips, including Chromium and migration
-refusal rollback. Source/backend Go race suites pass; backend Python publishing
-smoke 1 and build-hook 8 passed. These fixtures do not replace a fresh
-live/private-data rehearsal, which remains pending. No new deployment, owner trial
-or frontend cutover occurred. See the [source rehearsal](../../docs/release-publishing.md#local-verification-and-remaining-rehearsal)
-for commands, including old/new-binary upgrade verification. Likes publication
-behavior is unchanged.
-
-## Build / deploy
+## Build and local setup
 
 From this directory:
 
@@ -43,7 +21,23 @@ go test -race ./...
 go build -trimpath -o /tmp/pocketbase-likes .
 ```
 
-For the existing Linux amd64 Fly image, build with `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/pocketbase-likes .` and use the result as `/pb/pocketbase`. Preserve the existing mounted `/pb/pb_data`, settings, deployment configuration, and all existing application hooks/migration history. Back up and rehearse on a copy first; this change does not deploy anything itself.
+For a disposable local instance, from this directory (never use a production data path):
+
+```sh
+/tmp/pocketbase-likes serve --http=127.0.0.1:8090 \
+  --dir=/tmp/gvp-pocketbase-dev/pb_data \
+  --hooksDir=../pb_hooks --migrationsDir=../pb_migrations
+```
+
+This repository's migrations support local fixtures; do not substitute them for
+shared production history. Provision identities privately; no credentials are seeded.
+
+Production is deployed from sibling `../pocketbase-fly-starter`; **pushes to its
+`main` deploy production**. For its Linux amd64 image, build with
+`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/pocketbase-likes .`
+and use the result as `/pb/pocketbase`. Preserve the mounted `/pb/pb_data`, settings,
+configuration and full hooks/migration history. After backup, rehearsal and approval,
+the production command is:
 
 ```sh
 /pb/pocketbase serve --http=0.0.0.0:8090 \
@@ -59,7 +53,15 @@ Repository integration verification (from repo root):
 POCKETBASE_BINARY=/tmp/pocketbase-likes node --test tests/pocketbase.test.js
 ```
 
-This runs on temporary loopback servers, not production; verifies existing migrations/hooks and the normal asset save, access-control, replacement/deletion lifecycle.
+Or run `POCKETBASE_BINARY=/tmp/pocketbase-likes pnpm test`, then `pnpm check` and
+`pnpm build`. HTTP tests need Node native fetch/FormData and `python3`; without
+`POCKETBASE_BINARY` they skip. Supply `PLAYWRIGHT_CHROMIUM_EXECUTABLE` for browser
+checks and the pre-toggle custom binary for upgrade tests as described in the
+[release contract](../publishing-contract.md#migration-and-verification).
+
+Tests use disposable loopback databases and controlled network fixtures, not
+production credentials/writes. They do not establish crash recovery or live-data
+migration safety. File inventories, not URL 404s alone, establish physical cleanup.
 
 ## Frontend contract
 

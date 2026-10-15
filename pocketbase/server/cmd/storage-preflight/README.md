@@ -1,4 +1,7 @@
-# Storage preflight (Linux)
+# Read-only storage inventory (Linux)
+
+Use for capacity and file reconciliation, not S3 migration or cleanup. For deployment
+and recovery requirements see [backend safety](../../../README.md).
 
 From `pocketbase/server`:
 
@@ -68,14 +71,6 @@ Missing storage/originals are counted, not fatal. This is not a cleanup tool.
 - Filesystem inventory is **live**, not atomically consistent with the database
   or other files. Concurrent in-place changes can yield mixed observations even
   if inspection succeeds. Preserve data and coordinate writes before remediation.
-
-Driver verification: modernc SQLite v1.57.0's Linux/amd64 build includes
-`lib/sqlite_g_0000000000002880.go`. Its `_unixOpenSharedMemory` checks
-`sqlite3_uri_boolean` at string-table offset 3965 (`readonly_shm` in
-`sqlite_g_00000000000023c0.go`): when true it skips `O_RDWR|O_CREAT`, opens shm
-with `O_RDONLY`, and sets `isReadonly` for read-only mapping. `mode=ro` alone
-does not provide that guarantee. The separate-process WAL test verifies visible
-WAL records and unchanged DB/sidecar contents.
 
 Tests use synthetic SQLite databases (including a real view) and local files only:
 

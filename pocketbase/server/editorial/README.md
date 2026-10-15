@@ -1,7 +1,10 @@
 # Editorial publishing backend
 
-Local implementation for #21. Ship the custom binary, all migrations and existing
-Likes JS hooks together. No deployment or production write is implied.
+Part of the locally committed whole-content candidate, **not deployed**. Ship the
+custom binary, full migration history (including `1782432000_editorial.js`) and
+existing runtime hooks together. See [deployment safety](../../README.md),
+[dashboard authoring](../../../docs/dashboard-publishing.md) and
+[imports](../../../docs/import-editorial.md).
 
 ## Exact build contract
 
@@ -138,17 +141,12 @@ retained publication/media.
 
 `cd pocketbase/server && go test ./... && go test -race ./editorial`
 
-The editorial test applies the actual JS migrations/hooks to an isolated real
-PocketBase DB and filesystem. It covers default drafts, identity/object validation,
-publication/file retention, withdrawal, deletion/recreation, auth (including rejection
-of superuser build access), snapshot API immutability, failed publication rollback,
-explicit/idempotent seeding, Likes allowlisting, membership, draft-only group privacy,
-collection rename/delete with retained assets after working-item deletion, and the
-unseeded-published deletion guard (including rejected-deletion file preservation,
-seeded deletion, draft deletion and pre-editorial schema compatibility).
+From the repository root:
 
-`POCKETBASE_BINARY=/path/to/custom/server node --test tests/editorial-pocketbase.test.js`
-exercises the actual HTTP importer, retained published/withdrawn collisions, restricted
-identity inventory, differently named replacement bytes through frontend preparation
-and materialization, multi-file name matching, ambiguous/invalid alias rejection,
-working-file rollback and old snapshot asset retention.
+```sh
+POCKETBASE_BINARY=/path/to/custom/server node --test tests/editorial-pocketbase.test.js
+```
+
+These tests use isolated real PocketBase databases/filesystems and HTTP import
+fixtures. They do not establish production deployment, live-data rehearsal or crash
+recovery. The HTTP suite skips without the custom binary.
