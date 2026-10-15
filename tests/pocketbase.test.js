@@ -9,7 +9,6 @@ import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { createLikesAPI } from '../src/lib/likes.js';
 
 // 'likes' (5) + 'owner' (5) + '00001' (5).
 // Exactly 15 lowercase alphanumeric characters; set this ID in the admin UI.
@@ -18,6 +17,38 @@ const binary = process.env.POCKETBASE_BINARY && path.resolve(process.env.POCKETB
 const hooks = fileURLToPath(new URL('../pocketbase/pb_hooks/', import.meta.url));
 const migrations = fileURLToPath(new URL('../pocketbase/pb_migrations/', import.meta.url));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Small REST fixture helpers, not the removed website client. Bodies are sent
+// unchanged; tests explicitly choose publication state and multipart encoding.
+function backend(request) {
+  const records = 'collections/likes_items/records';
+  async function ok(route, options, status = 200) {
+    const result = await request(route, options);
+    assert.equal(result.status, status, JSON.stringify(result));
+    return result.data;
+  }
+  async function query(params = {}, token) {
+    return ok(`${records}?${new URLSearchParams({ perPage: '100', sort: '-created,-id', ...params })}`, { token });
+  }
+  return {
+    login: (identity, password) => ok('collections/likes_owners/auth-with-password', { method: 'POST', body: { identity, password } }),
+    save: (token, body, id) => ok(id ? `${records}/${id}` : records, { method: id ? 'PATCH' : 'POST', token, body }),
+    remove: (token, id) => ok(`${records}/${id}`, { method: 'DELETE', token }, 204),
+    saveCollection: (token, name) => ok('collections/likes_collections/records', { method: 'POST', token, body: { name } }),
+    list: async () => (await query()).items,
+    listDrafts: async (token) => (await query({ filter: 'published = false' }, token)).items,
+    // Exercise PocketBase's compound keyset filter and one-record lookahead.
+    async listPage({ collection, cursor } = {}) {
+      const filters = [];
+      if (collection) filters.push(`collections.id ?= "${collection}"`);
+      if (cursor) filters.push(`(created < "${cursor.created}" || (created = "${cursor.created}" && id < "${cursor.id}"))`);
+      const result = await query({ perPage: '25', filter: filters.join(' && ') });
+      const items = result.items.slice(0, 24);
+      const last = items.at(-1);
+      return { items, nextCursor: result.items.length > 24 ? { created: last.created, id: last.id } : null };
+    },
+  };
+}
 
 async function start(t, { migrate = true, beforeText = false } = {}) {
   assert.match(execFileSync(binary, ['--version'], { encoding: 'utf8' }), /version 0\.40\.4\s*$/);
@@ -91,7 +122,7 @@ async function start(t, { migrate = true, beforeText = false } = {}) {
 test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
   skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
 }, async (t) => {
-  const { request, base, adminToken } = await start(t);
+  const { request, adminToken } = await start(t);
   assert.equal(OWNER_ID.length, 15);
   assert.equal((await request('collections/likes_owners/records', { token: adminToken })).data.totalItems, 0,
     'Migration must not provision an owner or credentials');
@@ -99,7 +130,7 @@ test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
   const account = { id: OWNER_ID, email: 'owner@example.test', password, passwordConfirm: password };
   const owner = await request('collections/likes_owners/records', { method: 'POST', token: adminToken, body: account });
   assert.equal(owner.status, 200, JSON.stringify(owner));
-  const api = createLikesAPI(base);
+  const api = backend(request);
   const auth = await api.login(account.email, password);
   assert.equal(auth.record.id, OWNER_ID);
   const records = 'collections/likes_items/records';
@@ -199,7 +230,7 @@ test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
 
   await t.test('newly saved items appear first publicly; description is optional and http is accepted', async () => {
     await pause(1100); // Different creation timestamps, not accidental ID ordering.
-    const newest = await api.save(auth.token, { url: 'http://example.com/newest', title: 'Newest', description: '' });
+    const newest = await api.save(auth.token, { url: 'http://example.com/newest', title: 'Newest', description: '', published: true });
     assert.deepEqual((await api.list()).map((item) => item.id), [newest.id, first.id]);
     const noDescription = await request(records, { method: 'POST', token: auth.token,
       body: { url: 'https://example.com/optional', title: 'No description', published: false } });
@@ -213,7 +244,7 @@ test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
     await pause(1100);
     const newer = await api.save(auth.token, { ...fields, title: 'Newer draft' });
     assert.deepEqual((await api.listDrafts(auth.token)).slice(0, 2).map((item) => item.id), [newer.id, older.id]);
-    const editedFields = { url: 'https://example.com/edited', title: 'Edited', description: 'Edited summary', commentary: 'Edited thoughts' };
+    const editedFields = { url: 'https://example.com/edited', title: 'Edited', description: 'Edited summary', commentary: 'Edited thoughts', published: true };
     const edited = await api.save(auth.token, editedFields, older.id);
     assert.equal(edited.created, older.created);
     assert.ok(Date.parse(edited.updated) > Date.parse(older.updated));
@@ -238,7 +269,10 @@ test('PocketBase 0.40.4 Likes integration (temporary loopback server only)', {
     const fields = { ...valid, commentary: 'a'.repeat(10000), published: false };
     const item = await api.save(auth.token, fields);
     assert.equal(item.commentary, fields.commentary);
-    await assert.rejects(api.save(auth.token, { ...fields, commentary: 'b'.repeat(10001) }, item.id), /link fields/);
+    const rejected = await request(`${records}/${item.id}`, { method: 'PATCH', token: auth.token,
+      body: { ...fields, commentary: 'b'.repeat(10001) } });
+    assert.equal(rejected.status, 400);
+    assert.ok(rejected.data.data.commentary);
     const preserved = await request(`${records}/${item.id}`, { token: auth.token });
     assert.equal(preserved.data.commentary, fields.commentary);
     assert.equal(preserved.data.created, item.created);
@@ -415,7 +449,7 @@ test('named collections through the PocketBase REST interface', {
 test('collection overview: real PocketBase public totals, latest edits and empty multi-relations', {
   skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
 }, async (t) => {
-  const { request, base, adminToken, dir, restart } = await start(t);
+  const { request, adminToken, dir, restart } = await start(t);
   // Explicit dates are fixture-only: the deployed schema keeps native autodates.
   await writeFile(path.join(dir, 'hooks/overview-fixtures.pb.js'), `
     onRecordUpdateRequest((e) => {
@@ -427,7 +461,6 @@ test('collection overview: real PocketBase public totals, latest edits and empty
     }, "likes_items");
   `);
   await restart();
-  const api = createLikesAPI(base);
   const groups = 'collections/likes_collections/records';
   const records = 'collections/likes_items/records';
   async function create(route, body) {
@@ -459,45 +492,57 @@ test('collection overview: real PocketBase public totals, latest edits and empty
   }
   await seed(100, [reading.id, drafts.id], '2026-04-01 00:00:00.000Z', false);
   await seed(101, [], '2026-04-01 00:00:00.000Z', false);
-  const rows = await api.listCollectionOverview();
-  assert.deepEqual(rows.map(row => [row.id, row.name]), [
-    [art.id, 'Art'], [drafts.id, 'Drafts only'], [empty.id, 'Empty'], [reading.id, 'Reading'], ['misc', 'Misc.'],
+  const groupList = await request(`${groups}?sort=name`);
+  assert.equal(groupList.status, 200);
+  assert.deepEqual(groupList.data.items.map(group => [group.id, group.name]), [
+    [art.id, 'Art'], [drafts.id, 'Drafts only'], [empty.id, 'Empty'], [reading.id, 'Reading'],
   ]);
-  assert.deepEqual(rows.map(row => row.totalItems), [1, 0, 0, 11, 11]);
-  assert.deepEqual(rows.map(row => row.updated), [recent, null, null, recent, recent]);
-  assert.deepEqual(rows[3].items.map(item => item.id), [2, 1, 11, 10, 9, 8, 7, 6].map(id));
-  assert.deepEqual(rows[4].items.map(item => item.id), [22, 21, 31, 30, 29, 28, 27, 26].map(id));
-  assert.ok(rows.flatMap(row => row.items).every(item => item.published));
-  assert.ok(rows[4].items.every(item => item.collections.length === 0));
-  const miscPage = await api.listPage({ collection: 'misc' });
+  // Verify the backend queries underlying totals/latest edits, without rebuilding
+  // website overview rows or their synthetic Misc. collection.
+  async function members(collection, { perPage = '8', sort = '-updated,-created,-id' } = {}) {
+    const query = new URLSearchParams({ perPage, sort,
+      filter: collection ? `collections.id ?= "${collection}"` : 'collections:length = 0' });
+    const result = await request(`${records}?${query}`);
+    assert.equal(result.status, 200, JSON.stringify(result));
+    assert.ok(result.data.items.every(item => item.published));
+    return result.data;
+  }
+  const pages = await Promise.all([art.id, drafts.id, empty.id, reading.id, null].map(id => members(id)));
+  assert.deepEqual(pages.map(page => page.totalItems), [1, 0, 0, 11, 11]);
+  assert.deepEqual(pages.map(page => page.items[0]?.updated ?? null), [recent, null, null, recent, recent]);
+  assert.deepEqual(pages[3].items.map(item => item.id), [2, 1, 11, 10, 9, 8, 7, 6].map(id));
+  assert.deepEqual(pages[4].items.map(item => item.id), [22, 21, 31, 30, 29, 28, 27, 26].map(id));
+  assert.ok(pages[4].items.every(item => item.collections.length === 0));
+  const miscPage = await members(null, { perPage: '24', sort: '-created,-id' });
   assert.deepEqual(miscPage.items.map(item => item.id), Array.from({ length: 11 }, (_, n) => id(31 - n)));
-  assert.equal(miscPage.nextCursor, null);
+  assert.equal(miscPage.totalPages, 1);
 
   // A more recent draft edit and removal from a named collection are not row history.
   await patch(id(1), { published: false });
   await patch(id(2), { collections: [] });
-  const changed = await api.listCollectionOverview();
-  assert.deepEqual(changed[0], { id: art.id, name: 'Art', items: [], totalItems: 0, updated: null });
-  assert.equal(changed[3].totalItems, 9);
-  assert.equal(changed[3].updated, older);
-  assert.equal(changed[4].totalItems, 12);
-  assert.equal(changed[4].items[0].id, id(2));
-  assert.equal(changed[4].updated, changed[4].items[0].updated);
+  const changedArt = await members(art.id);
+  assert.equal(changedArt.totalItems, 0);
+  assert.deepEqual(changedArt.items, []);
+  const changedReading = await members(reading.id);
+  assert.equal(changedReading.totalItems, 9);
+  assert.equal(changedReading.items[0].updated, older);
+  const changedMisc = await members(null);
+  assert.equal(changedMisc.totalItems, 12);
+  assert.equal(changedMisc.items[0].id, id(2));
 
-  // Misc. is still present when every published item has a membership.
+  // The empty-multi-relation query returns no items once all have memberships.
   for (const n of [2, ...Array.from({ length: 11 }, (_, n) => n + 21)]) {
     await patch(id(n), { collections: [reading.id] });
   }
-  assert.deepEqual((await api.listCollectionOverview()).at(-1), {
-    id: 'misc', name: 'Misc.', items: [], totalItems: 0, updated: null,
-  });
-  assert.deepEqual(await api.listPage({ collection: 'misc' }), { items: [], nextCursor: null });
+  const noUngrouped = await members(null);
+  assert.equal(noUngrouped.totalItems, 0);
+  assert.deepEqual(noUngrouped.items, []);
 });
 
 test('load more: real PocketBase keyset pagination', {
   skip: !binary && 'Set POCKETBASE_BINARY to a local PocketBase v0.40.4 executable',
 }, async (t) => {
-  const { request, base, adminToken, dir, restart } = await start(t);
+  const { request, adminToken, dir, restart } = await start(t);
   // Autodate fields ignore REST values in v0.40.4. This fixture-only hook
   // permits explicit superuser fixture dates, without altering deployed schema
   // or owner edits. All records still pass real HTTP validation and access rules.
@@ -510,7 +555,7 @@ test('load more: real PocketBase keyset pagination', {
     }, "likes_items");
   `);
   await restart();
-  const api = createLikesAPI(base);
+  const api = backend(request);
   const records = 'collections/likes_items/records';
   const password = randomBytes(24).toString('hex');
   assert.equal((await request('collections/likes_owners/records', { method: 'POST', token: adminToken,
@@ -566,7 +611,7 @@ test('load more: real PocketBase keyset pagination', {
     assert.deepEqual(all, expected);
     const last = third.items.at(-1);
     checkPage(await api.listPage({ cursor: { created: last.created, id: last.id } }), [], false);
-    // The old all-records API stays available, not silently capped at 24.
+    // A larger REST page returns all 53 public fixtures.
     assert.deepEqual((await api.list()).map((item) => item.id), expected);
   });
 
@@ -866,7 +911,6 @@ test('asset record and file HTTP contract', {
     return names.filter((name) => name.startsWith('storage/') && !name.endsWith('/')).sort();
   }
   await t.test('reviewed URL preview bytes and provenance save atomically with protected asset lifecycle', async () => {
-    const api = createLikesAPI(base);
     const previewProvenance = { fetched: { sourceURL: 'https://example.com/source', finalURL: 'https://example.com/final',
       fetchedAt: '2026-10-01T00:00:00Z', title: 'Fetched title', description: 'Fetched description',
       image: { sourceURL: 'https://example.com/image.png', finalURL: 'https://example.com/image.png', name: 'preview.png', type: 'image/png' } },
@@ -874,11 +918,17 @@ test('asset record and file HTTP contract', {
       assetSource: { sourceURL: 'https://example.com/image.png', finalURL: 'https://example.com/image.png', name: 'preview.png',
         type: 'image/png', fetchedAt: '2026-10-01T00:00:00Z', pageURL: 'https://example.com/final' } };
     const before = await storedFiles();
-    const item = await api.save(token, { url: 'https://example.com/source', title: 'Owner title', description: 'Fetched description',
-      published: false, asset: new File([png], 'preview.png', { type: 'image/png' }), previewProvenance });
+    const created = await save(upload(png, 'preview.png', {
+      url: 'https://example.com/source', title: 'Owner title', description: 'Fetched description',
+      published: false, previewProvenance: JSON.stringify(previewProvenance),
+    }));
+    assert.equal(created.status, 200, JSON.stringify(created));
+    const item = created.data;
     assert.deepEqual(item.previewProvenance, previewProvenance);
     assert.ok([403, 404].includes((await fetch(fileURL(item))).status));
-    const ft = await api.fileToken(token);
+    const fileToken = await request('files/token', { method: 'POST', token });
+    assert.equal(fileToken.status, 200);
+    const ft = fileToken.data;
     assert.deepEqual(Buffer.from(await (await fetch(fileURL(item, `?token=${ft.token}`))).arrayBuffer()), png);
     await restart();
     const persisted = await request(`${records}/${item.id}`, { token });
@@ -897,7 +947,7 @@ test('asset record and file HTTP contract', {
     assert.ok(after.filter(name => name.startsWith(retainedPrefix)).length > before.filter(name => name.startsWith(retainedPrefix)).length,
       'Previously published media remains retained for pinned builds');
     assert.equal((await request(`${records}/${item.id}`)).data.url, 'https://example.com/source');
-    await api.remove(token, item.id);
+    assert.equal((await request(`${records}/${item.id}`, { method: 'DELETE', token })).status, 204);
   });
   let image;
   await t.test('standalone image upload returns one filename and is publicly downloadable', async () => {

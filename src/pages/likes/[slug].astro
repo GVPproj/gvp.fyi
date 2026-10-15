@@ -1,36 +1,15 @@
 ---
-import { Image } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
-import { createLikesAPI, likeItemTitle, likesItemURL, webURL } from '../../lib/likes.js';
-
-import { staticLikesEnabled, publishedLikes } from '../../lib/published-likes.js';
-export const prerender = false; // The publishing integration enables static routes at cutover.
+import { likeItemTitle, webURL } from '../../lib/likes.js';
+import { publishedLikes } from '../../lib/published-likes.js';
 export function getStaticPaths() {
   return publishedLikes.map(item => ({ params: { slug: item.id }, props: { item } }));
 }
 
-// Match the public overview's runtime configuration and request deadline.
-const endpoint = process.env.PUBLIC_POCKETBASE_URL ?? import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
-const id = Astro.params.slug ?? '';
-if (!staticLikesEnabled) Astro.response.headers.set('Cache-Control', 'no-store');
-const api = createLikesAPI(endpoint, (url, options) => fetch(url, {
-  ...options, signal: AbortSignal.timeout(8000),
-}));
-let item: Record<string, any> | null = null;
-let error = '';
-try {
-  item = staticLikesEnabled ? Astro.props.item : await api.getPublishedItem(id);
-  if (!item) {
-    Astro.response.status = 404;
-    error = 'This item was not found.';
-  }
-} catch {
-  Astro.response.status = 503;
-  error = 'Likes is temporarily unavailable.';
-}
-const title = item ? likeItemTitle(item) : Astro.response.status === 503 ? 'Likes unavailable' : 'Item not found';
-const source = webURL(item?.url);
-const asset = item ? staticLikesEnabled ? item.publishedAsset?.url : webURL(api.assetURL(item)) : null;
+const { item } = Astro.props;
+const title = likeItemTitle(item);
+const source = webURL(item.url);
+const asset = item.publishedAsset?.url;
 const pdf = asset && /\.pdf$/i.test(item?.asset ?? '');
 const textItem = item?.type === 'quote' || item?.type === 'note';
 ---
@@ -39,13 +18,7 @@ const textItem = item?.type === 'quote' || item?.type === 'note';
   <article id="like-detail" class="like-detail">
     <a href="/likes">← Likes</a>
     <header><h1>{title}</h1></header>
-    {error ? (
-      <p role="status">
-        {error}
-        {Astro.response.status === 503 && <> <a href={likesItemURL({ id })}>Try again</a></>}
-      </p>
-    ) : item && (
-      <>
+    <>
         {textItem && (item.type === 'quote' ? (
           <figure class="quotation">
             <blockquote>{item.body ?? ''}</blockquote>
@@ -57,24 +30,12 @@ const textItem = item?.type === 'quote' || item?.type === 'note';
             {item.attribution && <p class="attribution">{item.attribution}</p>}
           </>
         ))}
-        {asset && !pdf && staticLikesEnabled && <img src={asset} srcset={item.publishedAsset?.srcset || undefined} sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={title} width={item.publishedAsset?.width} height={item.publishedAsset?.height} loading="lazy" />}
-        {asset && !pdf && !staticLikesEnabled && <Image
-          src={asset}
-          alt={title}
-          width={640}
-          height={640}
-          widths={[320, 640, 960]}
-          sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)"
-          fit="contain"
-          format="webp"
-          loading="lazy"
-        />}
+        {asset && !pdf && <img src={asset} srcset={item.publishedAsset?.srcset || undefined} sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={title} width={item.publishedAsset?.width} height={item.publishedAsset?.height} loading="lazy" />}
         {asset && <p><a href={asset} target="_blank" rel="noopener noreferrer">{pdf ? 'Open PDF' : 'Open original image'}</a></p>}
         {source && <p><a class="source" href={source} target="_blank" rel="noopener noreferrer">Source: {new URL(source).hostname}</a></p>}
         {item.description && <p class="description">{item.description}</p>}
         {item.commentary && <p class="commentary">{item.commentary}</p>}
-      </>
-    )}
+    </>
   </article>
 </Layout>
 

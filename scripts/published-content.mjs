@@ -110,7 +110,7 @@ export default function publishedContent() {
   return { name: 'published-content', hooks: {
     'astro:route:setup': ({ route }) => {
       if (['src/pages/likes.astro', 'src/pages/likes/[slug].astro'].includes(route.component)) {
-        route.prerender = process.env.PUBLISHING_CONTENT === 'true';
+        route.prerender = true;
       }
     },
     'astro:config:setup': async ({ updateConfig }) => {

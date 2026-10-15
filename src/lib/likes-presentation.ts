@@ -6,19 +6,13 @@ export interface CollectionOverview {
   name: string;
   items: Array<Record<string, any>>;
   totalItems: number;
-  updated: string | null;
 }
 
-export function collectionRows(
-  rows: CollectionOverview[],
-  assetURL: (item: Record<string, any>) => string | null,
-  collectionURL: (id: string) => string,
-) {
+export function collectionRows(rows: CollectionOverview[]) {
   return rows.map(row => ({
     ...row,
-    headingHref: collectionURL(row.id),
     items: row.items.map((item): ContentRowItem => {
-      const asset = assetURL(item);
+      const asset = item.publishedAsset?.url;
       const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
       const textItem = item.type === 'quote' || item.type === 'note';
       const url = webURL(item.url);
@@ -31,7 +25,6 @@ export function collectionRows(
           srcset: published?.srcset || undefined,
           width: published?.width || 320,
           height: published?.height || 320,
-          optimized: !published,
         } : undefined,
         text: textItem ? (item.body ?? '').slice(0, 400) : undefined,
         label: pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable',

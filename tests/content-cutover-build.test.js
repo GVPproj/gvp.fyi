@@ -9,6 +9,17 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
+import { parseHTML } from 'linkedom';
+
+const removedViews = '#collection-filters, #all-items, #likes-board, .likes-grid, nav[aria-label="Likes pagination"]';
+function assertStaticRows(document) {
+  assert.equal(document.querySelector(removedViews), null, 'no collection navigation or alternate grids');
+  assert.equal(document.querySelector('#collection-rows h2 a'), null, 'collection headings are not navigation');
+  assert.equal(document.querySelector('a[href*="?collection="], a[href*="?view="], a[href^="#collection-"], a[href="#all-items"]'), null);
+  assert.equal(document.querySelectorAll('#collection-rows .content-row').length, 1);
+  assert.ok(document.querySelector('#collection-rows a[href="/likes/publicnote00001"]'));
+  assert.equal(document.querySelectorAll('#collection-rows .content-row li').length, 10, 'rows include all items, not only the former eight previews');
+}
 
 // Real Astro build: the public Likes output must not need a running backend.
 test('full-content mode emits static Likes and ignores draft/withdrawn items', { timeout: 90000 }, async t => {
@@ -20,6 +31,10 @@ test('full-content mode emits static Likes and ignores draft/withdrawn items', {
     { revision: 'note2', kind: 'like', slug: 'withdrawn000001', state: 'unpublished' },
     { revision: 'image1', kind: 'like', slug: 'publicimage001', state: 'published', data: { title: 'Published image fixture', type: 'image', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [{ name: 'fixture.png', path: '/api/publishing/content-assets/image1/fixture.png', sha256: createHash('sha256').update(image).digest('hex') }] },
   ];
+  for (let i = 0; i < 8; i++) entries.push({
+    revision: `extra${i}`, kind: 'like', slug: `extra-note-${i}`, state: 'published',
+    data: { title: `Extra note ${i}`, type: 'note', body: 'More row content', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [],
+  });
   const server = createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'private-fixture-token', record: { collectionName: 'publishing_builds' } }));
@@ -48,10 +63,13 @@ test('full-content mode emits static Likes and ignores draft/withdrawn items', {
   assert.match(overview, /id="collection-rows"/, 'Static Likes must reuse the shared collection overview');
   assert.match(overview, /class="content-row"/, 'Static Likes must use the same ContentRow presentation as other pages');
   assert.match(detail, /Works with the backend offline/);
+  assertStaticRows(parseHTML(overview).document);
   for (const html of [overview, detail]) {
     assert.doesNotMatch(html, /private-fixture|withdrawn000001|api\/files/);
   }
   await assert.rejects(readFile(join(dir, 'likes/withdrawn000001/index.html')));
+  await assert.rejects(readFile(join(dir, 'likes/manage/index.html')));
+  await assert.rejects(readFile(join(dir, 'login/index.html')));
   assert.doesNotMatch(overview, /id="owner-session"|id="manage-likes"/);
   if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE) {
     const staticServer = createServer(async (req, res) => {
@@ -81,13 +99,13 @@ test('full-content mode emits static Likes and ignores draft/withdrawn items', {
     await preview.evaluate(image => image.decode());
     assert.ok(await preview.evaluate(image => image.naturalWidth > 0));
     assert.equal(await page.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).count(), 1);
-    await page.goto(`${origin}/likes/?collection=group1`);
-    await page.waitForFunction(() => document.querySelector('#collection-group1')?.matches(':target'));
-    assert.equal(await page.locator('#collection-group1').isVisible(), true);
-    assert.equal(await page.locator('#all-items').isVisible(), false);
-    await page.getByRole('link', { name: 'All items', exact: true }).click();
-    assert.equal(await page.locator('#all-items').isVisible(), true);
-    await page.locator('#all-items').getByRole('link', { name: /Static publication fixture/ }).click();
+    for (const suffix of ['?collection=group1', '?view=all', '#collection-group1', '#all-items']) {
+      await page.goto(`${origin}/likes/${suffix}`);
+      assert.equal(await page.locator('#collection-rows').isVisible(), true);
+      assert.equal(await page.locator(removedViews).count(), 0);
+      assertStaticRows(parseHTML(await page.content()).document);
+    }
+    await page.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).click();
     await page.locator('#like-detail').getByText('Works with the backend offline.', { exact: true }).waitFor();
     assert.deepEqual(apiRequests, []);
 
@@ -95,11 +113,13 @@ test('full-content mode emits static Likes and ignores draft/withdrawn items', {
     const noScript = await browser.newPage({ javaScriptEnabled: false });
     await noScript.goto(`${origin}/likes/`);
     assert.equal(await noScript.locator('#collection-rows').isVisible(), true);
-    await noScript.locator('#collection-rows').getByRole('link', { name: 'Reading', exact: true }).click();
-    assert.equal(await noScript.locator('#collection-group1').isVisible(), true);
-    await noScript.getByRole('link', { name: 'All items', exact: true }).filter({ visible: true }).click();
-    assert.equal(await noScript.locator('#all-items').isVisible(), true);
-    await noScript.locator('#all-items').getByRole('link', { name: /Static publication fixture/ }).click();
+    assertStaticRows(parseHTML(await noScript.content()).document);
+    await noScript.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).click();
     assert.equal(await noScript.locator('#like-detail').isVisible(), true);
+    assert.match(await noScript.locator('#like-detail').textContent(), /Works with the backend offline/);
+    await noScript.reload();
+    assert.equal(await noScript.locator('#like-detail').isVisible(), true);
+    await noScript.goBack();
+    assert.equal(await noScript.locator('#collection-rows').isVisible(), true);
   }
 });

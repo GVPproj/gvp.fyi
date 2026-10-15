@@ -20,8 +20,9 @@ manual checkpoint, backend deployment/import and Netlify configuration/deploymen
   Working-record reads, mutation and administrative inventory are denied to it.
   Superuser MFA remains enabled; shared records and the existing superuser are unchanged.
 - Full static content mode is enabled. Public pages/media do not require PocketBase.
-  `/login` and `/likes/manage` are static redirects to `/likes`; unrelated shared
-  backend consumers and legacy rollback code remain intact.
+  Current source removes website login/management and the live Likes reader; use
+  the PocketBase dashboard (`/_/`) for editing. Likes remains static even without
+  full content mode (an empty overview). Unrelated shared backend consumers remain intact.
 
 ## Verification and operational notes
 

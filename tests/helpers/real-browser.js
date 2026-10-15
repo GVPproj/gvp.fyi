@@ -23,7 +23,7 @@ async function startServer(t) {
     'dev', '--ignore-lock', '--host', '127.0.0.1', '--port', String(port),
   ], {
     cwd: fileURLToPath(new URL('../../', import.meta.url)),
-    env: { ...process.env, PUBLIC_POCKETBASE_URL: 'https://pb.example', ASTRO_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, PUBLIC_POCKETBASE_URL: '', ASTRO_TELEMETRY_DISABLED: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logs = '', spawnError;
@@ -45,8 +45,8 @@ async function startServer(t) {
   for (let attempt = 0; attempt < 200; attempt++) {
     if (spawnError || child.exitCode !== null) break;
     try {
-      // Probe the client editor: public /likes performs server-side backend requests.
-      if ((await fetch(`${base}/likes/manage`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
+      // Probe a local-content page: public /likes performs server-side backend requests.
+      if ((await fetch(`${base}/software`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 100));
   }

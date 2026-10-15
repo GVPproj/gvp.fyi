@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { preparePublishedContent } from '../scripts/published-content.mjs';
+import publishedContent, { preparePublishedContent } from '../scripts/published-content.mjs';
 
 const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: 'http://127.0.0.1:8090', PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'secret-private' };
 function fixture(snapshots, asset = null) {
@@ -10,6 +10,18 @@ function fixture(snapshots, asset = null) {
     : url.pathname === '/api/publishing/content' ? JSON.stringify(snapshots) : asset);
 }
 const published = { revision: 'rev1', kind: 'like', slug: 'item1', state: 'published', data: { title: 'Public note', body: 'hello', type: 'note' }, assets: [] };
+test('Likes routes always prerender, independent of content mode', () => {
+  const setup = publishedContent().hooks['astro:route:setup'];
+  for (const component of ['src/pages/likes.astro', 'src/pages/likes/[slug].astro']) {
+    const route = { component, prerender: false };
+    setup({ route });
+    assert.equal(route.prerender, true);
+  }
+  const unrelated = { component: 'src/pages/blog.astro', prerender: false };
+  setup({ route: unrelated });
+  assert.equal(unrelated.prerender, false);
+});
+
 test('disabled mode does not make backend requests', async () => {
   assert.deepEqual(await preparePublishedContent({}, () => { throw Error('called'); }), { content: null, files: [] });
 });

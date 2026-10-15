@@ -1,10 +1,8 @@
 ---
-import { Image } from 'astro:assets';
-
 export interface ContentRowItem {
   href: string;
   title: string;
-  image?: { src: string; srcset?: string; width: number; height: number; optimized?: boolean };
+  image?: { src: string; srcset?: string; width: number; height: number };
   text?: string;
   label?: string;
   subtitle?: string;
@@ -16,15 +14,14 @@ interface Props {
   title: string;
   summary: string;
   items: ContentRowItem[];
-  headingHref?: string;
 }
-const { id, title, summary, items, headingHref } = Astro.props;
+const { id, title, summary, items } = Astro.props;
 const heading = `${id}-heading`;
 ---
 
 <section class="content-row" aria-labelledby={heading}>
   <div class="content-row-info">
-    <h2 id={heading}>{headingHref ? <a href={headingHref}>{title}</a> : title}</h2>
+    <h2 id={heading}>{title}</h2>
     <p>{summary}<slot name="metadata" /></p>
   </div>
   <ul aria-label={`${title} items`}>
@@ -32,9 +29,7 @@ const heading = `${id}-heading`;
       <li>
         <a href={item.href}>
           <div class:list={['content-preview', { 'text-preview': item.text !== undefined }]}>
-            {item.image ? item.image.optimized ? (
-              <Image src={item.image.src} alt="" width={320} height={320} widths={[160, 320, 640]} sizes="192px" fit="cover" format="webp" loading="lazy" />
-            ) : (
+            {item.image ? (
               <img src={item.image.src} srcset={item.image.srcset} sizes="192px" alt="" width={item.image.width} height={item.image.height} loading="lazy" />
             ) : <span>{item.text ?? item.label ?? item.title}</span>}
           </div>

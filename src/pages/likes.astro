@@ -1,69 +1,29 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import PublishedItems from '../components/likes/PublishedItems.astro';
-import { createLikesAPI, MISC_COLLECTION } from '../lib/likes.js';
-import type { CollectionOverview } from '../lib/likes-presentation';
+import ContentRow from '../components/ContentRow.astro';
+import { collectionRows } from '../lib/likes-presentation';
+import { publishedCollectionOverview } from '../lib/published-likes.js';
 import { sectionLabel } from '../lib/editorial-content';
 
-import StaticLikes from '../components/likes/StaticLikes.astro';
-import { staticLikesEnabled } from '../lib/published-likes.js';
-
-export const prerender = false; // The publishing integration enables static routes at cutover.
-
-// Netlify Functions need this variable at runtime as well as at build time.
-const endpoint = process.env.PUBLIC_POCKETBASE_URL ?? import.meta.env.PUBLIC_POCKETBASE_URL ?? '';
-const selectedCollection = Astro.url.searchParams.get('collection') ?? '';
-const afterCreated = Astro.url.searchParams.get('afterCreated');
-const afterId = Astro.url.searchParams.get('afterId');
-const cursor = afterCreated && afterId ? { created: afterCreated, id: afterId } : null;
-// Preserve all-items pagination links shared before the overview was introduced.
-const isOverview = !selectedCollection && !cursor && Astro.url.searchParams.get('view') !== 'all';
-let items = [], collections = [], nextCursor = null, error = '';
-let overview: CollectionOverview[] | null = isOverview ? [] : null;
-
-// Start uncached: publication changes should be reflected on the next request.
-if (!staticLikesEnabled) Astro.response.headers.set('Cache-Control', 'no-store');
-const api = createLikesAPI(endpoint, (url, options) => fetch(url, {
-  ...options, signal: AbortSignal.timeout(8000),
-}));
-try {
-  if (staticLikesEnabled) {
-    // Static snapshots are already loaded and validated by the build integration.
-  } else if (isOverview) {
-    overview = await api.listCollectionOverview();
-    collections = overview.filter(collection => collection.id !== MISC_COLLECTION);
-  } else {
-    const [page, groups] = await Promise.all([
-      api.listPage({ collection: selectedCollection, cursor }),
-      api.listCollections(),
-    ]);
-    items = page.items;
-    nextCursor = page.nextCursor;
-    collections = groups;
-  }
-} catch {
-  Astro.response.status = 503;
-  error = 'Likes is temporarily unavailable.';
-}
+const rows = collectionRows(publishedCollectionOverview);
 ---
 
-<Layout title={sectionLabel('likes')} wide>
-  <section id="likes">
+<Layout title={sectionLabel('likes')}>
+  <div class="likes">
     <h1>{sectionLabel('likes')}</h1>
-    {staticLikesEnabled ? <StaticLikes /> : <>
-      <PublishedItems {items} {collections} {selectedCollection} {nextCursor} {error} {endpoint} {overview} />
-      <p id="manage-likes" class="manage" hidden><a href="/likes/manage">Manage Likes</a></p>
-    </>}
-  </section>
+    <div id="collection-rows">
+      {rows.map(row => <ContentRow
+        id={`collection-${row.id}`}
+        title={row.name}
+        summary={`${row.totalItems} ${row.totalItems === 1 ? 'item' : 'items'}`}
+        items={row.items}
+      />)}
+    </div>
+  </div>
 </Layout>
 
-<script>
-  if (document.getElementById('manage-likes')) import('../scripts/manage-likes-link.js');
-</script>
-
 <style>
-  :global(main.likes-layout) { justify-content: flex-start; text-align: left; max-width: 90rem; }
-  #likes { width: 100%; }
-  h1 { margin-bottom: 1rem; }
-  .manage { margin-top: 2rem; }
+  .likes { width: 100%; max-width: 87rem; text-align: left; display: grid; gap: 1.5rem; }
+  #collection-rows { display: grid; gap: 1.5rem; min-width: 0; }
+  :global(main:has(.likes)) { justify-content: flex-start; }
 </style>

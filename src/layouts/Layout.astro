@@ -1,16 +1,14 @@
 ---
 import { ClientRouter } from 'astro:transitions';
 import SiteHeader from '../components/SiteHeader.astro';
-import { siteSettings, fullEditorialMode } from '../lib/editorial-content';
+import { siteSettings } from '../lib/editorial-content';
 import '../styles/global.css';
 
 interface Props {
   title?: string;
-  wide?: boolean;
-  clientRouter?: boolean;
 }
 
-const { title, wide = false, clientRouter = true } = Astro.props;
+const { title } = Astro.props;
 ---
 
 <!doctype html>
@@ -22,29 +20,17 @@ const { title, wide = false, clientRouter = true } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <link rel="preload" href="/fonts/gohu-400-latin.woff2" as="font" type="font/woff2" crossorigin />
     <title>{title ? `${title}${siteSettings.title ? ` · ${siteSettings.title}` : ''}` : siteSettings.title}</title>
-    {/* Without router metadata, entering/leaving this page uses native navigation. */}
-    {clientRouter && <ClientRouter />}
+    <ClientRouter />
   </head>
-  <body data-owner-editing={!fullEditorialMode ? 'true' : undefined}>
+  <body>
     <div id="navigation-status" role="status" aria-atomic="true"><span></span></div>
     <SiteHeader />
-    <main class:list={{ 'likes-layout': wide }} aria-label={title ?? (siteSettings.identity || undefined)}>
+    <main aria-label={title ?? (siteSettings.identity || undefined)}>
       <slot />
     </main>
-    {!fullEditorialMode && <aside id="owner-session" aria-label="Owner session" hidden>
-      <button type="button" popovertarget="owner-session-menu">Logged In</button>
-      <div id="owner-session-menu" popover>
-        <button id="owner-logout" type="button">Log out</button>
-      </div>
-    </aside>}
   </body>
 </html>
 
 <script>
-  // Conditional ClientRouter scripts are not emitted in dev when omitted.
-  // Keep Astro's initial astro:page-load event for Likes and shared components;
-  // the router still requires page metadata to enable client-side navigation.
-  import 'astro:transitions/client';
-  import '../scripts/session.js';
   import '../scripts/navigation-loading';
 </script>

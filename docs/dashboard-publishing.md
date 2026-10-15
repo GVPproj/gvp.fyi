@@ -26,9 +26,9 @@ SVG/design assets, instrument sounds and behavior-related UI copy stay in code.
 Site settings—including navigation, identity/description, section/category labels and order,
 and placeholder routes/copy—come exclusively from `src/data/site-settings.json` in every
 build mode. CMS settings snapshots cannot override deployed code. There is no general-purpose page builder.
-Static snapshots and live reads must share public presentation components: the data
-source must not select a different visual design. In particular, the Likes overview
-uses the same collection content rows in both modes.
+The static Likes overview reuses shared ContentRow collection rows with links to
+individual item details. Collection headings are not navigation; there are no
+alternate collection/all-items grids or query/hash filter views.
 
 ## Authoring
 
@@ -66,8 +66,8 @@ public-prefixed secrets. Configuration belongs to the approved rollout, not rout
 authoring. Full-mode editorial content has no repository fallback. Site settings remain
 code-owned; a published `settings/site` record is not required.
 
-In full mode Likes is static, `/login` and `/likes/manage` redirect to `/likes`, and
-owner/session controls are inactive. Legacy code and shared backend endpoints remain
-until replacement acceptance and consumer audit. Disabling full mode is not a general
-rollback of subsequent dashboard edits. Follow the [runbook](content-cutover-readiness.md)
+Likes uses the shared publishing loader in both development and production. There is no separate dev fetch or repository Likes fallback; publishing configuration is required to populate its static overview. Website login,
+management and owner/session controls are removed. Use the PocketBase dashboard
+(`/_/`) for sign-in and editing. Shared backend endpoints remain available to other
+consumers. Disabling full mode is not a general rollback of subsequent dashboard edits. Follow the [runbook](content-cutover-readiness.md)
 and [import safety instructions](import-editorial.md) before any migration or cutover.
