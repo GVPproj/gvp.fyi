@@ -41,6 +41,27 @@ sends a new OTP. Aggregate results are in adjacent `result.json`. Do not request
 passwords/OTPs/tokens in chat or run its interactive prompts in a background tool.
 No routine rerun is needed.
 
+## Latest pre-cutover checkpoint
+
+Captured on **2026-10-15**, immediately before the approved CMS cutover, after MFA
+was enabled. Private directory:
+`~/.local/share/gvp-pocketbase-recovery/cms-cutover-oj97suym/`.
+
+- `checkpoint.tar.gz`: **25,549,084 bytes**; SHA-256
+  `5616ddc2fe2905346352aa4fa177a373dfba89a65e5afbf54dbe5f0383680d88`.
+- Complete stopped-process data/storage, deployed executable, hooks and migrations;
+  remote/local checksums matched. Original machine configuration restored exactly;
+  capture/resume/health cycle took 46 seconds.
+- Captured-runtime restore, candidate migration and separate paired rollback passed
+  with outbound networking blocked. Fresh-copy imports subsequently passed.
+- Matching old machine configuration/image metadata and pre-cutover Netlify
+  configuration/deployment are retained alongside private verification results.
+- This predates the new CMS imports and build identity. Restoring it loses those
+  changes and any later writes. It is a manual checkpoint, not scheduled recovery.
+
+Use this newer set for cutover rollback, not the pre-MFA historical set below.
+The [cutover record](content-cutover-readiness.md) identifies the deployed revisions.
+
 ## Private rollback checkpoint
 
 Captured **2026-10-14 21:10:28 UTC**, before SMTP and MFA were enabled. A full

@@ -1,7 +1,7 @@
 # Dashboard publishing
 
-This describes the **undeployed candidate's** authoring workflow. Current status,
-checks, approvals and rollback live in the [cutover checklist](content-cutover-readiness.md).
+This workflow is **live as of 2026-10-15**. Deployment evidence, remaining owner
+acceptance and rollback live in the [cutover record](content-cutover-readiness.md).
 
 ## Scope
 

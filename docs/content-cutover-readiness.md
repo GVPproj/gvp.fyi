@@ -1,58 +1,72 @@
 # Content cutover
 
 Tracking: [#21](https://github.com/GVPproj/gvp.fyi/issues/21).
-**Not deployed or ready to cut over.** This is the rollout checklist, not a live-state audit.
+**Live on 2026-10-15.** The owner explicitly approved the maintenance window,
+manual checkpoint, backend deployment/import and Netlify configuration/deployment.
 
-## Current state
+## Deployed state
 
-- Content candidate committed on feature branches: frontend `0f549de`, backend `c2998c6`. Subsequent backup safety components: frontend `f42c96d`, backend `1f88ab2`.
-- Catalogue, editorial and static Likes implementation has passed targeted import, dashboard, migration and build rehearsals. A green final monolithic browser suite is not established; unrelated ambient failures remain in #17.
-- A complete off-host checkpoint and isolated old-runtime restore, forward migration and paired rollback rehearsal passed. See [checkpoint](admin-recovery.md#private-rollback-checkpoint). Refresh after intervening writes.
-- Superuser MFA and owner recovery/shared-consumer acceptance are complete (#18).
-- Recurring backups are **not operational**. Local recovery work now includes normalized capture, isolated captured-runtime HTTP/preservation verification, and promotion/alert composition. Real Fly/AWS execution, unattended workflow activation and deployed alerts remain unproven. See [backup implementation and activation gates](../infra/backups/README.md).
-- Last recorded production state: old release-dashboard trial on Fly; Netlify still builds the legacy frontend from `main`, without publishing credentials/configuration.
+- Backend: `c2998c660ac4daa7fd21a881b5e347bf51c96498`, successful
+  [test/deploy run 38755301527](https://github.com/GVPproj/pocketbase-fly-starter/actions/runs/38755301527).
+  Existing Fly machine `4d89070a404018`, existing volume and PocketBase 0.40.4 retained.
+  Image: `registry.fly.io/pocketbase-fly-starter:deployment-01M5010C4BMZCVBFNJBZ2CG82W`.
+- Frontend: `d16381e2f035a593c17cf0a8db055897524b93c8`, Netlify production
+  deployment `6ad0ec270f191f785ceb80e9`, at <https://gvp.fyi>.
+- Imported/published: **36 releases / 138 tracks and artwork**, seven software
+  projects / ten images, one blog article, site settings and three existing
+  published Likes. Watery Grave was reconciled in place, retaining its identity
+  and previous snapshots. Existing Likes were saved without changing their content.
+- Restricted `publishing_builds` identity configured; no superuser build credentials.
+  Working-record reads, mutation and administrative inventory are denied to it.
+  Superuser MFA remains enabled; shared records and the existing superuser are unchanged.
+- Full static content mode is enabled. Public pages/media do not require PocketBase.
+  `/login` and `/likes/manage` are static redirects to `/likes`; unrelated shared
+  backend consumers and legacy rollback code remain intact.
 
-## Rollout gates, in order
+## Verification and operational notes
 
-### 1. Recurring recovery deferred — not a cutover gate
+Fresh off-host checkpoint, captured-runtime restore, candidate migration and paired
+rollback passed before deployment. Fresh-copy imports, actual remote-artwork capture,
+Go race tests, deployment checks, catalogue integration, editorial import, typecheck
+and default/full-content builds passed. Preview and public browser checks covered
+six page types, mobile release display and media with external/backend requests
+blocked, without browser errors. All live releases were compared to repository
+source and their public routes checked. This is not a claim that the unrelated
+full ambient/browser suite in #17 is green.
 
-Owner direction: finish the pre-launch blog/CMS migration simply; existing content is not precious. Recurring backup automation, sandbox/transport development, retention and alert activation are deferred, not completed. Preserve the unfinished recovery work without including it in the deployment candidate. Do not provision more infrastructure for this cutover.
+Netlify's free plan does **not** support build-only environment scopes. A first
+Git-triggered deployment used legacy mode because the CLI silently failed to set
+those scopes. Corrected configuration was read back through the API and rebuilt:
+all four `PUBLISHING_*` variables are production-context only, using free-plan
+server-side scopes; the password is marked secret and excluded from post-processing.
+No `PUBLIC_` credentials, plan upgrade or new infrastructure. Public output was
+checked for credential leakage. Do not trust `env:set` exit status alone.
 
-Use one manual off-host checkpoint before changing the shared backend, primarily to preserve authentication/configuration and unrelated consumers. No monthly recovery or alerting guarantee is claimed. The existing CMS implementation and native dashboard remain the scope; no new migration framework is needed.
+**Routine workflow:** edit in the native PocketBase dashboard, Published + Save,
+then manually deploy the current `main` branch in Netlify. Save does not trigger a
+build; `NETLIFY_BUILD_HOOK` remains unset. MP3 uploads/replacements remain in Git at
+their existing URLs. See [authoring](dashboard-publishing.md).
 
-### 2. Freeze and rehearse the candidate
+Owner hands-on dashboard/visual acceptance remains to be confirmed; automated
+checks are not owner acceptance. No further migration framework is needed.
 
-- Record exact frontend/backend commits and verify synchronized runtime, hooks and migrations. Preserve unrelated shared-backend work.
-- Run Go race tests, backend deployment checks, required import/upgrade/dashboard/static-build suites, typecheck and default/full-content builds. Required integration tests must run rather than skip.
-- Run browser/build suites serially in an isolated workspace; concurrent Astro servers/builds can corrupt generated state and invalidate results.
-- Rehearse the [additive imports](import-editorial.md) against a fresh isolated copy of actual data. Explicitly reconcile existing Watery Grave and published Likes; do not blindly reimport or implicitly publish drafts.
+## Deferred recovery work
 
-### 3. Approve the maintenance window and checkpoint
+Per owner direction, recurring backups, sandbox/transport development, retention
+and failure/missed-run alerts are **deferred, not completed**, and are not launch
+blockers. Unfinished local recovery changes are preserved and were not deployed.
+No unattended workflow or schedule is active. The manual checkpoint protects the
+pre-cutover shared-backend state; it is not a recurring recovery guarantee.
 
-Obtain explicit approval for the immediate shared-backend interruption, exact candidate, import writes, credential/configuration changes and deployment. Scope approval is not execution approval.
+## Rollback
 
-Freeze writes and competing deployments. Capture all `pb_data`, matching executable/image, hooks, migrations and recoverable configuration; retain keys separately. Download off-host, compare hashes and restore in isolation with outbound effects blocked. Verify records/auth, SQLite integrity, file references and stored bytes. Retain a separate old-runtime/original-data rollback pair. Recheck volume headroom, allowing for capture, imports and retained media.
+See [private checkpoint custody](admin-recovery.md#latest-pre-cutover-checkpoint).
+The pre-cutover frontend deployment is `6ac94d3bf6bb2a0008156a50`; its saved Netlify
+configuration is retained privately. Restore a known-good deployment with its
+compatible configuration; merely clearing publishing variables is not content rollback.
 
-### 4. Deploy backend, import and accept the dashboard
-
-- Use the existing Fly app/volume and test-gated deployment; no extra replicas or replacement volume. Backend `main` pushes deploy production.
-- Verify actual startup, image/version, applied migrations, health, protected-file denial and shared consumers—not only CI success.
-- Execute only the rehearsed imports under their required exclusivity. Reconcile ambiguous timeouts before retrying. Compare preserved records/files/auth and take a post-import checkpoint.
-- Owner accepts release, software and representative Likes editing/file replacement, draft creation, Published Save, withdrawal and deletion in the real dashboard.
-
-### 5. Configure and deploy the static frontend
-
-- Create a restricted `publishing_builds` identity, never a superuser. Verify eligible-snapshot/media access and rejection of drafts, working-record access and mutation.
-- Enter server-only `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL`, `PUBLISHING_BUILD_PASSWORD` and `PUBLISHING_CONTENT=true` into the existing Netlify site with approved build/context scopes. Keep credentials out of `PUBLIC_` variables, browser output and logs. Leave `NETLIFY_BUILD_HOOK` unset.
-- Frontend `main` is the production branch: review auto-publish behavior before merging. Saving content and deploying remain separate actions.
-- Check an unpublished artifact: routes, content/order, MP3 URLs, images/downloads, draft exclusion, mobile/accessibility and owner visuals. Block backend requests in an isolated browser to prove public content/media remain usable offline. Verify failed fetch/auth/build preserves the last good deployment.
-- Publish the approved revision manually, verify the actual public site and shared consumers, then record deployed identities and owner acceptance in #14/#21. Retire app editing only after replacement acceptance; preserve unrelated backend consumers.
-
-## Stop and rollback
-
-Stop on unexpected data/schema/file differences, failed recovery, inadequate space, secret exposure, shared-consumer regression or unclear revision provenance.
-
-- **Frontend:** restore the recorded last-good Netlify deployment and compatible configuration. Clearing publishing variables is not a general content rollback.
-- **Backend:** freeze writes, reconcile post-checkpoint edits, restore complete matching data/storage **and** old executable/image/hooks/configuration. Never run an old binary against upgraded data or use destructive down migrations.
-
-Preserve recovery sets and existing resources. Resource deletion and credential revocation require separate approval.
+For backend rollback, freeze writes and restore the complete matching pre-cutover
+data/storage **and** captured old image/executable/hooks/configuration. This loses
+subsequent imports/edits; reconcile shared-consumer writes first. Never run an old
+binary against migrated data or use destructive down migrations. Preserve existing
+resources and checkpoint files; deletion/revocation requires separate approval.
