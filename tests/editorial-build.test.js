@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { editorialFixtures } from './helpers/editorial.js';
 
 for (const includeSettings of [true, false]) {
-test(`full-mode build keeps presentation repo-owned (${includeSettings ? 'stale' : 'missing'} CMS settings)`, { timeout: 90000 }, async t => {
+test(`Published-content build keeps presentation repo-owned (${includeSettings ? 'stale' : 'missing'} CMS settings)`, { timeout: 90000 }, async t => {
   const fixtures = await editorialFixtures();
   const files = new Map();
   const entries = [];
@@ -67,5 +67,6 @@ test(`full-mode build keeps presentation repo-owned (${includeSettings ? 'stale'
   assert.match(blog, /language-astro/);
   await assert.rejects(readFile(`${dir}/software/biolink/index.html`));
   await assert.rejects(readFile(`${dir}/software/tenzies/index.html`));
+  await assert.rejects(readFile(`${dir}/blog/the-animated-face/index.html`));
 });
 }

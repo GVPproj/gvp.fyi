@@ -38,14 +38,14 @@ public on that item's Published Save.
   Images and local downloads must resolve to uploaded assets; missing references
   fail the build. External reading links remain links.
 - Site identity, navigation, categories and placeholders come from
-  `src/data/site-settings.json`, not legacy CMS settings records. Layout, interaction,
+  `src/config/site-settings.json`, not legacy CMS settings records. Layout, interaction,
   instrument sounds and behavior-related copy also stay in Git.
 
 Original uploads stay in `pb_data/storage` on Fly. Builds authenticate using
 `PUBLISHING_CONTENT=true`, `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL`
 and `PUBLISHING_BUILD_PASSWORD`. Use a restricted `publishing_builds` identity,
-never superuser credentials or public-prefixed secrets. Full-content builds have
-no editorial repository fallback. Likes uses this loader in development too;
+never superuser credentials or public-prefixed secrets. Development and builds
+require these settings and have no editorial repository fallback. Likes uses this loader in development too;
 there is no website login/editor.
 
 Field/API details: [releases](../pocketbase/publishing-contract.md),

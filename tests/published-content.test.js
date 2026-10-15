@@ -22,8 +22,12 @@ test('Likes routes always prerender, independent of content mode', () => {
   assert.equal(unrelated.prerender, false);
 });
 
-test('disabled mode does not make backend requests', async () => {
-  assert.deepEqual(await preparePublishedContent({}, () => { throw Error('called'); }), { content: null, files: [] });
+test('missing or disabled publishing fails rather than building repository content', async () => {
+  for (const PUBLISHING_CONTENT of [undefined, 'false']) {
+    await assert.rejects(preparePublishedContent({ PUBLISHING_CONTENT }, () => {
+      assert.fail('must reject configuration before making backend requests');
+    }), /PUBLISHING_CONTENT must be true/);
+  }
 });
 test('materializes only explicit snapshot projection, retaining withdrawals', async () => {
   const result = await preparePublishedContent(env, fixture([{ ...published, privateToken: 'must-not-leak' }, { revision: 'rev2', kind: 'like', slug: 'item2', state: 'unpublished', data: { secret: 'draft' } }]));

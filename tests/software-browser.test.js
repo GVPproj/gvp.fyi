@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { softwareProjects } from '../src/data/software-projects.ts';
+import { softwareProjects } from './fixtures/software-projects.ts';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 const categoryNames = { portfolio: 'Applications', 'small-websites': 'Small websites', 'early-projects': 'Early projects' };
@@ -33,7 +33,7 @@ test('Software orders Applications, Small websites and Early projects and rows s
     const row = page.getByRole('region', { name: categoryNames[project.category], exact: true });
     const link = row.locator(`a[href="/software/${project.slug}"]`);
     assert.ok((await link.textContent()).includes(project.title));
-    assert.equal(await link.locator('img').getAttribute('src'), project.screenshot);
+    assert.match(await link.locator('img').getAttribute('src'), /^\/published-content\//);
     await link.locator('img').evaluate(image => image.decode());
   }
   for (const width of [1280, 320]) {

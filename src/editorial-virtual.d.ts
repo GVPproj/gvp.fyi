@@ -7,6 +7,6 @@ declare module 'virtual:published-content' {
     data: any;
     assets: { name: string; path: string; sha256: string; url: string }[];
   }
-  const snapshots: PublishedContentSnapshot[] | null;
+  const snapshots: PublishedContentSnapshot[];
   export default snapshots;
 }

@@ -17,7 +17,7 @@ for (const state of ['draft', 'published', 'withdrawn']) {
     const build = (await request('collections/publishing_builds/auth-with-password', { method: 'POST', body: { identity: 'build@example.test', password: 'test-build-password' } })).data.token;
     const form = new FormData();
     for (const [key, value] of Object.entries({ slug: 'watery-grave-ep', title: 'Public title', artist: 'Artist', release_date: '2005' })) form.set(key, value);
-    const jpeg = await readFile(new URL('../public/images/music-releases/watery-grave.jpg', import.meta.url));
+    const jpeg = await readFile(new URL('./fixtures/artwork/watery-grave.jpg', import.meta.url));
     form.set('artwork', new Blob([jpeg], { type: 'image/jpeg' }), 'cover.jpg');
     const release = await write('collections/publishing_releases/records', form);
     const route = `collections/publishing_releases/records/${release.id}`;

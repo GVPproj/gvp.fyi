@@ -6,7 +6,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { start } from './helpers/publishing-pocketbase.js';
-import { tracerRelease } from '../src/lib/release-source.js';
+import { releases as fixtureReleases, slugOf } from './helpers/release-catalog.js';
+const tracerRelease = fixtureReleases.find(release => slugOf(release) === 'watery-grave-ep');
 
 function unavailable() {
   for (const name of ['POCKETBASE_BINARY', 'PLAYWRIGHT_CHROMIUM_EXECUTABLE']) {
@@ -19,7 +20,7 @@ function unavailable() {
 
 const releases = 'collections/publishing_releases/records';
 const publication = 'publishing/releases/watery-grave-ep';
-const originalPath = fileURLToPath(new URL('../public/images/music-releases/watery-grave.jpg', import.meta.url));
+const originalPath = fileURLToPath(new URL('./fixtures/artwork/watery-grave.jpg', import.meta.url));
 const replacement = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQAQAAAAB+XjmZAAAAPklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4NndAAAfVRSv0AAAAASUVORK5CYII=', 'base64');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 

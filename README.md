@@ -9,12 +9,15 @@ Requires Node.js 22.12+ and pnpm 11.17.
 ```sh
 pnpm install
 cp .env.example .env
+# Fill in the PocketBase publishing credentials in .env.
 pnpm dev
 ```
 
-Open `http://127.0.0.1:4324`. Without publishing credentials, development uses
-checked-in music/software/blog content; Likes is empty. Set the server-only
-publishing variables in `.env.example` to build from PocketBase.
+Set the server-only publishing variables in `.env` to a PocketBase instance
+with a restricted build identity, then open `http://127.0.0.1:4324`.
+Development and builds both require published PocketBase content; there is no
+checked-in editorial fallback. Missing configuration or backend failures stop
+the build rather than silently publishing old content.
 
 ## Testing
 

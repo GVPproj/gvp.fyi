@@ -7,11 +7,11 @@ async function blockExternalRequests(context, base) {
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
 }
 
-test('Music Releases links the current catalogue and remains keyboard-browsable on mobile', browserOptions, async t => {
+test('Music links the current catalogue and remains keyboard-browsable on mobile', browserOptions, async t => {
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
   await page.goto(`${base}/music`);
-  await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Music', exact: true }).waitFor();
   await page.setViewportSize({ width: 320, height: 700 });
   for (const { name, releases } of categories) {
     const category = page.getByRole('region', { name, exact: true });
@@ -20,7 +20,11 @@ test('Music Releases links the current catalogue and remains keyboard-browsable 
       const link = category.locator(`a[href="/music/${slugOf(release)}"]`);
       assert.equal(await link.count(), 1);
       assert.ok((await link.textContent()).includes(titleOf(release)));
-      assert.equal(await link.locator('img').count(), 1);
+      const image = link.locator('img');
+      assert.equal(await image.count(), 1);
+      assert.match(await image.getAttribute('src'), /^\/published-releases\//);
+      await image.scrollIntoViewIfNeeded();
+      await image.evaluate(img => img.decode());
     }
     if (releases.length) {
       const last = category.getByRole('link').last();
@@ -57,8 +61,8 @@ test('Representative release pages render metadata, listening options and back n
     assert.equal(await main.locator('header p').first().textContent(), release.artist);
     assert.equal(await main.locator('time').getAttribute('datetime'), dateOf(release));
     const image = main.getByRole('img');
-    assert.equal(await image.getAttribute('src'), release.artwork_url ?? `https://f4.bcbits.com/img/a${release.art_id}_16.jpg`);
-    if (release.artwork_url?.startsWith('/')) await image.evaluate(img => img.decode());
+    assert.match(await image.getAttribute('src'), /^\/published-releases\//);
+    await image.evaluate(img => img.decode());
     assert.equal(await main.locator('iframe').count(), release.album_id ? 1 : 0);
     if (release.album_id) assert.ok((await main.locator('iframe').getAttribute('src')).includes(`/album=${release.album_id}/`));
     if (release.url) assert.equal(await main.getByRole('link', { name: 'Bandcamp', exact: true }).getAttribute('href'), release.url);
@@ -69,8 +73,8 @@ test('Representative release pages render metadata, listening options and back n
     assert.equal(await main.getByRole('navigation', { name: 'Listen to this release' }).count(), listeningLinks ? 1 : 0);
     if (release.credit) assert.ok((await main.locator('.release-credit').textContent()).includes(release.credit));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await main.getByRole('link', { name: '← Music Releases', exact: true }).click();
-    await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
+    await main.getByRole('link', { name: '← Music', exact: true }).click();
+    await page.getByRole('heading', { name: 'Music', exact: true }).waitFor();
   }
   assert.equal((await page.goto(`${base}/music/not-a-release`)).status(), 404);
 });

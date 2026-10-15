@@ -15,7 +15,6 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/mdx": "^8.0.2",
     "@astrojs/netlify": "^8.2.6",
     "astro": "^7.3.5",
     "markdown-it": "^15.0.2"

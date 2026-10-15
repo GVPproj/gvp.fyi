@@ -15,8 +15,8 @@ import { sectionLabel } from '../../lib/editorial-content';
       items={category.releases.map(release => ({
         href: `/music/${release.slug}`,
         title: release.title,
-        image: { src: release.publishedArtwork?.thumbnail ?? release.artwork, srcset: release.publishedArtwork?.srcset,
-          width: release.publishedArtwork?.width ?? 320, height: release.publishedArtwork?.height ?? 320 },
+        image: { src: release.publishedArtwork.thumbnail, srcset: release.publishedArtwork.srcset,
+          width: release.publishedArtwork.width, height: release.publishedArtwork.height },
         subtitle: release.credit ? release.artist : undefined,
         metadata: release.credit,
       }))}

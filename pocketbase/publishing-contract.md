@@ -83,10 +83,10 @@ A published payload has this shape (optional release metadata omitted here):
 
 Explicit withdrawal is HTTP 200 with
 `{"revision":"recordId","slug":"release-slug","state":"unpublished"}`;
-there is no artwork. Only this signal authorizes removal in per-slug builds.
-Authentication, fetch, validation and unexpected missing-record failures must fail
-the build, not masquerade as withdrawal. `PUBLISHING_CONTENT=true` selects the
-frontend's authoritative full-content build without repository fallback.
+there is no artwork. The frontend uses the authoritative catalogue endpoint,
+not the legacy per-slug build mode. Authentication, fetch and validation failures
+must fail the build, not masquerade as withdrawal. `PUBLISHING_CONTENT=true` is
+required for development and builds; there is no repository fallback.
 
 Internal `publishing_snapshots` hold immutable server-created JSON and separate
 protected artwork copies. Normal API writes are rejected even for superusers;

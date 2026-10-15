@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
-import { tracerRelease, tracerSlug, releaseCategoryIds } from '../lib/release-source.js';
+import siteSettings from '../config/site-settings.json' with { type: 'json' };
+
+const releaseCategoryIds = siteSettings.categories.releases.map(category => category.id);
 
 const virtualId = 'virtual:published-release';
 const resolvedId = '\0' + virtualId;
@@ -19,9 +21,8 @@ async function readResponse(response, limit) {
   return Buffer.concat(chunks);
 }
 
-// Preserve the legacy tracer contract while validating the authoritative catalogue.
-function publicRelease(source, full = false) {
-  const audio = new Set(tracerRelease.tracks.map(track => track.audio_url));
+// Validate only the public projection of the authoritative CMS catalogue.
+function publicRelease(source) {
   const text = (value, max = 500) => {
     if (typeof value !== 'string' || !value.trim() || value.length > max) throw new Error();
     return value;
@@ -32,30 +33,26 @@ function publicRelease(source, full = false) {
     return url.href;
   };
   if (!source || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(source.slug)) throw new Error();
-  if (!full && (source.slug !== tracerSlug || !Array.isArray(source.tracks) || source.tracks.length !== audio.size)) throw new Error();
-  if (full && !releaseCategoryIds.includes(source.category ?? (source.slug === tracerSlug ? 'miracle-fortress' : ''))) throw new Error();
+  if (!releaseCategoryIds.includes(source.category)) throw new Error();
   if (source.tracks != null && !Array.isArray(source.tracks)) throw new Error();
   const tracks = (source.tracks ?? []).map((track, index) => {
-    if (track.track_num !== index + 1 || (!full && !audio.delete(track.audio_url)) ||
+    if (track.track_num !== index + 1 ||
       (track.duration !== undefined && (!Number.isFinite(track.duration) || track.duration < 0))) throw new Error();
-    if (full && track.audio_url !== undefined &&
+    if (track.audio_url !== undefined &&
       !(typeof track.audio_url === 'string' && /^\/audio\/[a-zA-Z0-9/_-]+\.mp3$/.test(track.audio_url))) throw new Error();
     return { title: text(track.title), track_num: track.track_num, ...(track.audio_url !== undefined && { audio_url: track.audio_url }),
       ...(track.duration !== undefined && { duration: track.duration }) };
   });
   if (!Number.isFinite(Date.parse(text(source.release_date)))) throw new Error();
   if (source.about !== null && typeof source.about !== 'string') throw new Error();
-  const metadata = {};
-  if (full) {
-    metadata.category = source.category ?? 'miracle-fortress';
-    for (const key of ['credit', 'display_title', 'youtube_video_id']) {
-      if (source[key]) metadata[key] = text(source[key], 5000);
-    }
-    for (const key of ['album_id', 'art_id', 'player_height']) {
-      if (source[key] !== undefined) {
-        if (!Number.isSafeInteger(source[key]) || source[key] <= 0) throw new Error();
-        metadata[key] = source[key];
-      }
+  const metadata = { category: source.category };
+  for (const key of ['credit', 'display_title', 'youtube_video_id']) {
+    if (source[key]) metadata[key] = text(source[key], 5000);
+  }
+  for (const key of ['album_id', 'player_height']) {
+    if (source[key] !== undefined) {
+      if (!Number.isSafeInteger(source[key]) || source[key] <= 0) throw new Error();
+      metadata[key] = source[key];
     }
   }
   return { ...metadata, slug: source.slug, title: text(source.title), artist: text(source.artist), release_date: source.release_date,
@@ -67,17 +64,14 @@ function publicRelease(source, full = false) {
 }
 
 export async function preparePublishedRelease(env) {
-  const full = env.PUBLISHING_CONTENT === 'true';
   const endpoint = env.PUBLISHING_POCKETBASE_URL;
-  if (!endpoint) {
-    if (full || env.PUBLISHING_BUILD_EMAIL || env.PUBLISHING_BUILD_PASSWORD) throw new Error('Incomplete publishing configuration');
-    return { release: null, files: [] };
+  if (!endpoint || !env.PUBLISHING_BUILD_EMAIL || !env.PUBLISHING_BUILD_PASSWORD) {
+    throw new Error('Incomplete publishing configuration');
   }
   try {
     const base = new URL(endpoint);
     if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname))) ||
       base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error();
-    if (!env.PUBLISHING_BUILD_EMAIL || !env.PUBLISHING_BUILD_PASSWORD) throw new Error();
     async function request(route, options = {}, limit = 1024 * 1024) {
       return readResponse(await fetch(new URL(route, base), {
         ...options, redirect: 'error', signal: AbortSignal.timeout(15000),
@@ -89,30 +83,26 @@ export async function preparePublishedRelease(env) {
     }));
     if (typeof auth.token !== 'string' || !auth.token || auth.record?.collectionName !== 'publishing_builds') throw new Error();
     const headers = { Authorization: auth.token };
-    const response = JSON.parse(await request(full ? '/api/publishing/releases' : `/api/publishing/releases/${tracerSlug}`, { headers }, 10 * 1024 * 1024));
-    if (full && !Array.isArray(response)) throw new Error();
+    const response = JSON.parse(await request('/api/publishing/releases', { headers }, 10 * 1024 * 1024));
+    if (!Array.isArray(response)) throw new Error();
     const releases = [], allFiles = [], seen = new Set();
-    for (const snapshot of full ? response : [response]) {
+    for (const snapshot of response) {
     const slug = snapshot?.state === 'unpublished' ? snapshot.slug : snapshot?.release?.slug;
     if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || seen.has(slug)) throw new Error();
     seen.add(slug);
-    // Only an exact explicit withdrawal can remove the checked-in tracer.
-    // null remains reserved for the configuration-unset local catalogue.
+    // Withdrawals are explicit tombstones, never public release data.
     if (snapshot?.state === 'unpublished') {
       if (Object.keys(snapshot).sort().join(',') !== 'revision,slug,state' ||
-        typeof snapshot.revision !== 'string' || !snapshot.revision.trim() || (!full && snapshot.slug !== tracerSlug)) throw new Error();
-      if (!full) return { release: false, files: [] };
+        typeof snapshot.revision !== 'string' || !snapshot.revision.trim()) throw new Error();
       continue;
     }
     if (!snapshot || 'state' in snapshot || 'slug' in snapshot) throw new Error();
-    const release = publicRelease(snapshot.release, full);
-    if (full) {
-      for (const track of release.tracks) {
-        if (track.audio_url) await access(new URL(`../../public${track.audio_url}`, import.meta.url));
-      }
+    const release = publicRelease(snapshot.release);
+    for (const track of release.tracks) {
+      if (track.audio_url) await access(new URL(`../../public${track.audio_url}`, import.meta.url));
     }
     const { artwork } = snapshot;
-    if (typeof snapshot.revision !== 'string' || !snapshot.revision || (!full && release?.slug !== tracerSlug)) throw new Error();
+    if (typeof snapshot.revision !== 'string' || !snapshot.revision) throw new Error();
     if (!artwork || artwork.path !== `/api/publishing/artwork/${snapshot.revision}` || !/^[a-zA-Z0-9_-]+$/.test(snapshot.revision) || !/^[a-f0-9]{64}$/.test(artwork.sha256)) throw new Error();
     const source = await request(artwork.path, { headers }, maxArtworkBytes);
     if (createHash('sha256').update(source).digest('hex') !== artwork.sha256) throw new Error();
@@ -126,12 +116,12 @@ export async function preparePublishedRelease(env) {
       const hash = createHash('sha256').update(bytes).digest('hex');
       return { path: `/published-releases/${hash}-${width}.webp`, bytes, width };
     }));
-    releases.push({ ...release, artwork_url: files.at(-1).path,
+    releases.push({ ...release,
       publishedArtwork: { src: files.at(-1).path, thumbnail: files.find(file => file.width >= 320)?.path ?? files.at(-1).path,
         srcset: files.map(file => `${file.path} ${file.width}w`).join(', '), width: artwork.width, height: artwork.height } });
     allFiles.push(...files);
     }
-    return { release: full ? releases : releases[0], files: allFiles };
+    return { release: releases, files: allFiles };
   } catch {
     // Backend bodies, URLs, credentials and private source data must never reach build logs.
     throw new Error('Published release build failed: verify publishing configuration, snapshot and artwork integrity');

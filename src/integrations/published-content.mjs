@@ -21,10 +21,9 @@ function validateLinks(value) {
 }
 
 export async function preparePublishedContent(env, fetcher = fetch) {
-  if (env.PUBLISHING_CONTENT && !['true', 'false'].includes(env.PUBLISHING_CONTENT)) {
-    throw new Error('PUBLISHING_CONTENT must be true, false or unset');
+  if (env.PUBLISHING_CONTENT !== 'true') {
+    throw new Error('PUBLISHING_CONTENT must be true; repository content is no longer supported');
   }
-  if (env.PUBLISHING_CONTENT !== 'true') return { content: null, files: [] };
   try {
     const base = new URL(env.PUBLISHING_POCKETBASE_URL);
     if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname))) ||

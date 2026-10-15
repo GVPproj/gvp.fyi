@@ -1,45 +1,7 @@
-// Category IDs are editorial settings, not a closed application enum.
-export type SoftwareProjectCategory = string;
+import type { SoftwareProject } from '../../src/lib/software-project.ts';
 
-export interface SoftwareProjectRole {
-  title: string;
-  paragraphs: string[];
-}
-
-export interface SoftwareProjectTeamMember {
-  name: string;
-  role: string;
-  href?: string;
-}
-
-export interface SoftwareProjectImage {
-  src: string;
-  srcset?: string;
-  alt: string;
-  width: number;
-  height: number;
-}
-
-export interface SoftwareProject {
-  slug: string;
-  title: string;
-  description: string;
-  screenshot: string;
-  screenshotSrcset?: string;
-  screenshotWidth: number;
-  screenshotHeight: number;
-  tooling: string[];
-  url?: string;
-  repo?: string;
-  category: SoftwareProjectCategory;
-  role?: SoftwareProjectRole;
-  tagline?: string;
-  team?: SoftwareProjectTeamMember[];
-  gallery?: SoftwareProjectImage[];
-}
-
-// Imported from grahamvanpelt.dev's portfolioData.ts and portfolio.astro.
-// Content and screenshots are local so builds do not depend on the old site.
+// Historical portfolio retained only as rich rendering fixtures. Images live in
+// tests/fixtures/software, never in the production public directory.
 export const softwareProjects: SoftwareProject[] = [
   {
     slug: 'tipbox',

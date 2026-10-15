@@ -14,14 +14,15 @@ import { start } from './helpers/publishing-pocketbase.js';
 
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const artwork = await readFile(path.join(root, 'public/images/music-releases/watery-grave.jpg'));
-const catalogue = JSON.parse(await readFile(path.join(root, 'src/data/releases/miracle-fortress.json'), 'utf8'));
+const artwork = await readFile(path.join(root, 'tests/fixtures/artwork/watery-grave.jpg'));
+const catalogue = JSON.parse(await readFile(path.join(root, 'tests/fixtures/releases/miracle-fortress.json'), 'utf8'));
 const original = catalogue.find(release => release.title === 'Watery Grave EP');
 
 async function createDraft(pb) {
   const form = new FormData();
   for (const key of ['title', 'artist', 'release_date', 'display_date', 'about']) form.set(key, original[key] ?? '');
   form.set('slug', 'watery-grave-ep');
+  form.set('category', 'miracle-fortress');
   form.set('tracks', JSON.stringify(original.tracks));
   form.set('artwork', new Blob([artwork], { type: 'image/jpeg' }), 'watery-grave.jpg');
   const result = await pb.request('collections/publishing_releases/records', {
@@ -46,12 +47,13 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
       return;
     }
     if (req.headers.authorization !== token) { res.writeHead(401).end('{}'); return; }
-    if (req.url === '/api/publishing/releases/watery-grave-ep') {
+    if (req.url === '/api/publishing/content') { res.end('[]'); return; }
+    if (req.url === '/api/publishing/releases') {
       if (broken || status !== 200) { res.writeHead(broken ? 503 : status).end('{}'); return; }
-      if (snapshot !== undefined) { res.end(JSON.stringify(snapshot)); return; }
-      res.end(JSON.stringify({ revision: 'revision-one', release: { ...original, slug: 'watery-grave-ep', about: 'Published snapshot from PocketBase.', ...(incomplete && { tracks: [] }) },
+      if (snapshot !== undefined) { res.end(JSON.stringify(Array.isArray(snapshot) ? snapshot : [snapshot])); return; }
+      res.end(JSON.stringify([{ revision: 'revision-one', release: { ...original, category: 'miracle-fortress', slug: 'watery-grave-ep', about: 'Published snapshot from PocketBase.', ...(incomplete && { tracks: {} }) },
         artwork: { path: '/api/publishing/artwork/revision-one', width: 300, height: 283,
-          sha256: badArtwork ? '0'.repeat(64) : createHash('sha256').update(artwork).digest('hex') } }));
+          sha256: badArtwork ? '0'.repeat(64) : createHash('sha256').update(artwork).digest('hex') } }]));
     } else if (req.url === '/api/publishing/artwork/revision-one') {
       res.setHeader('Content-Type', 'image/jpeg'); res.end(artwork);
     } else { res.writeHead(404).end('{}'); }
@@ -61,7 +63,7 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
   t.after(() => { server.closeAllConnections(); server.close(); });
   const endpoint = `http://127.0.0.1:${server.address().port}`;
   const child = spawn(process.execPath, [path.join(root, 'node_modules/astro/bin/astro.mjs'), 'build', '--outDir', path.join(dir, 'dist')], {
-    cwd: root, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: local ? '' : backend?.base ?? endpoint,
+    cwd: root, env: { ...process.env, PUBLISHING_CONTENT: 'true', ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: local ? '' : backend?.base ?? endpoint,
       PUBLISHING_BUILD_EMAIL: local ? '' : backend?.email ?? 'build@example.test', PUBLISHING_BUILD_PASSWORD: local ? '' : backend?.password ?? 'private-build-password-never-public', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -89,7 +91,7 @@ async function files(dir) {
 test('Astro builds one published snapshot and deploys responsive artwork without backend credentials', { timeout: 120000 }, async t => {
   const result = await build(t);
   assert.equal(result.code, 0, result.logs);
-  assert.ok(result.requests.includes('/api/publishing/releases/watery-grave-ep'), 'build must read the published snapshot');
+  assert.ok(result.requests.includes('/api/publishing/releases'), 'build must read the published snapshot');
   const output = path.join(result.dir, 'dist');
   const all = await files(output);
   const htmlPath = all.find(file => file.endsWith('/music/watery-grave-ep/index.html'));
@@ -108,7 +110,7 @@ test('Astro builds one published snapshot and deploys responsive artwork without
   const media = all.filter(file => file.includes('/published-releases/'));
   assert.ok(media.length >= 2);
   assert.ok((await readFile(media[0])).length < artwork.length, 'optimized image is smaller than the source');
-  assert.ok(all.some(file => file.endsWith('/music/atlantis-tapes/index.html')), 'unmigrated releases remain');
+  assert.ok(!all.some(file => file.endsWith('/music/atlantis-tapes/index.html')), 'omitted releases must not return from fixtures');
   for (const file of all.filter(file => /\.(html|js|json)$/.test(file))) {
     const text = await readFile(file, 'utf8');
     assert.ok(!text.includes(result.token) && !text.includes('private-build-password-never-public'), `no secrets in ${file}`);
@@ -151,6 +153,21 @@ test('Astro builds one published snapshot and deploys responsive artwork without
   });
 });
 
+test('CMS catalogue builds arbitrary releases across categories without the tracer', { timeout: 120000 }, async t => {
+  const snapshot = ['other-credits', 'think-about-life'].map((category, index) => ({
+    revision: 'revision-one',
+    release: { ...original, slug: `cms-release-${index}`, category, title: `CMS release ${index}`, tracks: [] },
+    artwork: { path: '/api/publishing/artwork/revision-one', width: 300, height: 283,
+      sha256: createHash('sha256').update(artwork).digest('hex') },
+  }));
+  const result = await build(t, { snapshot });
+  assert.equal(result.code, 0, result.logs);
+  const all = await files(path.join(result.dir, 'dist'));
+  for (const index of [0, 1]) assert.ok(all.some(file => file.endsWith(`/music/cms-release-${index}/index.html`)));
+  assert.ok(!all.some(file => file.includes('/music/watery-grave-ep/')));
+  assert.ok(!result.requests.some(route => route.startsWith('/api/publishing/releases/')));
+});
+
 const withdrawal = { revision: 'abc123def456ghi', slug: 'watery-grave-ep', state: 'unpublished' };
 
 async function assertWithdrawn(result) {
@@ -160,18 +177,19 @@ async function assertWithdrawn(result) {
   assert.ok(!all.some(file => file.includes('/published-releases/')), 'withdrawal needs no generated artwork');
   const overview = await readFile(all.find(file => file.endsWith('/music/index.html')), 'utf8');
   assert.ok(!overview.includes('watery-grave-ep') && !overview.includes('Watery Grave EP'));
-  assert.ok(overview.includes('atlantis-tapes'));
-  assert.ok(all.some(file => file.endsWith('/music/atlantis-tapes/index.html')));
+  assert.ok(!overview.includes('atlantis-tapes'));
+  assert.ok(!all.some(file => file.endsWith('/music/atlantis-tapes/index.html')));
 }
 
-test('explicit withdrawal removes the tracer; unset configuration retains the local fallback', { timeout: 120000 }, async t => {
+test('withdrawal and empty catalogues remove routes; unset configuration fails closed', { timeout: 120000 }, async t => {
   const withdrawn = await build(t, { snapshot: withdrawal });
   await assertWithdrawn(withdrawn);
   assert.ok(!withdrawn.requests.some(route => route.startsWith('/api/publishing/artwork/')));
   const local = await build(t, { local: true });
-  assert.equal(local.code, 0, local.logs);
+  assert.notEqual(local.code, 0);
+  assert.match(local.logs, /Incomplete publishing configuration/);
   assert.equal(local.requests.length, 0);
-  assert.match(await readFile(path.join(local.dir, 'dist/music/watery-grave-ep/index.html'), 'utf8'), /Watery Grave EP/);
+  await assertWithdrawn(await build(t, { snapshot: [] }));
 });
 
 test('partial publishing configuration fails rather than restoring local content', { timeout: 120000 }, async t => {
@@ -190,7 +208,7 @@ test('partial publishing configuration fails rather than restoring local content
 test('malformed or mixed withdrawals and missing snapshots fail closed', { timeout: 240000 }, async t => {
   for (const snapshot of [
     null, {}, { ...withdrawal, revision: '' }, { ...withdrawal, revision: '   ' },
-    { ...withdrawal, revision: 123 }, { ...withdrawal, slug: 'other-release' },
+    { ...withdrawal, revision: 123 }, { ...withdrawal, slug: 'invalid/slug' },
     { ...withdrawal, state: 'draft' }, { revision: withdrawal.revision, slug: withdrawal.slug },
     { ...withdrawal, release: original }, { ...withdrawal, artwork: {} },
     { ...withdrawal, title: 'Mixed private title' },
@@ -219,7 +237,7 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   const recordPath = `collections/publishing_releases/records/${draft.id}`;
   const save = body => pb.request(recordPath, { method: 'PATCH', token: pb.adminToken, body });
   const missing = await build(t, { backend });
-  assert.notEqual(missing.code, 0, 'no snapshot is not withdrawal');
+  await assertWithdrawn(missing);
   assert.equal(draft.published, false);
   assert.ok(Array.isArray(draft.tracks));
   assert.equal((await save({ published: true })).status, 200);
@@ -247,7 +265,7 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   assert.match(await readFile(path.join(republished.dir, 'dist/music/index.html'), 'utf8'), /Republished Watery Grave/);
 });
 
-test('an incomplete published snapshot fails the build instead of dropping the track list', { timeout: 120000 }, async t => {
+test('a malformed published track list fails the build', { timeout: 120000 }, async t => {
   const result = await build(t, { incomplete: true });
   assert.notEqual(result.code, 0);
   assert.match(result.logs, /Published release build failed/);
@@ -274,7 +292,7 @@ test('real PocketBase published Saves update static metadata and tracks while fa
   })).status, 200);
   const backend = { base: pb.base, email, password };
   const unpublished = await build(t, { backend });
-  assert.notEqual(unpublished.code, 0, 'a draft cannot replace the local release');
+  await assertWithdrawn(unpublished);
   const recordPath = `collections/publishing_releases/records/${draft.id}`;
   assert.equal((await pb.request(recordPath, { method: 'PATCH', token: pb.adminToken,
     body: { title: 'Published backend title', published: true } })).status, 200);

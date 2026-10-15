@@ -1,6 +1,5 @@
 ---
-import { render } from 'astro:content';
-import { blogPosts, fullEditorialMode, sectionLabel } from '../../lib/editorial-content';
+import { blogPosts, sectionLabel } from '../../lib/editorial-content';
 import { renderBlogMarkdown } from '../../lib/blog-markdown.js';
 import Face from '../../components/Face.astro';
 import Layout from '../../layouts/Layout.astro';
@@ -15,8 +14,7 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const Content = !fullEditorialMode ? (await render(post as import('astro:content').CollectionEntry<'blog'>)).Content : null;
-const parts = 'assets' in post ? renderBlogMarkdown(post.data.markdown, { assets: post.assets, assetNames: post.data.assetNames }) : [];
+const parts = renderBlogMarkdown(post.data.markdown, { assets: post.assets, assetNames: post.data.assetNames });
 ---
 
 <Layout title={post.data.title}>
@@ -25,7 +23,7 @@ const parts = 'assets' in post ? renderBlogMarkdown(post.data.markdown, { assets
       <a href="/blog/">← {sectionLabel('blog')}</a>
       <h1>{post.data.title}</h1>
     </header>
-    <div class="post-body">{Content ? <Content /> : parts.map(part => part.demo === 'face' ? <Face /> : <Fragment set:html={part.html} />)}</div>
+    <div class="post-body">{parts.map(part => part.demo === 'face' ? <Face /> : <Fragment set:html={part.html} />)}</div>
   </article>
 </Layout>
 

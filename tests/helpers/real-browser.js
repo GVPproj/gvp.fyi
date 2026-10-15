@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { startMockPublishing } from './mock-publishing.js';
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 export const browserOptions = {
@@ -12,6 +13,7 @@ export const browserOptions = {
 };
 
 async function startServer(t) {
+  const publishingEnv = await startMockPublishing(t);
   const socket = net.createServer();
   socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
@@ -23,7 +25,7 @@ async function startServer(t) {
     'dev', '--ignore-lock', '--host', '127.0.0.1', '--port', String(port),
   ], {
     cwd: fileURLToPath(new URL('../../', import.meta.url)),
-    env: { ...process.env, PUBLIC_POCKETBASE_URL: '', ASTRO_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, ...publishingEnv, PUBLIC_POCKETBASE_URL: '', ASTRO_TELEMETRY_DISABLED: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logs = '', spawnError;
@@ -45,7 +47,7 @@ async function startServer(t) {
   for (let attempt = 0; attempt < 200; attempt++) {
     if (spawnError || child.exitCode !== null) break;
     try {
-      // Probe a page available without publishing credentials.
+      // Probe a page rendered from the mock's authenticated published snapshots.
       if ((await fetch(`${base}/software`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 100));

@@ -5,10 +5,10 @@ import { start } from './helpers/publishing-pocketbase.js';
 
 const options = { skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY to the custom v0.40.4 server' };
 const releases = 'collections/publishing_releases/records';
-const source = JSON.parse(await readFile(new URL('../src/data/releases/miracle-fortress.json', import.meta.url), 'utf8')).at(-1);
+const source = JSON.parse(await readFile(new URL('./fixtures/releases/miracle-fortress.json', import.meta.url), 'utf8')).at(-1);
 const { artwork_url, ...metadata } = source;
 const fields = { slug: 'watery-grave-ep', ...metadata };
-const jpeg = await readFile(new URL('../public/images/music-releases/watery-grave.jpg', import.meta.url));
+const jpeg = await readFile(new URL('./fixtures/artwork/watery-grave.jpg', import.meta.url));
 function upload(values) {
   const form = new FormData();
   for (const [key, value] of Object.entries(values)) form.set(key, typeof value === 'object' ? JSON.stringify(value) : String(value));

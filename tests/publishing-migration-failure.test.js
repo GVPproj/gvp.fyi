@@ -25,7 +25,7 @@ test('refused upgrade rolls back schema and preserves old commands, tracks, snap
   const auth = await request('collections/publishing_builds/auth-with-password', { method: 'POST', body: { identity: 'build@example.test', password: 'test-build-password' } });
   assert.equal(auth.status, 200);
   const build = auth.data.token;
-  const jpeg = await readFile(new URL('../public/images/music-releases/watery-grave.jpg', import.meta.url));
+  const jpeg = await readFile(new URL('./fixtures/artwork/watery-grave.jpg', import.meta.url));
   const form = new FormData();
   for (const [key, value] of Object.entries({ slug: 'watery-grave-ep', title: 'Public title', artist: 'Artist', release_date: '2005' })) form.set(key, value);
   form.set('artwork', new Blob([jpeg], { type: 'image/jpeg' }), 'cover.jpg');

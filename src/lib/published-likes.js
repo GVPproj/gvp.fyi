@@ -1,6 +1,6 @@
 import content from 'virtual:published-content';
 
-export const publishedLikes = (content ?? []).filter(entry => entry.kind === 'like' && entry.state === 'published').map(entry => {
+export const publishedLikes = content.filter(entry => entry.kind === 'like' && entry.state === 'published').map(entry => {
   const media = entry.assets[0];
   return { ...entry.data, id: entry.slug, asset: media?.name ?? '', publishedAsset: media ?? null };
 }).sort((a, b) => String(b.created ?? '').localeCompare(String(a.created ?? '')) || b.id.localeCompare(a.id));

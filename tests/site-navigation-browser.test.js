@@ -7,7 +7,7 @@ test('Music and Software are direct links and GitHub is available on desktop and
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
   await page.goto(`${base}/blog`);
   const desktop = page.getByRole('navigation', { name: 'Main navigation', exact: true });
-  assert.equal(await desktop.getByRole('link', { name: 'GitHub', exact: true }).getAttribute('href'), 'https://github.com/GVPproj');
+  assert.equal(await desktop.getByRole('link', { name: 'Visit my GitHub profile', exact: true }).getAttribute('href'), 'https://github.com/GVPproj');
   const music = desktop.getByRole('link', { name: 'Music', exact: true });
   assert.equal(await music.getAttribute('href'), '/music');
   assert.equal(await music.locator('svg').count(), 0);
@@ -15,7 +15,7 @@ test('Music and Software are direct links and GitHub is available on desktop and
   assert.equal(await page.locator('#music-menu').count(), 0);
   await music.focus();
   await page.keyboard.press('Enter');
-  await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Music', exact: true }).waitFor();
   assert.equal(new URL(page.url()).pathname, '/music');
   assert.equal(await music.getAttribute('aria-current'), 'page');
 
@@ -41,9 +41,9 @@ test('Music and Software are direct links and GitHub is available on desktop and
   assert.equal(await mobileMusic.getAttribute('href'), '/music');
   assert.equal(await mobile.locator('summary').filter({ hasText: 'Music' }).count(), 0);
   await mobileMusic.click();
-  await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Music', exact: true }).waitFor();
   assert.equal(new URL(page.url()).pathname, '/music');
-  assert.equal(await mobile.evaluate(el => el.matches(':popover-open')), false);
+  assert.equal(await page.locator('#site-nav').evaluate(el => el.matches(':popover-open')), false);
   await page.getByRole('button', { name: 'Open menu', exact: true }).click();
   assert.equal(await mobileMusic.getAttribute('aria-current'), 'page');
   assert.equal(await mobileSoftware.getAttribute('aria-current'), null);

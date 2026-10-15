@@ -1,9 +1,9 @@
-import grahamVanPelt from '../../src/data/releases/graham-van-pelt.json' with { type: 'json' };
-import miracleFortress from '../../src/data/releases/miracle-fortress.json' with { type: 'json' };
-import thinkAboutLife from '../../src/data/releases/think-about-life.json' with { type: 'json' };
-import otherCredits from '../../src/data/releases/other-credits.json' with { type: 'json' };
+import grahamVanPelt from '../fixtures/releases/graham-van-pelt.json' with { type: 'json' };
+import miracleFortress from '../fixtures/releases/miracle-fortress.json' with { type: 'json' };
+import thinkAboutLife from '../fixtures/releases/think-about-life.json' with { type: 'json' };
+import otherCredits from '../fixtures/releases/other-credits.json' with { type: 'json' };
 
-// Read current content rather than maintaining a second catalogue in assertions.
+// Historical catalogue used only as test data, never as a production fallback.
 export const categories = [
   { name: 'as Graham Van Pelt', releases: grahamVanPelt },
   { name: 'as Miracle Fortress', releases: miracleFortress },

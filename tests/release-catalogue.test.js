@@ -6,9 +6,10 @@ import { preparePublishedRelease } from '../src/integrations/published-release.m
 
 const options = { skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY' };
 
-test('release builds require configuration in published mode and opt out otherwise', async () => {
-  await assert.rejects(preparePublishedRelease({ PUBLISHING_CONTENT: 'true' }));
-  assert.equal((await preparePublishedRelease({})).release, null);
+test('release builds require CMS configuration regardless of the old mode flag', async () => {
+  for (const env of [{}, { PUBLISHING_CONTENT: 'true' }, { PUBLISHING_CONTENT: 'false' }]) {
+    await assert.rejects(preparePublishedRelease(env), /Incomplete publishing configuration/);
+  }
 });
 
 test('catalogue lists latest immutable revisions, empty tracks and withdrawals; full builds have no fallback', options, async t => {
@@ -49,7 +50,8 @@ test('catalogue lists latest immutable revisions, empty tracks and withdrawals; 
   const prepared = await preparePublishedRelease(env);
   assert.deepEqual(prepared.release.map(r => r.slug), ['catalogue-b']);
   assert.equal(prepared.release[0].album_id, 123);
-  assert.ok(prepared.release[0].artwork_url.startsWith('/published-releases/'));
+  assert.ok(prepared.release[0].publishedArtwork.src.startsWith('/published-releases/'));
+  assert.equal('artwork_url' in prepared.release[0], false);
   assert.equal((await fetch(base + a.artwork.path, { headers: { Authorization: build } })).status, 200);
   await request(`collections/publishing_releases/records/${ids[1]}`, { token, method: 'DELETE' });
   assert.deepEqual((await preparePublishedRelease(env)).release.map(r => r.slug), ['catalogue-b']);

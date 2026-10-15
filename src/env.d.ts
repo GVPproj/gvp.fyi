@@ -1,5 +1,5 @@
 declare module 'virtual:published-release' {
-  // null: local fallback; false: validated explicit withdrawal.
-  const release: import('./lib/music-releases').ReleaseData | import('./lib/music-releases').ReleaseData[] | null | false;
+  // Authoritative CMS catalogue; an empty array means no published releases.
+  const release: import('./lib/music-releases').ReleaseData[];
   export default release;
 }
