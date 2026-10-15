@@ -19,5 +19,6 @@
   #likes-board :global(p) { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }
   #likes-board :global(.like-preview) { aspect-ratio: 1; background: var(--nord1); display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-wrap: anywhere; overflow: hidden; color: var(--nord4); }
   #likes-board :global(.text-preview) { display: block; white-space: pre-wrap; line-height: 1.5; }
-  #likes-board :global(.like-preview img) { width: 100%; height: 100%; object-fit: contain; }
+  #likes-board :global(.like-preview:has(img)) { padding: 0; }
+  #likes-board :global(.like-preview img) { display: block; width: 100%; height: 100%; object-fit: cover; }
 </style>

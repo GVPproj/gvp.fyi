@@ -5,15 +5,15 @@ import { releaseCategories } from '../../lib/music-releases';
 import { sectionLabel } from '../../lib/editorial-content';
 ---
 
-<Layout title={sectionLabel('music-releases')}>
+<Layout title={sectionLabel('music')}>
   <div class="music-releases">
-    <h1>{sectionLabel('music-releases')}</h1>
+    <h1>{sectionLabel('music')}</h1>
     {releaseCategories.map(category => <ContentRow
       id={`category-${category.id}`}
       title={category.name}
       summary={`${category.releases.length} ${category.releases.length === 1 ? 'release' : 'releases'}`}
       items={category.releases.map(release => ({
-        href: `/music-releases/${release.slug}`,
+        href: `/music/${release.slug}`,
         title: release.title,
         image: { src: release.publishedArtwork?.thumbnail ?? release.artwork, srcset: release.publishedArtwork?.srcset,
           width: release.publishedArtwork?.width ?? 320, height: release.publishedArtwork?.height ?? 320 },

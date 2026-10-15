@@ -21,7 +21,7 @@ const preview = body.slice(0, 400) + (body.length > 400 ? '…' : '');
   <article>
     <a href={likesItemURL(item)}>
       <div class:list={['like-preview', { 'text-preview': textItem }]}>
-        {textItem ? preview : asset && !pdf && localAsset ? <img src={item.publishedAsset?.thumbnail ?? asset} srcset={item.publishedAsset?.srcset || undefined} sizes="(max-width: 540px) 100vw, 320px" alt="" width={item.publishedAsset?.width} height={item.publishedAsset?.height} loading="lazy" /> : asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="contain" format="webp" loading="lazy" /> : pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
+        {textItem ? preview : asset && !pdf && localAsset ? <img src={item.publishedAsset?.thumbnail ?? asset} srcset={item.publishedAsset?.srcset || undefined} sizes="(max-width: 540px) 100vw, 320px" alt="" width={item.publishedAsset?.width} height={item.publishedAsset?.height} loading="lazy" /> : asset && !pdf ? <Image src={asset} alt="" width={640} height={640} widths={[320, 640, 960]} sizes="(max-width: 540px) 100vw, 320px" fit="cover" format="webp" loading="lazy" /> : pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable'}
       </div>
       <h2>{likeItemTitle(item)}</h2>
     </a>
@@ -40,5 +40,6 @@ const preview = body.slice(0, 400) + (body.length > 400 ? '…' : '');
   p { color: var(--nord4); white-space: pre-wrap; overflow-wrap: anywhere; }
   .like-preview { aspect-ratio: 1; background: var(--nord1); display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-wrap: anywhere; overflow: hidden; color: var(--nord4); }
   .text-preview { display: block; white-space: pre-wrap; line-height: 1.5; }
-  .like-preview img { width: 100%; height: 100%; object-fit: contain; }
+  .like-preview:has(img) { padding: 0; }
+  .like-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
 </style>

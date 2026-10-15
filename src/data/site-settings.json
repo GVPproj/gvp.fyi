@@ -3,10 +3,10 @@
   "identity": "Graham Van Pelt",
   "title": "gvp.fyi",
   "homeLabel": "Home",
-  "sections": { "software": "Software", "blog": "Blog", "likes": "Likes", "music-releases": "Music Releases" },
+  "sections": { "software": "Software", "blog": "Blog", "likes": "Likes", "music": "Music" },
   "navigation": [
     { "id": "software", "label": "Software", "href": "/software" },
-    { "id": "music", "label": "Music", "children": [{ "label": "Releases", "href": "/music-releases" }, { "label": "Video", "href": "/video" }, { "label": "Film", "href": "/film" }] },
+    { "id": "music", "label": "Music", "href": "/music" },
     { "id": "likes", "label": "Likes", "href": "/likes" },
     { "id": "blog", "label": "Blog", "href": "/blog" }
   ],

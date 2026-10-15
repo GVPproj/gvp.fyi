@@ -33,7 +33,7 @@ const heading = `${id}-heading`;
         <a href={item.href}>
           <div class:list={['content-preview', { 'text-preview': item.text !== undefined }]}>
             {item.image ? item.image.optimized ? (
-              <Image src={item.image.src} alt="" width={320} height={320} widths={[160, 320, 640]} sizes="192px" fit="contain" format="webp" loading="lazy" />
+              <Image src={item.image.src} alt="" width={320} height={320} widths={[160, 320, 640]} sizes="192px" fit="cover" format="webp" loading="lazy" />
             ) : (
               <img src={item.image.src} srcset={item.image.srcset} sizes="192px" alt="" width={item.image.width} height={item.image.height} loading="lazy" />
             ) : <span>{item.text ?? item.label ?? item.title}</span>}
@@ -71,7 +71,7 @@ const heading = `${id}-heading`;
   a:hover .content-title, a:hover .subtitle, a:hover .item-metadata, h2 a:hover { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--nord8); outline-offset: 2px; }
   .content-preview { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--nord1); margin-bottom: .5rem; color: var(--nord4); }
-  .content-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .content-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .content-preview > span { padding: 1rem; overflow-wrap: anywhere; }
   .text-preview { display: block; white-space: pre-wrap; }
   .text-preview > span { display: block; }

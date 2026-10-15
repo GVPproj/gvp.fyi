@@ -19,7 +19,7 @@ test('Release details match blog width and stack players below full-width covers
     const blog = await page.locator('article').boundingBox();
 
     for (const release of examples) {
-      await page.goto(`${base}/music-releases/${slugOf(release)}`);
+      await page.goto(`${base}/music/${slugOf(release)}`);
       await page.evaluate(() => document.fonts.ready);
       const article = await page.locator('article').boundingBox();
       const cover = await page.locator('.release-media img').boundingBox();

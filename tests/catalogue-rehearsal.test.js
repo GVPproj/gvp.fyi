@@ -49,7 +49,7 @@ test('complete catalogue import captures existing remote artwork and preserves a
   let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
   const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
   for (const source of original) {
-    const html = await readFile(join(dir, `music-releases/${source.slug}/index.html`), 'utf8');
+    const html = await readFile(join(dir, `music/${source.slug}/index.html`), 'utf8');
     assert.match(html, /published-releases\//);
     assert.doesNotMatch(html, /fixture-build-password|api\/publishing/);
   }

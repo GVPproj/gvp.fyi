@@ -10,14 +10,14 @@ async function blockExternalRequests(context, base) {
 test('Music Releases links the current catalogue and remains keyboard-browsable on mobile', browserOptions, async t => {
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
-  await page.goto(`${base}/music-releases`);
+  await page.goto(`${base}/music`);
   await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
   await page.setViewportSize({ width: 320, height: 700 });
   for (const { name, releases } of categories) {
     const category = page.getByRole('region', { name, exact: true });
     assert.equal(await category.getByRole('link').count(), releases.length);
     for (const release of releases) {
-      const link = category.locator(`a[href="/music-releases/${slugOf(release)}"]`);
+      const link = category.locator(`a[href="/music/${slugOf(release)}"]`);
       assert.equal(await link.count(), 1);
       assert.ok((await link.textContent()).includes(titleOf(release)));
       assert.equal(await link.locator('img').count(), 1);
@@ -50,8 +50,8 @@ test('Representative release pages render metadata, listening options and back n
   ].filter(Boolean))];
   assert.ok(examples.length > 0);
   for (const release of examples) {
-    await page.goto(`${base}/music-releases`);
-    await page.getByRole('main').locator(`a[href="/music-releases/${slugOf(release)}"]`).click();
+    await page.goto(`${base}/music`);
+    await page.getByRole('main').locator(`a[href="/music/${slugOf(release)}"]`).click();
     const main = page.getByRole('main');
     await main.getByRole('heading', { name: titleOf(release), level: 1, exact: true }).waitFor();
     assert.equal(await main.locator('header p').first().textContent(), release.artist);
@@ -72,5 +72,5 @@ test('Representative release pages render metadata, listening options and back n
     await main.getByRole('link', { name: '← Music Releases', exact: true }).click();
     await page.getByRole('heading', { name: 'Music Releases', exact: true }).waitFor();
   }
-  assert.equal((await page.goto(`${base}/music-releases/not-a-release`)).status(), 404);
+  assert.equal((await page.goto(`${base}/music/not-a-release`)).status(), 404);
 });

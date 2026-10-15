@@ -24,7 +24,7 @@ for (const javaScriptEnabled of [true, false]) {
     });
     const page = await native.newPage();
     page.setDefaultTimeout(5000);
-    await page.goto(`${base}/music-releases/${slugOf(release)}`);
+    await page.goto(`${base}/music/${slugOf(release)}`);
     await page.waitForLoadState('networkidle');
     const main = page.getByRole('main');
     await main.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
@@ -75,7 +75,7 @@ test('Local audio supports byte-range responses', browserOptions, async (t) => {
 test('Native audio loads metadata, seeks and plays', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
-  await page.goto(`${base}/music-releases/${slugOf(release)}`);
+  await page.goto(`${base}/music/${slugOf(release)}`);
   await page.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
   const players = page.getByRole('main').locator('ol audio');
   assert.equal(await players.count(), tracks.length);

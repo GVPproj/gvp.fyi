@@ -92,8 +92,8 @@ test('Astro builds one published snapshot and deploys responsive artwork without
   assert.ok(result.requests.includes('/api/publishing/releases/watery-grave-ep'), 'build must read the published snapshot');
   const output = path.join(result.dir, 'dist');
   const all = await files(output);
-  const htmlPath = all.find(file => file.endsWith('/music-releases/watery-grave-ep/index.html'));
-  assert.ok(htmlPath, 'preserve the existing public URL');
+  const htmlPath = all.find(file => file.endsWith('/music/watery-grave-ep/index.html'));
+  assert.ok(htmlPath, 'emit the release at its public Music URL');
   const html = await readFile(htmlPath, 'utf8');
   const { document } = parseHTML(html);
   assert.match(html, /Published snapshot from PocketBase\./);
@@ -108,7 +108,7 @@ test('Astro builds one published snapshot and deploys responsive artwork without
   const media = all.filter(file => file.includes('/published-releases/'));
   assert.ok(media.length >= 2);
   assert.ok((await readFile(media[0])).length < artwork.length, 'optimized image is smaller than the source');
-  assert.ok(all.some(file => file.endsWith('/music-releases/atlantis-tapes/index.html')), 'unmigrated releases remain');
+  assert.ok(all.some(file => file.endsWith('/music/atlantis-tapes/index.html')), 'unmigrated releases remain');
   for (const file of all.filter(file => /\.(html|js|json)$/.test(file))) {
     const text = await readFile(file, 'utf8');
     assert.ok(!text.includes(result.token) && !text.includes('private-build-password-never-public'), `no secrets in ${file}`);
@@ -138,7 +138,7 @@ test('Astro builds one published snapshot and deploys responsive artwork without
     await page.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.goto(`${base}/music-releases/watery-grave-ep/`);
+      await page.goto(`${base}/music/watery-grave-ep/`);
       await page.locator('.release-media img').evaluate(image => image.decode());
       assert.equal(await page.locator('h1').textContent(), 'Watery Grave EP');
       assert.equal(await page.locator('audio[controls][preload="none"]').count(), 5);
@@ -156,12 +156,12 @@ const withdrawal = { revision: 'abc123def456ghi', slug: 'watery-grave-ep', state
 async function assertWithdrawn(result) {
   assert.equal(result.code, 0, result.logs);
   const all = await files(path.join(result.dir, 'dist'));
-  assert.ok(!all.some(file => file.includes('/music-releases/watery-grave-ep/')));
+  assert.ok(!all.some(file => file.includes('/music/watery-grave-ep/')));
   assert.ok(!all.some(file => file.includes('/published-releases/')), 'withdrawal needs no generated artwork');
-  const overview = await readFile(all.find(file => file.endsWith('/music-releases/index.html')), 'utf8');
+  const overview = await readFile(all.find(file => file.endsWith('/music/index.html')), 'utf8');
   assert.ok(!overview.includes('watery-grave-ep') && !overview.includes('Watery Grave EP'));
   assert.ok(overview.includes('atlantis-tapes'));
-  assert.ok(all.some(file => file.endsWith('/music-releases/atlantis-tapes/index.html')));
+  assert.ok(all.some(file => file.endsWith('/music/atlantis-tapes/index.html')));
 }
 
 test('explicit withdrawal removes the tracer; unset configuration retains the local fallback', { timeout: 120000 }, async t => {
@@ -171,7 +171,7 @@ test('explicit withdrawal removes the tracer; unset configuration retains the lo
   const local = await build(t, { local: true });
   assert.equal(local.code, 0, local.logs);
   assert.equal(local.requests.length, 0);
-  assert.match(await readFile(path.join(local.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8'), /Watery Grave EP/);
+  assert.match(await readFile(path.join(local.dir, 'dist/music/watery-grave-ep/index.html'), 'utf8'), /Watery Grave EP/);
 });
 
 test('partial publishing configuration fails rather than restoring local content', { timeout: 120000 }, async t => {
@@ -226,13 +226,13 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   const published = await build(t, { backend });
   assert.equal(published.code, 0, published.logs);
   const initialFiles = await files(path.join(published.dir, 'dist'));
-  assert.ok(initialFiles.some(file => file.endsWith('/music-releases/watery-grave-ep/index.html')));
+  assert.ok(initialFiles.some(file => file.endsWith('/music/watery-grave-ep/index.html')));
   const withdrawn = await save({ published: false });
   assert.equal(withdrawn.status, 200);
   assert.equal(withdrawn.data.published, false, 'Published remains off');
   const removed = await build(t, { backend });
   await assertWithdrawn(removed);
-  const detailRoutes = resultFiles => resultFiles.filter(file => file.includes('/music-releases/') && file.endsWith('/index.html'))
+  const detailRoutes = resultFiles => resultFiles.filter(file => file.includes('/music/') && file.endsWith('/index.html'))
     .map(file => file.split('/dist/')[1]).sort();
   assert.deepEqual(detailRoutes(await files(path.join(removed.dir, 'dist'))),
     detailRoutes(initialFiles).filter(route => !route.includes('/watery-grave-ep/')));
@@ -243,8 +243,8 @@ test('real PocketBase withdrawal removes static routes and republish restores th
   assert.equal((await save({ title: 'Republished Watery Grave', published: true })).status, 200);
   const republished = await build(t, { backend });
   assert.equal(republished.code, 0, republished.logs);
-  assert.match(await readFile(path.join(republished.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8'), /Republished Watery Grave/);
-  assert.match(await readFile(path.join(republished.dir, 'dist/music-releases/index.html'), 'utf8'), /Republished Watery Grave/);
+  assert.match(await readFile(path.join(republished.dir, 'dist/music/watery-grave-ep/index.html'), 'utf8'), /Republished Watery Grave/);
+  assert.match(await readFile(path.join(republished.dir, 'dist/music/index.html'), 'utf8'), /Republished Watery Grave/);
 });
 
 test('an incomplete published snapshot fails the build instead of dropping the track list', { timeout: 120000 }, async t => {
@@ -280,7 +280,7 @@ test('real PocketBase published Saves update static metadata and tracks while fa
     body: { title: 'Published backend title', published: true } })).status, 200);
   const published = await build(t, { backend });
   assert.equal(published.code, 0, published.logs);
-  const outputPath = path.join(published.dir, 'dist/music-releases/watery-grave-ep/index.html');
+  const outputPath = path.join(published.dir, 'dist/music/watery-grave-ep/index.html');
   const initialHTML = await readFile(outputPath, 'utf8');
   assert.match(initialHTML, /Published backend title/);
   assert.match(initialHTML, /Winter 2005, Self Released/);
@@ -291,14 +291,14 @@ test('real PocketBase published Saves update static metadata and tracks while fa
   assert.equal(saved.data.published, true, 'Save does not reset the Published toggle');
   const rebuilt = await build(t, { backend });
   assert.equal(rebuilt.code, 0, rebuilt.logs);
-  const html = await readFile(path.join(rebuilt.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8');
+  const html = await readFile(path.join(rebuilt.dir, 'dist/music/watery-grave-ep/index.html'), 'utf8');
   assert.match(html, /Saved published title/);
   assert.match(html, /Saved published copy/);
   assert.match(html, /Saved published track/);
   assert.ok(!html.includes('Published backend title'));
   assert.deepEqual([...parseHTML(html).document.querySelectorAll('audio')].map(audio => audio.getAttribute('src')),
     original.tracks.map(track => track.audio_url));
-  const overview = await readFile(path.join(rebuilt.dir, 'dist/music-releases/index.html'), 'utf8');
+  const overview = await readFile(path.join(rebuilt.dir, 'dist/music/index.html'), 'utf8');
   assert.match(overview, /Saved published title/);
   const firstImage = parseHTML(initialHTML).document.querySelector('.release-media img').getAttribute('src');
   const retainedImage = parseHTML(html).document.querySelector('.release-media img').getAttribute('src');
@@ -308,7 +308,7 @@ test('real PocketBase published Saves update static metadata and tracks while fa
     body: { title: 'UNPUBLISHED PRIVATE TITLE', about: 'UNPUBLISHED PRIVATE COPY', tracks: {} } })).status, 400);
   const afterFailure = await build(t, { backend });
   assert.equal(afterFailure.code, 0, afterFailure.logs);
-  const retainedHTML = await readFile(path.join(afterFailure.dir, 'dist/music-releases/watery-grave-ep/index.html'), 'utf8');
+  const retainedHTML = await readFile(path.join(afterFailure.dir, 'dist/music/watery-grave-ep/index.html'), 'utf8');
   assert.match(retainedHTML, /Saved published title/);
   assert.match(retainedHTML, /Saved published track/);
   assert.ok(!retainedHTML.includes('UNPUBLISHED PRIVATE'));
