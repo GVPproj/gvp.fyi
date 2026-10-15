@@ -92,7 +92,7 @@ See the [backend contract](../pocketbase/server/editorial/README.md).
   `{title, track_num, duration?, audio_url?}`; numbering must be consecutive and
   duration nonnegative. Empty/omitted tracks are supported. Keep existing MP3 paths;
   full builds accept local `/audio/...mp3` references, not external audio providers.
-  Categories use stable IDs from `settings/site` (initially `graham-van-pelt`,
+  Categories use stable IDs from `src/data/site-settings.json` (initially `graham-van-pelt`,
   `miracle-fortress`, `think-about-life`, `other-credits`).
 - `editorial_entries`: immutable `kind` + `slug`, editable JSON object `data`,
   protected multi-file `assets`, boolean `published`.
@@ -102,10 +102,10 @@ See the [backend contract](../pocketbase/server/editorial/README.md).
 - Blog `data` is `{title, markdown}`. Raw HTML/MDX execution is disabled. A standalone
   `<!-- demo:face -->` paragraph inserts the fixed demo at most once; markers in
   code fences stay text. Preserve article slugs, attribution and displayed code.
-- Settings use slug `site`; `src/data/site-settings.json` is the complete shape:
+- Site settings are code-owned in `src/data/site-settings.json`:
   identity/title/description/home label, sections, ordered navigation/categories,
-  plain-text placeholders. Labels do not rename routes. A published settings record
-  is required for full builds.
+  plain-text placeholders. Legacy imported `settings/site` records are ignored by
+  rendering and are not required for full builds. Change these settings in Git.
 
 `data.assetNames` maps original basenames to PocketBase's actual saved upload
 filenames. The importer saves it after uploads are renamed. Keep aliases when

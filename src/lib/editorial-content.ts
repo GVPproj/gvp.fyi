@@ -5,9 +5,9 @@ import { materializeSoftware, publishedEntries } from './editorial-source.js';
 
 export const fullEditorialMode = snapshots !== null;
 export type SiteSettings = typeof repositorySettings;
-const publishedSettings = publishedEntries(snapshots, 'settings').find(entry => entry.slug === 'site');
-if (fullEditorialMode && !publishedSettings) throw new Error('A published settings/site record is required for a full-content build');
-export const siteSettings: SiteSettings = fullEditorialMode ? publishedSettings!.data : repositorySettings;
+// Site structure and presentation are deployed with code, never overridden by
+// legacy CMS settings/site snapshots. The CMS supplies editorial content only.
+export const siteSettings: SiteSettings = repositorySettings;
 export function sectionLabel(section: keyof SiteSettings['sections']) { return siteSettings.sections[section]; }
 export function categorySettings(kind: keyof SiteSettings['categories']) { return siteSettings.categories[kind]; }
 export const softwareProjects: (SoftwareProject & { order?: number; screenshotAlt?: string })[] = fullEditorialMode

@@ -7,7 +7,8 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { editorialInventory } from '../scripts/editorial-source.mjs';
 
-test('full-mode build renders imported nested software, Markdown demo and settings without repo-only projects', { timeout: 90000 }, async t => {
+for (const includeSettings of [true, false]) {
+test(`full-mode build keeps presentation repo-owned (${includeSettings ? 'stale' : 'missing'} CMS settings)`, { timeout: 90000 }, async t => {
   const inventory = await editorialInventory();
   const files = new Map();
   const entries = [];
@@ -21,7 +22,12 @@ test('full-mode build renders imported nested software, Markdown demo and settin
     }
     entries.push({ ...entry, revision: 'fixture', state: 'published', assets });
   }
-  entries.find(entry => entry.kind === 'settings').data.description = 'Snapshot-only description';
+  const staleSettings = entries.find(entry => entry.kind === 'settings').data;
+  staleSettings.description = 'Snapshot-only description';
+  staleSettings.navigation = [{ id: 'music', label: 'Music', children: [{ label: 'Releases', href: '/music-releases' }] }];
+  staleSettings.categories.software = [];
+  staleSettings.placeholders = [{ slug: 'cms-only-page', title: 'CMS page', body: 'Stale placeholder' }];
+  if (!includeSettings) entries.splice(entries.findIndex(entry => entry.kind === 'settings'), 1);
   entries.push({ kind: 'software', slug: 'biolink', revision: 'withdrawn', state: 'unpublished' });
   const server = createServer((req, res) => {
     if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'fixture', record: { collectionName: 'publishing_builds' } }));
@@ -48,7 +54,12 @@ test('full-mode build renders imported nested software, Markdown demo and settin
   assert.match(software, /Dion Kodhyat/);
   assert.match(software, /\/published-content\//);
   assert.doesNotMatch(software, /\/images\/software\//);
-  assert.match(software, /Snapshot-only description/);
+  assert.doesNotMatch(software, /Snapshot-only description/);
+  assert.match(software, /href="\/music"[^>]*>Music<\/a>/);
+  assert.match(software, /href="\/software"/);
+  assert.doesNotMatch(software, /id="music-menu"|<summary[^>]*>Music/);
+  await assert.rejects(readFile(`${dir}/cms-only-page/index.html`));
+  assert.match(await readFile(`${dir}/video/index.html`, 'utf8'), /Coming soon/);
   const blog = await readFile(`${dir}/blog/the-animated-face/index.html`, 'utf8');
   assert.match(blog, /sophiaburke.ca/);
   assert.match(blog, /class="face"/);
@@ -56,3 +67,4 @@ test('full-mode build renders imported nested software, Markdown demo and settin
   await assert.rejects(readFile(`${dir}/software/biolink/index.html`));
   await assert.rejects(readFile(`${dir}/software/tenzies/index.html`));
 });
+}

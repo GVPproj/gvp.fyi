@@ -12,7 +12,7 @@ pages, images and downloads that work with PocketBase offline.
 | Dashboard collection | Editorial content |
 | --- | --- |
 | `publishing_releases` | All 36 releases / 138 track entries: metadata, stable slugs, categories, credits, display overrides, streaming/Bandcamp/YouTube fields, artwork and native `tracks` JSON. |
-| `editorial_entries` | Seven software projects (including Tipbox team/gallery), one blog article and `settings/site`: navigation, identity/description, section/category labels and order, placeholder copy. Edit `data` JSON and protected `assets`. |
+| `editorial_entries` | Seven software projects (including Tipbox team/gallery) and one blog article. Edit `data` JSON and protected `assets`. Legacy `settings/site` records do not control the rendered site. |
 | `likes_items`, `likes_collections` | Collection items, text/attribution, protected image/PDF uploads, named collections and memberships. Existing item IDs remain public route keys. |
 
 Manual Likes editing is accepted: URL-preview acquisition and duplicate warnings
@@ -23,7 +23,9 @@ are still required. Blog prose uses safe Markdown, not executable MDX; a fixed
 Release MP3 uploads/replacements stay in Git/Netlify at their existing URLs;
 track metadata and audio references are dashboard-editable. Layout, interaction,
 SVG/design assets, instrument sounds and behavior-related UI copy stay in code.
-There is no general-purpose page builder.
+Site settings—including navigation, identity/description, section/category labels and order,
+and placeholder routes/copy—come exclusively from `src/data/site-settings.json` in every
+build mode. CMS settings snapshots cannot override deployed code. There is no general-purpose page builder.
 
 ## Authoring
 
@@ -58,7 +60,8 @@ Full mode uses `PUBLISHING_CONTENT=true` plus server-only
 `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and `PUBLISHING_BUILD_PASSWORD`
 for a restricted `publishing_builds` identity. Never use superuser credentials or
 public-prefixed secrets. Configuration belongs to the approved rollout, not routine
-authoring. Full mode has no repository fallback; published `settings/site` is required.
+authoring. Full-mode editorial content has no repository fallback. Site settings remain
+code-owned; a published `settings/site` record is not required.
 
 In full mode Likes is static, `/login` and `/likes/manage` redirect to `/likes`, and
 owner/session controls are inactive. Legacy code and shared backend endpoints remain
