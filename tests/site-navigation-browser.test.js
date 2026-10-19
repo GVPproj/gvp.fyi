@@ -49,4 +49,23 @@ test('Music and Software are direct links and GitHub is available on desktop and
   assert.equal(await mobileSoftware.getAttribute('aria-current'), null);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.documentElement.style.overflow === '');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  await page.waitForFunction(() => Math.round(document.querySelector('#site-nav').getBoundingClientRect().right) === innerWidth);
+  const bounds = await mobile.boundingBox();
+  assert.equal(Math.round(bounds.x + bounds.width), 390);
+  assert.equal(Math.round(bounds.width), 260);
+  assert.equal(Math.round(bounds.height), 844);
+  assert.equal(await page.locator('.menu-toggle .trow i').count(), 12);
+  assert.equal(await page.locator('.menu-toggle i').first().evaluate(el => getComputedStyle(el).animationName), 'none');
+  await mobile.getByRole('button', { name: 'Close menu', exact: true }).click();
+  await page.waitForFunction(() => !document.querySelector('#site-nav').matches(':popover-open'));
+  await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  await page.mouse.click(20, 400);
+  await page.waitForFunction(() => !document.querySelector('#site-nav').matches(':popover-open'));
+  await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForFunction(() => !document.querySelector('#site-nav').matches(':popover-open'));
+  assert.equal(await page.locator('.menu-toggle').isVisible(), false);
 });
