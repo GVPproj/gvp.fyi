@@ -192,7 +192,7 @@ func save(e *core.RecordEvent) error {
 	uploads := e.Record.GetUnsavedFiles("assets")
 	if e.Record.Collection().Name == "editorial_entries" {
 		kind, slug := identity(e.Record)
-		if (kind != "software" && kind != "blog" && kind != "settings") || len(slug) > 100 || !slugPattern.MatchString(slug) {
+		if (kind != "software" && kind != "settings") || len(slug) > 100 || !slugPattern.MatchString(slug) {
 			return apis.NewBadRequestError("Invalid editorial identity.", nil)
 		}
 		if !e.Record.IsNew() {
@@ -469,13 +469,15 @@ func store(app core.App, p Payload, source *core.Record, names []string) error {
 			p.Assets = append(p.Assets, Asset{Name: name, Path: "/api/publishing/content-assets/" + r.Id + "/" + file.Name, SHA256: hex.EncodeToString(sum[:])})
 		}
 	}
-	count, err := app.CountRecords(snapshots)
-	if err != nil {
+	// Deletions leave gaps; count+1 can collide with a retained revision.
+	// Callers hold a write transaction across allocation and Save.
+	var sequence int64
+	if err := app.DB().NewQuery("SELECT COALESCE(MAX(sequence), 0) + 1 FROM editorial_snapshots").Row(&sequence); err != nil {
 		return err
 	}
 	r.Set("kind", p.Kind)
 	r.Set("slug", p.Slug)
-	r.Set("sequence", count+1)
+	r.Set("sequence", sequence)
 	r.Set("assets", files)
 	r.Set("payload", p)
 	return app.Save(r)

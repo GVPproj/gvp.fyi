@@ -20,11 +20,6 @@ export async function editorialFixtures() {
         { name: 'gallery.png', bytes: await image('#654321') },
       ],
     },
-    {
-      kind: 'blog', slug: 'example-post',
-      data: { title: 'Example post', markdown: '# Example post\n\nA [reference](https://example.test/reference).\n\n<!-- demo:face -->\n\n```astro\n<Face />\n```' },
-      assets: [],
-    },
     { kind: 'settings', slug: 'site', data: { description: 'Fixture settings', categories: { software: [] } }, assets: [] },
   ];
 }

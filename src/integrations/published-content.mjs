@@ -49,7 +49,7 @@ export async function preparePublishedContent(env, fetcher = fetch) {
     for (const snapshot of snapshots) {
       // Site settings live in Git; legacy CMS settings and their assets are unused.
       if (snapshot?.kind === 'settings') continue;
-      if (!snapshot || !['software', 'blog', 'like'].includes(snapshot.kind) ||
+      if (!snapshot || !['software', 'like'].includes(snapshot.kind) ||
         typeof snapshot.slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(snapshot.slug) ||
         typeof snapshot.revision !== 'string' || !snapshot.revision ||
         !['published', 'unpublished'].includes(snapshot.state)) throw new Error();

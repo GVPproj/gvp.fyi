@@ -45,8 +45,9 @@ test('materializes intentional PDF downloads and verifies bytes', async () => {
   assert.deepEqual(result.files[0].bytes, bytes);
   await assert.rejects(preparePublishedContent(env, fixture([{ ...published, assets: [asset] }], Buffer.from('wrong'))), /Published content build failed/);
 });
-test('fails closed on partial config, duplicate identities, bad state, unauthorized paths and failures', async () => {
-  for (const snapshots of [[published, published], [{ ...published, state: 'draft' }], null,
+test('fails closed on partial config, duplicate identities, unsupported kinds, bad state, unauthorized paths and failures', async () => {
+  for (const snapshots of [[published, published], [{ ...published, kind: 'blog' }],
+    [{ ...published, kind: 'unknown' }], [{ ...published, state: 'draft' }], null,
     [{ ...published, assets: [{ name: 'x', path: '/api/collections/_superusers/records', sha256: 'a'.repeat(64) }] }]]) {
     await assert.rejects(preparePublishedContent(env, fixture(snapshots)), /Published content build failed/);
   }

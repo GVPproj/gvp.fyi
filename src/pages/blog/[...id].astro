@@ -1,20 +1,19 @@
 ---
-import { blogPosts, sectionLabel } from '../../lib/editorial-content';
-import { renderBlogMarkdown } from '../../lib/blog-markdown.js';
-import Face from '../../components/elements/Face.astro';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { sectionLabel } from '../../lib/editorial-content';
 import Layout from '../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-  const posts = await blogPosts();
+  const posts = await getCollection('blog');
   return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
 }
 
 interface Props {
-  post: Awaited<ReturnType<typeof blogPosts>>[number];
+  post: CollectionEntry<'blog'>;
 }
 
 const { post } = Astro.props;
-const parts = renderBlogMarkdown(post.data.markdown, { assets: post.assets, assetNames: post.data.assetNames });
+const { Content } = await render(post);
 ---
 
 <Layout title={post.data.title}>
@@ -23,7 +22,7 @@ const parts = renderBlogMarkdown(post.data.markdown, { assets: post.assets, asse
       <a href="/blog/">← {sectionLabel('blog')}</a>
       <h1>{post.data.title}</h1>
     </header>
-    <div class="post-body">{parts.map(part => part.demo === 'face' ? <Face /> : <Fragment set:html={part.html} />)}</div>
+    <div class="post-body"><Content /></div>
   </article>
 </Layout>
 
@@ -38,7 +37,6 @@ const parts = renderBlogMarkdown(post.data.markdown, { assets: post.assets, asse
   h1 { margin-block: 1rem 2rem; }
   .post-body { color: var(--color-foreground); }
   .post-body :global(> * + *) { margin-block-start: 1.5rem; }
-  .post-body :global(.face) { margin-inline: auto; }
   .post-body :global(code) { font-size: 0.95em; color: var(--color-accent); }
   .post-body :global(pre) {
     padding: 0.875rem 1.125rem;

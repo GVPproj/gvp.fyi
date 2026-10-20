@@ -61,12 +61,14 @@ test(`Published-content build keeps presentation repo-owned (${includeSettings ?
   assert.doesNotMatch(software, /id="music-menu"|<summary[^>]*>Music/);
   await assert.rejects(readFile(`${dir}/cms-only-page/index.html`));
   assert.match(await readFile(`${dir}/video/index.html`, 'utf8'), /Coming soon/);
-  const blog = await readFile(`${dir}/blog/example-post/index.html`, 'utf8');
-  assert.match(blog, /example.test\/reference/);
+  const blog = await readFile(`${dir}/blog/the-animated-face/index.html`, 'utf8');
+  assert.match(blog, /<h1\b[^>]*>The animated face<\/h1>/);
   assert.match(blog, /class="face"/);
-  assert.match(blog, /language-astro/);
+  assert.match(blog, /data-language="astro"/);
+  const blogIndex = await readFile(`${dir}/blog/index.html`, 'utf8');
+  assert.match(blogIndex, /href="\/blog\/the-animated-face\/?"/);
+  assert.match(blogIndex, /The animated face/);
   await assert.rejects(readFile(`${dir}/software/biolink/index.html`));
   await assert.rejects(readFile(`${dir}/software/tenzies/index.html`));
-  await assert.rejects(readFile(`${dir}/blog/the-animated-face/index.html`));
 });
 }

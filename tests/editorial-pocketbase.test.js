@@ -9,6 +9,16 @@ import sharp from 'sharp';
 const options = { skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY to the current custom server', timeout: 90000 };
 test('editorial publishing retains snapshots and safely replaces uploaded media', options, async t => {
   const pb = await start(t);
+  const schema = await pb.request('collections/editorial_entries', { token: pb.adminToken });
+  assert.equal(schema.status, 200);
+  assert.deepEqual(schema.data.fields.find(field => field.name === 'kind').values, ['software', 'settings']);
+  for (const published of [false, true]) {
+    const rejected = await pb.request('collections/editorial_entries/records', {
+      token: pb.adminToken, method: 'POST',
+      body: { kind: 'blog', slug: 'removed-kind', data: { title: 'Not CMS content' }, published },
+    });
+    assert.equal(rejected.status, 400);
+  }
   await seedEditorial(pb, { publish: true });
   const email = 'build@example.test', password = 'fixture-build-password';
   const build = await pb.request('collections/publishing_builds/records', { token: pb.adminToken, method: 'POST', body: { email, password, passwordConfirm: password } });
@@ -16,7 +26,6 @@ test('editorial publishing retains snapshots and safely replaces uploaded media'
   const env = { PUBLISHING_POCKETBASE_URL: pb.base, PUBLISHING_BUILD_EMAIL: email, PUBLISHING_BUILD_PASSWORD: password };
   const prepared = await preparePublishedContent(env);
   assert.equal(prepared.content.filter(entry => entry.kind === 'software').length, 1);
-  assert.equal(prepared.content.filter(entry => entry.kind === 'blog').length, 1);
   assert.equal(prepared.content.filter(entry => entry.kind === 'settings').length, 0);
   assert.equal(prepared.content.reduce((n, entry) => n + entry.assets.length, 0), 2);
   assert.ok(prepared.files.length > 2);
@@ -33,7 +42,7 @@ test('editorial publishing retains snapshots and safely replaces uploaded media'
   assert.equal((await pb.request(identitiesRoute, { token: buildAuth.data.token })).status, 403);
   const inventory = await pb.request(identitiesRoute, { token: pb.adminToken });
   assert.equal(inventory.status, 200);
-  assert.equal(inventory.data.length, 3);
+  assert.equal(inventory.data.length, 2);
   for (const identity of inventory.data) assert.deepEqual(Object.keys(identity).sort(), ['kind', 'slug']);
 
   const working = await pb.request('collections/editorial_entries/records?perPage=100', { token: pb.adminToken });
@@ -98,19 +107,26 @@ test('editorial publishing retains snapshots and safely replaces uploaded media'
   }
   materializeSoftware((await preparePublishedContent(env)).content.find(entry => entry.slug === 'example-project'));
 
-  // Deleting working records preserves published snapshots and withdrawals.
-  const blog = working.data.items.find(entry => entry.kind === 'blog');
-  const blogRoute = `collections/editorial_entries/records/${blog.id}`;
-  assert.equal((await pb.request(blogRoute, { token: pb.adminToken, method: 'PATCH', body: { published: false } })).status, 200);
+  // Deleting a working record preserves its published snapshot.
   const beforeDeletion = await preparePublishedContent(env);
   assert.equal(beforeDeletion.content.find(entry => entry.slug === 'example-project').state, 'published');
-  assert.equal(beforeDeletion.content.find(entry => entry.slug === 'example-post').state, 'unpublished');
-  for (const target of [route, blogRoute]) {
-    assert.equal((await pb.request(target, { token: pb.adminToken, method: 'DELETE' })).status, 204);
-  }
+  assert.equal((await pb.request(route, { token: pb.adminToken, method: 'DELETE' })).status, 204);
   assert.deepEqual((await preparePublishedContent(env)).content, beforeDeletion.content);
   assert.equal((await pb.request(route, { token: pb.adminToken })).status, 404);
-  assert.equal((await pb.request(blogRoute, { token: pb.adminToken })).status, 404);
+
+  // Recreating the identity with Published off withdraws it without reuploading
+  // assets; deleting that working record preserves the withdrawal too.
+  const recreated = await pb.request('collections/editorial_entries/records', {
+    token: pb.adminToken, method: 'POST',
+    body: { kind: 'software', slug: 'example-project', data: { title: 'Withdraw project' }, published: false },
+  });
+  assert.equal(recreated.status, 200, JSON.stringify(recreated.data));
+  const beforeWithdrawalDeletion = await preparePublishedContent(env);
+  assert.equal(beforeWithdrawalDeletion.content.find(entry => entry.slug === 'example-project').state, 'unpublished');
+  const recreatedRoute = `collections/editorial_entries/records/${recreated.data.id}`;
+  assert.equal((await pb.request(recreatedRoute, { token: pb.adminToken, method: 'DELETE' })).status, 204);
+  assert.deepEqual((await preparePublishedContent(env)).content, beforeWithdrawalDeletion.content);
+  assert.equal((await pb.request(recreatedRoute, { token: pb.adminToken })).status, 404);
 
   const draft = await pb.request('collections/likes_items/records', { token: pb.adminToken, method: 'POST', body: { title: 'Private note', type: 'note', body: 'Do not leak this draft' } });
   assert.equal(draft.status, 200);

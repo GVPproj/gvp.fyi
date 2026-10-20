@@ -112,7 +112,10 @@ exactly the latest revision for each retained identity:
 }]
 ```
 
-Kinds: `software`, `blog`, `settings`, `like`; releases use their separate API.
+Kinds: `software`, `settings`, `like`; releases use their separate API.
+Blog posts live only in the Astro content collection; `blog` is not a supported
+editorial kind. The [removal migration](README.md#blog-removal-migration) deletes
+legacy blog records, revisions and their assets.
 The website ignores legacy `settings` snapshots and their assets; site settings live in Git.
 `data` is an object; `assets` always an array. Withdrawal has the same six fields,
 `state: "unpublished"`, `data: {}`, `assets: []`. Apply withdrawals; they are not
@@ -131,13 +134,13 @@ attached to that exact revision; older files survive edits, withdrawal and worki
 
 `GET /api/publishing/editorial-identities` is **superuser-only**; anonymous, owner and
 build identities get 403. Returns sorted `{kind, slug}` array for retained software/
-blog/settings identities, including withdrawals and deleted working records. Exposes
+settings identities, including withdrawals and deleted working records. Exposes
 no payload, revision, state or media. Uses `Cache-Control: no-store`, `Vary: Authorization`.
 
 ### Dashboard records and validation
 
-`editorial_entries`: kind select, slug, data JSON, protected multi-file assets,
-Published boolean (default false). Native dashboard JSON editing is intentional.
+`editorial_entries`: kind select (`software` or `settings`), slug, data JSON,
+protected multi-file assets, Published boolean (default false). Native dashboard JSON editing is intentional.
 Kind/slug are immutable and unique together. Slug: 1–100 lowercase ASCII letters/digits
 with single hyphen separators; different kinds may share it. Data: JSON object, max
 256 KiB. Domain shapes/rendering safety belong to consumers; no executable MDX or
@@ -167,7 +170,8 @@ do not publish changes. Deletion retains publication/media. Recreating kind/slug
 with Published off permits withdrawal without reconstructing deleted files.
 Snapshot records cannot be listed/viewed/mutated or downloaded via general record/file
 APIs, even by superusers; internal model updates/deletes are also rejected. Trusted
-DB administrators can bypass guards. No pruning is implemented.
+DB administrators can bypass guards. No routine pruning is implemented; the
+one-time blog removal migration explicitly removes that retired kind.
 
 ### Likes and named collections
 

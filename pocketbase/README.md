@@ -34,7 +34,7 @@ login/editor.
 
 ### Workflow
 
-1. Open `publishing_releases` (music), `editorial_entries` (software/blog), or
+1. Open `publishing_releases` (music), `editorial_entries` (software), or
    `likes_items` / `likes_collections` (Likes). New items start unpublished.
 2. Edit and Save. **Published on + Save publishes all saved edits** into an immutable
    revision. Turn Published off before saving private changes.
@@ -58,8 +58,8 @@ on that item's Published Save.
   reference existing `/audio/...mp3` URLs. Upload artwork separately.
 - Software `data` retains role/team/tooling/gallery fields. Numeric `order` sorts
   ascending, then slug. Use `screenshotAlt` and gallery descriptions for accessibility.
-- Blog `data`: `{title, markdown}`. Raw HTML/MDX does not execute. A standalone
-  `<!-- demo:face -->` paragraph inserts the fixed face demo once.
+- Blog posts are Git-owned MDX in `src/content/blog/`; PocketBase does not accept,
+  publish or retain blog entries. See [blog authoring](../README.md#blog).
 - `data.assetNames` maps original basenames to PocketBase's saved upload filenames.
   Replace **one file per Save** for unambiguous reference repair. Multiple replacements
   require matching original names or an explicit mapping. Images/local downloads
@@ -71,8 +71,9 @@ on that item's Published Save.
 
 Original uploads stay in `pb_data/storage` on Fly. Development and builds require
 `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and
-`PUBLISHING_BUILD_PASSWORD`, with no editorial repository fallback. Likes uses this
-loader in development too. Use a restricted `publishing_builds` identity, **never
+`PUBLISHING_BUILD_PASSWORD`, with no repository fallback for CMS-owned music,
+software or Likes. The local MDX blog is an independent source, not a fallback.
+Likes uses this loader in development too. Use a restricted `publishing_builds` identity, **never
 superuser credentials or public-prefixed secrets**. Field details:
 [releases](contracts.md#release-publishing), [editorial](contracts.md#editorial-publishing),
 [Likes](contracts.md#likes-api).
@@ -116,6 +117,21 @@ collection transactionally, without publishing private edits or changing retaine
 snapshots/media. Catalogue migration adds metadata without republishing. A later
 Save of a migrated published record intentionally publishes its working edits.
 Rehearse on fresh isolated data; never rewrite history or use destructive down migrations.
+
+### Blog removal migration
+
+Ship `1782518400_remove_blog.js` with the updated backend before deploying the
+frontend. It removes `blog` from the editorial kind select and permanently deletes
+all blog working records, every retained blog revision (including withdrawals and
+revisions whose working record was deleted), and their uploaded files. Software,
+settings, Likes and music are unchanged. Historical migrations remain in place;
+do not edit or replay them.
+
+Take a paired database/storage/code backup and rehearse on an isolated restored
+copy before approving deployment. Verify blog records and files are gone and other
+content still publishes. Rollback requires restoring that backup with matching
+code; the migration has no destructive down path. Old static deployments, caches
+and backups are not erased by this migration.
 
 ### Seeding a legacy database
 
@@ -161,7 +177,8 @@ MFA, recreate credentials or modify running SQLite as routine troubleshooting.
 ## Storage reconciliation
 
 PocketBase saves uploads with records and cleans failed/replaced/deleted files.
-Snapshots retain independent copies indefinitely. Database transactions do not make
+Snapshots retain independent copies indefinitely, except those explicitly removed
+by the blog removal migration. Database transactions do not make
 filesystem operations crash-proof. A disconnect after commit does not undo Save:
 refresh before retrying.
 

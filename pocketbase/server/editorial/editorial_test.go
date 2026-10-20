@@ -21,6 +21,7 @@ import (
 )
 
 func TestRealPocketBase(t *testing.T) {
+	isolateMigrations(t)
 	app, err := tests.NewTestApp(t.TempDir())
 	must(t, err)
 	defer app.Cleanup()
@@ -216,7 +217,7 @@ func TestRealPocketBase(t *testing.T) {
 	})
 	t.Run("publication failure rolls back", func(t *testing.T) {
 		invalid := core.NewRecord(entries)
-		invalid.Set("kind", "blog")
+		invalid.Set("kind", "software")
 		invalid.Set("slug", "bad-file")
 		invalid.Set("data", map[string]any{"title": "Bad"})
 		invalid.Set("published", true)
@@ -226,7 +227,7 @@ func TestRealPocketBase(t *testing.T) {
 		if app.Save(invalid) == nil {
 			t.Fatal("accepted mismatched extension")
 		}
-		prev, err := previous(app, "blog", "bad-file")
+		prev, err := previous(app, "software", "bad-file")
 		must(t, err)
 		if prev != nil {
 			t.Fatal("failed save created a snapshot")
@@ -340,7 +341,7 @@ func TestLikesDeleteGuard(t *testing.T) {
 			entries, err := os.ReadDir(migrations)
 			must(t, err)
 			for _, entry := range entries {
-				if entry.IsDir() || entry.Name() < "1781568000_" || !strings.HasSuffix(entry.Name(), ".js") || (!scenario.migrated && entry.Name() == "1782432000_editorial.js") {
+				if entry.IsDir() || entry.Name() < "1781568000_" || !strings.HasSuffix(entry.Name(), ".js") || (!scenario.migrated && (entry.Name() == "1782432000_editorial.js" || entry.Name() == "1782518400_remove_blog.js")) {
 					continue
 				}
 				data, err := os.ReadFile(filepath.Join(migrations, entry.Name()))

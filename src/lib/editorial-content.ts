@@ -15,9 +15,3 @@ export const softwareProjects: SoftwareProject[] = publishedEntries(snapshots, '
 if (softwareProjects.some(project => !siteSettings.categories.software.some(category => category.id === project.category))) {
   throw new Error('Published software references an unknown category');
 }
-
-export async function blogPosts() {
-  return publishedEntries(snapshots, 'blog').map(entry => ({
-    id: entry.slug, data: entry.data as { title: string; markdown: string; assetNames?: Record<string, string> }, assets: entry.assets,
-  })).sort((a, b) => a.data.title.localeCompare(b.data.title));
-}

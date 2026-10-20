@@ -26,4 +26,7 @@ test('Blog index opens a readable post and returns to the index without JavaScri
   await page.goto(`${base}/blog/drawing-my-face/`);
   await page.waitForURL(`${base}/blog/the-animated-face/`);
   assert.equal(await page.locator('article h1').count(), 1);
+  assert.equal(await article.getByRole('img', { name: 'A one-line portrait of my face' }).count(), 1);
+  assert.match(await article.locator('pre code').textContent(), /<svg/);
+  await article.getByRole('link', { name: 'Sophia', exact: true }).waitFor();
 });

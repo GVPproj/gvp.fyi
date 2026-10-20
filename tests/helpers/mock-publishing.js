@@ -5,7 +5,6 @@ import { once } from 'node:events';
 import sharp from 'sharp';
 import siteSettings from '../../src/config/site-settings.json' with { type: 'json' };
 import { softwareProjects } from '../fixtures/software-projects.ts';
-import { blogPosts } from '../fixtures/blog-posts.js';
 import { categories, slugOf, dateOf } from './release-catalog.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -29,9 +28,6 @@ export async function startMockPublishing(t) {
     return { revision, kind: 'software', slug: project.slug, state: 'published',
       data: { ...project, order }, assets: descriptors };
   }));
-  content.push(...blogPosts.map(({ slug, ...data }) => ({
-    revision: `blog-${slug}`, kind: 'blog', slug, state: 'published', data, assets: [],
-  })));
 
   const releases = [];
   const categoryIds = siteSettings.categories.releases.map(category => category.id);

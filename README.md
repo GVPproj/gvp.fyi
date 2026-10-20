@@ -15,9 +15,10 @@ pnpm dev
 
 Set the server-only publishing variables in `.env` to a PocketBase instance
 with a restricted build identity, then open `http://127.0.0.1:4324`.
-Development and builds both require published PocketBase content; there is no
-checked-in editorial fallback. Missing configuration or backend failures stop
-the build rather than silently publishing old content.
+Development and builds both require published PocketBase content for music,
+software and Likes; there is no checked-in fallback for those sections. The blog
+is Git-owned MDX in `src/content/blog/`, not a CMS fallback. Missing configuration
+or backend failures stop the build rather than silently publishing old content.
 
 ## Testing
 
@@ -35,9 +36,30 @@ dev server sharing the generated Astro/Netlify workspace.
 ## Publishing
 
 See [PocketBase authoring and operations](pocketbase/README.md) and
-[API contracts](pocketbase/contracts.md). Edit content in PocketBase, then deploy
-manually in Netlify. Site settings and interactions stay in code.
+[API contracts](pocketbase/contracts.md). Edit music, software and Likes in
+PocketBase, then deploy manually in Netlify. Site settings and interactions stay
+in code. Blog posts are authored only in the Astro content collection; PocketBase
+has no blog publishing support.
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).
+
+### Blog
+
+Author posts as Git-owned `.mdx` files in `src/content/blog/`, with a `title` in
+frontmatter. Astro's local `blog` collection renders them; the filename determines
+the `/blog/<slug>/` route. Commit and deploy blog edits with the frontend, not
+through PocketBase.
+
+Import components only in articles that use them. For example,
+`the-animated-face.mdx` imports `Face` directly:
+
+```mdx
+import Face from '@src/components/elements/Face.astro';
+
+<Face />
+```
+
+Use fenced `astro` code blocks for source examples; there is no CMS demo marker
+or global Face injection.
 
 ## Ambient instrument
 
