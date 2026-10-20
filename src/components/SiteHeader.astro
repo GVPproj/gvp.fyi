@@ -333,7 +333,9 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   .menu-toggle,
   .menu-close {
     position: fixed;
-    top: 0.875rem;
+    /* Match the signature's center: header padding + half its height. */
+    top: calc(1.5rem + 2.5rem / 2);
+    transform: translateY(-50%);
     right: 1rem;
     z-index: 10;
     display: grid;
