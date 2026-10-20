@@ -21,9 +21,6 @@ function validateLinks(value) {
 }
 
 export async function preparePublishedContent(env, fetcher = fetch) {
-  if (env.PUBLISHING_CONTENT !== 'true') {
-    throw new Error('PUBLISHING_CONTENT must be true; repository content is no longer supported');
-  }
   try {
     const base = new URL(env.PUBLISHING_POCKETBASE_URL);
     if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname))) ||
@@ -50,7 +47,9 @@ export async function preparePublishedContent(env, fetcher = fetch) {
     if (!Array.isArray(snapshots)) throw new Error();
     const files = [], content = [], identities = new Set();
     for (const snapshot of snapshots) {
-      if (!snapshot || !['software', 'blog', 'settings', 'like'].includes(snapshot.kind) ||
+      // Site settings live in Git; legacy CMS settings and their assets are unused.
+      if (snapshot?.kind === 'settings') continue;
+      if (!snapshot || !['software', 'blog', 'like'].includes(snapshot.kind) ||
         typeof snapshot.slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(snapshot.slug) ||
         typeof snapshot.revision !== 'string' || !snapshot.revision ||
         !['published', 'unpublished'].includes(snapshot.state)) throw new Error();
@@ -107,11 +106,6 @@ export async function preparePublishedContent(env, fetcher = fetch) {
 export default function publishedContent() {
   let prepared;
   return { name: 'published-content', hooks: {
-    'astro:route:setup': ({ route }) => {
-      if (['src/pages/likes.astro', 'src/pages/likes/[slug].astro'].includes(route.component)) {
-        route.prerender = true;
-      }
-    },
     'astro:config:setup': async ({ updateConfig }) => {
       prepared = await preparePublishedContent(process.env);
       updateConfig({ vite: { plugins: [{ name: 'published-content-data',

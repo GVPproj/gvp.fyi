@@ -6,10 +6,8 @@ import { preparePublishedRelease } from '../src/integrations/published-release.m
 
 const options = { skip: !process.env.POCKETBASE_BINARY && 'Set POCKETBASE_BINARY' };
 
-test('release builds require CMS configuration regardless of the old mode flag', async () => {
-  for (const env of [{}, { PUBLISHING_CONTENT: 'true' }, { PUBLISHING_CONTENT: 'false' }]) {
-    await assert.rejects(preparePublishedRelease(env), /Incomplete publishing configuration/);
-  }
+test('release builds require CMS configuration', async () => {
+  await assert.rejects(preparePublishedRelease({}), /Incomplete publishing configuration/);
 });
 
 test('catalogue lists latest immutable revisions, empty tracks and withdrawals; full builds have no fallback', options, async t => {
@@ -20,7 +18,7 @@ test('catalogue lists latest immutable revisions, empty tracks and withdrawals; 
     return response.data;
   }
   await write('collections/publishing_builds/records', { email: 'catalogue@example.test', password: 'test-build-password', passwordConfirm: 'test-build-password' });
-  const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: base, PUBLISHING_BUILD_EMAIL: 'catalogue@example.test', PUBLISHING_BUILD_PASSWORD: 'test-build-password' };
+  const env = { PUBLISHING_POCKETBASE_URL: base, PUBLISHING_BUILD_EMAIL: 'catalogue@example.test', PUBLISHING_BUILD_PASSWORD: 'test-build-password' };
   const build = (await request('collections/publishing_builds/auth-with-password', { method: 'POST', body: { identity: env.PUBLISHING_BUILD_EMAIL, password: env.PUBLISHING_BUILD_PASSWORD } })).data.token;
   assert.deepEqual((await preparePublishedRelease(env)).release, []);
   for (const denied of [undefined, token]) assert.equal((await request('publishing/releases', { token: denied })).status, 403);

@@ -84,7 +84,6 @@ export async function startMockPublishing(t) {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   return {
-    PUBLISHING_CONTENT: 'true',
     PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`,
     PUBLISHING_BUILD_EMAIL: email,
     PUBLISHING_BUILD_PASSWORD: password,

@@ -1,33 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import publishedContent, { preparePublishedContent } from '../src/integrations/published-content.mjs';
+import { preparePublishedContent } from '../src/integrations/published-content.mjs';
 
-const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: 'http://127.0.0.1:8090', PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'secret-private' };
+const env = { PUBLISHING_POCKETBASE_URL: 'http://127.0.0.1:8090', PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'secret-private' };
 function fixture(snapshots, asset = null) {
   return async url => new Response(url.pathname.includes('auth-with-password')
     ? JSON.stringify({ token: 'private-token', record: { collectionName: 'publishing_builds' } })
     : url.pathname === '/api/publishing/content' ? JSON.stringify(snapshots) : asset);
 }
 const published = { revision: 'rev1', kind: 'like', slug: 'item1', state: 'published', data: { title: 'Public note', body: 'hello', type: 'note' }, assets: [] };
-test('Likes routes always prerender, independent of content mode', () => {
-  const setup = publishedContent().hooks['astro:route:setup'];
-  for (const component of ['src/pages/likes.astro', 'src/pages/likes/[slug].astro']) {
-    const route = { component, prerender: false };
-    setup({ route });
-    assert.equal(route.prerender, true);
-  }
-  const unrelated = { component: 'src/pages/blog.astro', prerender: false };
-  setup({ route: unrelated });
-  assert.equal(unrelated.prerender, false);
+test('missing publishing credentials fail before making backend requests', async () => {
+  let requests = 0;
+  await assert.rejects(preparePublishedContent({}, () => { requests++; }), /Published content build failed/);
+  assert.equal(requests, 0);
 });
 
-test('missing or disabled publishing fails rather than building repository content', async () => {
-  for (const PUBLISHING_CONTENT of [undefined, 'false']) {
-    await assert.rejects(preparePublishedContent({ PUBLISHING_CONTENT }, () => {
-      assert.fail('must reject configuration before making backend requests');
-    }), /PUBLISHING_CONTENT must be true/);
-  }
+test('ignores legacy settings payloads and assets without fetching them', async () => {
+  const requests = [];
+  const snapshots = [published, { revision: 'settings1', kind: 'settings', slug: 'site', state: 'published',
+    data: { url: 'javascript:unused()' },
+    assets: [{ name: 'missing.png', path: '/api/publishing/content-assets/settings1/missing.png', sha256: 'a'.repeat(64) }] }];
+  const respond = fixture(snapshots);
+  const result = await preparePublishedContent(env, url => {
+    requests.push(url.pathname);
+    return respond(url);
+  });
+  assert.deepEqual(result.content, [published]);
+  assert.deepEqual(result.files, []);
+  assert.deepEqual(requests, ['/api/collections/publishing_builds/auth-with-password', '/api/publishing/content']);
 });
 test('materializes only explicit snapshot projection, retaining withdrawals', async () => {
   const result = await preparePublishedContent(env, fixture([{ ...published, privateToken: 'must-not-leak' }, { revision: 'rev2', kind: 'like', slug: 'item2', state: 'unpublished', data: { secret: 'draft' } }]));
@@ -49,7 +50,6 @@ test('fails closed on partial config, duplicate identities, bad state, unauthori
     [{ ...published, assets: [{ name: 'x', path: '/api/collections/_superusers/records', sha256: 'a'.repeat(64) }] }]]) {
     await assert.rejects(preparePublishedContent(env, fixture(snapshots)), /Published content build failed/);
   }
-  await assert.rejects(preparePublishedContent({ ...env, PUBLISHING_CONTENT: 'TRUE' }, fixture([])), /PUBLISHING_CONTENT must/);
   await assert.rejects(preparePublishedContent({ ...env, PUBLISHING_BUILD_PASSWORD: '' }, fixture([])), /Published content build failed/);
   await assert.rejects(preparePublishedContent(env, async () => new Response('private details', { status: 500 })), error => !error.message.includes('private details'));
 });

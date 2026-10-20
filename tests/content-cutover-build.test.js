@@ -49,7 +49,7 @@ test('full-content mode emits static Likes and ignores draft/withdrawn items', {
   const dir = await mkdtemp(fileURLToPath(new URL('../.astro/content-build-', import.meta.url)));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const child = spawn(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build', '--outDir', dir], {
-    env: { ...process.env, PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`, PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'private-fixture-password', ASTRO_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`, PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'private-fixture-password', ASTRO_TELEMETRY_DISABLED: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   t.after(() => { if (child.exitCode === null) child.kill(); });

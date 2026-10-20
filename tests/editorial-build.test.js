@@ -42,7 +42,7 @@ test(`Published-content build keeps presentation repo-owned (${includeSettings ?
   const dir = await mkdtemp(new URL('../.astro/editorial-build-', import.meta.url));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const child = spawn(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build', '--outDir', dir], {
-    env: { ...process.env, PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`,
+    env: { ...process.env, PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`,
       PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'fixture', ASTRO_TELEMETRY_DISABLED: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

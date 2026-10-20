@@ -63,7 +63,7 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
   t.after(() => { server.closeAllConnections(); server.close(); });
   const endpoint = `http://127.0.0.1:${server.address().port}`;
   const child = spawn(process.execPath, [path.join(root, 'node_modules/astro/bin/astro.mjs'), 'build', '--outDir', path.join(dir, 'dist')], {
-    cwd: root, env: { ...process.env, PUBLISHING_CONTENT: 'true', ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: local ? '' : backend?.base ?? endpoint,
+    cwd: root, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: local ? '' : backend?.base ?? endpoint,
       PUBLISHING_BUILD_EMAIL: local ? '' : backend?.email ?? 'build@example.test', PUBLISHING_BUILD_PASSWORD: local ? '' : backend?.password ?? 'private-build-password-never-public', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

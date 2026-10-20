@@ -13,11 +13,11 @@ test('editorial publishing retains snapshots and safely replaces uploaded media'
   const email = 'build@example.test', password = 'fixture-build-password';
   const build = await pb.request('collections/publishing_builds/records', { token: pb.adminToken, method: 'POST', body: { email, password, passwordConfirm: password } });
   assert.equal(build.status, 200);
-  const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: pb.base, PUBLISHING_BUILD_EMAIL: email, PUBLISHING_BUILD_PASSWORD: password };
+  const env = { PUBLISHING_POCKETBASE_URL: pb.base, PUBLISHING_BUILD_EMAIL: email, PUBLISHING_BUILD_PASSWORD: password };
   const prepared = await preparePublishedContent(env);
   assert.equal(prepared.content.filter(entry => entry.kind === 'software').length, 1);
   assert.equal(prepared.content.filter(entry => entry.kind === 'blog').length, 1);
-  assert.equal(prepared.content.filter(entry => entry.kind === 'settings').length, 1);
+  assert.equal(prepared.content.filter(entry => entry.kind === 'settings').length, 0);
   assert.equal(prepared.content.reduce((n, entry) => n + entry.assets.length, 0), 2);
   assert.ok(prepared.files.length > 2);
   const project = prepared.content.find(entry => entry.slug === 'example-project');

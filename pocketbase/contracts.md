@@ -81,7 +81,7 @@ Published payload (optional release metadata omitted):
 Withdrawal: HTTP 200, `{"revision":"recordId","slug":"release-slug","state":"unpublished"}`,
 no artwork. Frontend uses the authoritative catalogue, not legacy per-slug build mode.
 Auth/fetch/validation failures must fail builds, never masquerade as withdrawal.
-`PUBLISHING_CONTENT=true` is required for development/builds; no repository fallback.
+Publishing credentials are required for development/builds; no repository fallback.
 
 Internal `publishing_snapshots` contain immutable server-created JSON and independent
 protected artwork. Normal API writes are rejected even for superusers. Revision-pinned
@@ -113,6 +113,7 @@ exactly the latest revision for each retained identity:
 ```
 
 Kinds: `software`, `blog`, `settings`, `like`; releases use their separate API.
+The website ignores legacy `settings` snapshots and their assets; site settings live in Git.
 `data` is an object; `assets` always an array. Withdrawal has the same six fields,
 `state: "unpublished"`, `data: {}`, `assets: []`. Apply withdrawals; they are not
 absent/unavailable content. Empty result is `[]`; draft-only identities never appear.

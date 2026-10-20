@@ -18,7 +18,7 @@ test('native dashboard publishes software JSON, replaces its image and publishes
   assert.equal(quote.status, 200);
   const email = 'build@example.test', password = 'fixture-build-password';
   assert.equal((await pb.request('collections/publishing_builds/records', { token: pb.adminToken, method: 'POST', body: { email, password, passwordConfirm: password } })).status, 200);
-  const env = { PUBLISHING_CONTENT: 'true', PUBLISHING_POCKETBASE_URL: pb.base, PUBLISHING_BUILD_EMAIL: email, PUBLISHING_BUILD_PASSWORD: password };
+  const env = { PUBLISHING_POCKETBASE_URL: pb.base, PUBLISHING_BUILD_EMAIL: email, PUBLISHING_BUILD_PASSWORD: password };
   const auth = await pb.request('collections/_superusers/auth-refresh', { method: 'POST', token: pb.adminToken });
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
   t.after(() => browser.close());

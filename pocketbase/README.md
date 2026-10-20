@@ -70,7 +70,7 @@ on that item's Published Save.
   interaction, instrument sounds and behavior-related copy also stay in Git.
 
 Original uploads stay in `pb_data/storage` on Fly. Development and builds require
-`PUBLISHING_CONTENT=true`, `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and
+`PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and
 `PUBLISHING_BUILD_PASSWORD`, with no editorial repository fallback. Likes uses this
 loader in development too. Use a restricted `publishing_builds` identity, **never
 superuser credentials or public-prefixed secrets**. Field details:
