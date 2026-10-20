@@ -1,7 +1,6 @@
 ---
 import Sig from './Sig.astro'
 import Github from './Github.astro'
-import ChevronDown from './ChevronDown.astro'
 import PixelMenu from './PixelMenu.astro'
 
 const path = Astro.url.pathname
@@ -33,7 +32,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       {navigation.map((group) => group.children ? (
         <li class="nav-group" style={`anchor-name: --${group.id}`}>
           <button type="button" class:list={['group-toggle', { current: group.current }]} popovertarget={`${group.id}-menu`}>
-            {group.label}<ChevronDown />
+            {group.label}
           </button>
           <div id={`${group.id}-menu`} class="dropdown" popover style={`position-anchor: --${group.id}`}>
             <ul>
@@ -74,13 +73,12 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       <li>
         <a href="/" class:list={{ current: path === '/' }} aria-current={path === '/' ? 'page' : undefined}>
           <span>{siteSettings.homeLabel}</span>
-          <span class="chev" aria-hidden="true">›</span>
         </a>
       </li>
       {navigation.map((group) => group.children ? (
         <li>
           <details open={group.current}>
-            <summary class:list={{ current: group.current }}>{group.label}<ChevronDown /></summary>
+            <summary class:list={{ current: group.current }}>{group.label}</summary>
             <ul>
               {group.children.map((child) => (
                 <li><a href={child.href} class:list={{ current: child.current }} aria-current={child.current ? 'page' : undefined}>{child.label}</a></li>
@@ -89,12 +87,11 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
           </details>
         </li>
       ) : (
-        <li><a href={group.href} class:list={{ current: group.current }} aria-current={group.current ? 'page' : undefined}><span>{group.label}</span>{group.href !== '/software' && <span class="chev" aria-hidden="true">›</span>}</a></li>
+        <li><a href={group.href} class:list={{ current: group.current }} aria-current={group.current ? 'page' : undefined}><span>{group.label}</span></a></li>
       ))}
       <li>
         <a href="https://github.com/GVPproj" target="_blank" rel="noopener noreferrer">
           <span class="gh"><Github width="22" height="22" /> GitHub</span>
-          <span class="chev" aria-hidden="true">↗</span>
         </a>
       </li>
     </ul>
@@ -270,7 +267,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       border-inline-start: 1px solid var(--ink-700);
     }
 
-    .menu-toggle {
+    button.menu-toggle {
       display: none;
     }
   }
@@ -289,17 +286,6 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     background: none;
     color: var(--colour-text-base);
     font: inherit;
-  }
-
-  .group-toggle :global(svg),
-  summary :global(svg) {
-    flex-shrink: 0;
-    transition: transform 180ms ease;
-  }
-
-  .nav-group:has(.dropdown:popover-open) .group-toggle :global(svg),
-  details[open] > summary :global(svg) {
-    transform: rotate(180deg);
   }
 
   summary { list-style: none; }
@@ -350,14 +336,14 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     top: 0.875rem;
     right: 1rem;
     z-index: 10;
-    width: 44px;
-    height: 44px;
-    padding: 9px;
+    display: grid;
+    place-items: center;
+    padding: 0.4rem;
     border: 1px solid var(--ink-500);
     border-radius: 0;
     background: var(--colour-fill);
     color: var(--colour-text-base);
-    box-shadow: 3px 3px 0 var(--ink-700);
+    box-shadow: none;
     cursor: pointer;
   }
 
@@ -447,16 +433,8 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     gap: 0.625rem;
   }
 
-  .chev {
-    color: var(--ink-300);
-    font-size: 1.5rem;
-    line-height: 1;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     header,
-    .group-toggle :global(svg),
-    summary :global(svg),
     [popover],
     [popover]::backdrop {
       transition: none;
