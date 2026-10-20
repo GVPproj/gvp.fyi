@@ -32,15 +32,39 @@ Backend integration tests require `POCKETBASE_BINARY`; browser tests also requir
 Missing prerequisites skip tests. Run browser/build suites serially, without a
 dev server sharing the generated Astro/Netlify workspace.
 
-## Where things live
+## Publishing
 
-- `src/`: pages, components, content and publishing build integrations.
-- `public/`: static audio, images, fonts and licenses.
-- `pocketbase/`: [backend setup and operations](pocketbase/README.md), migrations and hooks.
-- `tests/`: regression tests and disposable fixtures.
-
-Edit content through the [PocketBase dashboard](docs/dashboard-publishing.md),
-then deploy manually in Netlify. Site settings and interactions stay in code.
-See [ambient instrument behavior](docs/ambient-playground.md).
-
+See [PocketBase authoring and operations](pocketbase/README.md) and
+[API contracts](pocketbase/contracts.md). Edit content in PocketBase, then deploy
+manually in Netlify. Site settings and interactions stay in code.
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).
+
+## Ambient instrument
+
+Home's 12-pad sine instrument starts silent. Pointer, multi-touch,
+QWER / ASDF / ZXCV and native Enter/Space activation are supported; audio
+unlocks only on an intentional pad or transport gesture.
+
+- Record starts a free-time first pass (1–8 seconds); Finish loop sets its length.
+  No quantization, count-in or metronome. Overdub monitors new hits once, then
+  repeats them next cycle. Limits: 512 events, 32 voices.
+- Stop silences active/queued voices and discards unfinished recording, retaining
+  committed events. Play restarts from zero; Clear removes everything without undo.
+  Master volume affects monitoring and playback.
+- Hiding/interruption stops audio and discards unfinished material; resumption is
+  explicit. Navigation clears the unsaved loop. Errors are visible; transport state
+  is announced, not conveyed by color alone.
+
+`src/lib/lib-ambient-pad/` owns the kit, limits, transactional looper and audio
+engine; `src/scripts/ambient-pad.ts` owns input/UI and Astro lifecycle cleanup.
+Schedule on the audio clock: timers feed a lookahead horizon, skipping expired
+occurrences after stalls rather than bursting missed hits. Tails can cross loop
+boundaries. Dispose voices, timers and handlers on departure; restored pages start
+silent. The engine uses `{ soundId, when }` triggers and `stop()`, with no samples.
+
+`tests/ambient-*.test.js` cover scheduling/rendering and Chromium UI/lifecycle.
+Physical-device listening/multi-touch, screen readers, interruptions and true
+BFCache still need testing, especially Safari/iOS; synthetic tests do not establish
+musical feel or real-device behavior. Targets: current desktop Chrome/Firefox/Safari,
+Android Chrome and iOS Safari. Vertical range controls need Chrome 124+,
+Firefox 120+ or Safari 17.4+.

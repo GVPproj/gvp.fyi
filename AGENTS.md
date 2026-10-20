@@ -1,20 +1,13 @@
 ## Coding standards
 
-- Prefer native HTML and modern CSS over custom JavaScript. Use JavaScript only for behavior the platform cannot adequately provide.
-- Reach for built-in features such as `<dialog>`, the Popover API, `<details>`/`<summary>`, native form validation, CSS anchor positioning, and container queries before implementing equivalents in JavaScript.
-- Check browser support against the project's supported browsers before adopting newer features. Use progressive enhancement and small fallbacks where needed; ask if the browser support policy is unclear.
-- Preserve accessibility: semantic markup, keyboard interaction, focus management, and reduced-motion preferences. Verify native behavior meets the interaction's needs.
+- Prefer native HTML and modern CSS; use JavaScript only where the platform is inadequate. Consider `<dialog>`, popovers, `<details>`, native validation, anchor positioning and container queries first.
+- Check features against supported browsers; progressively enhance or add small fallbacks. Ask when browser policy is unclear.
+- Preserve semantics, keyboard interaction, focus management and reduced motion; verify native behavior meets the interaction's needs.
 
-## Agent skills
+## Domain
 
-### Issue tracker
+Before exploring, read root `CONTEXT.md` and relevant `docs/adr/*.md` if present. Use the glossary's terms, including in issues and tests; flag missing concepts and explain any conflict with an ADR before proposing to reopen it.
 
-Issues and specs live in GitHub Issues. See `docs/agents/issue-tracker.md` before reading or publishing tickets.
+## Issues
 
-### Triage labels
-
-Use the five default triage labels. See `docs/agents/triage-labels.md` when triaging issues.
-
-### Domain docs
-
-Single-context layout. Read `docs/agents/domain.md` before exploring the codebase.
+Before reading, publishing or triaging tickets, read [issue conventions](docs/issues.md). Issues/specs live in GitHub Issues, not PRs.
