@@ -7,6 +7,8 @@
 }
 
 :root {
+  /* 1rem = 16px by default; respect the user's browser font-size preference. */
+  font-size: 100%;
   color-scheme: dark;
 
   /* Nord — Polar Night */
@@ -50,6 +52,19 @@
   color: var(--color-foreground);
 }
 
+/* Keep desktop navigation aligned on both short and scrolling pages. */
+@media (width >= 48rem) {
+  :root {
+    scrollbar-gutter: stable;
+  }
+
+  @supports not (scrollbar-gutter: stable) {
+    :root {
+      overflow-y: scroll;
+    }
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -62,7 +77,7 @@ body {
   min-height: 100svh;
   margin: 0;
   font-family: 'Gohu', ui-monospace, monospace;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.7;
   font-synthesis: none;
 }
