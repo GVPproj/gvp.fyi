@@ -1,6 +1,8 @@
 # gvp.fyi
 
-Astro frontend, static Netlify publishing, custom PocketBase backend.
+Astro frontend with static Netlify publishing. The separately maintained
+[PocketBase backend](https://github.com/GVPproj/pocketbase-fly-starter) owns the API,
+schema, migrations and deployment; this repository consumes its HTTP API only.
 
 ## Development
 
@@ -28,15 +30,16 @@ pnpm test
 pnpm build
 ```
 
-Backend integration tests require `POCKETBASE_BINARY`; browser tests also require
-`PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Upgrade tests need `OLD_POCKETBASE_BINARY`.
-Missing prerequisites skip tests. Run browser/build suites serially, without a
-dev server sharing the generated Astro/Netlify workspace.
+Frontend tests use local HTTP API fixtures, not a PocketBase binary or backend
+source checkout. Browser tests require `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; missing
+browser prerequisites skip tests, not pass them. Run browser/build suites serially,
+without a dev server sharing the generated Astro/Netlify workspace.
+Backend API, migration and upgrade coverage lives in the backend repository.
 
 ## Publishing
 
-See [PocketBase authoring and operations](pocketbase/README.md) and
-[API contracts](pocketbase/contracts.md). Edit music, software and Likes in
+See [frontend API boundary](docs/backend-api.md) for integration ownership and
+backend documentation. Edit music, software and Likes in
 PocketBase, then deploy manually in Netlify. Site settings and interactions stay
 in code. Blog posts are authored only in the Astro content collection; PocketBase
 has no blog publishing support.

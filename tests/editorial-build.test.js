@@ -62,12 +62,12 @@ test(`Published-content build keeps presentation repo-owned (${includeSettings ?
   await assert.rejects(readFile(`${dir}/cms-only-page/index.html`));
   assert.match(await readFile(`${dir}/video/index.html`, 'utf8'), /Coming soon/);
   const blog = await readFile(`${dir}/blog/the-animated-face/index.html`, 'utf8');
-  assert.match(blog, /<h1\b[^>]*>The animated face<\/h1>/);
+  assert.match(blog, /<h1\b[^>]*>Animating My Face<\/h1>/);
   assert.match(blog, /class="face"/);
   assert.match(blog, /data-language="astro"/);
   const blogIndex = await readFile(`${dir}/blog/index.html`, 'utf8');
   assert.match(blogIndex, /href="\/blog\/the-animated-face\/?"/);
-  assert.match(blogIndex, /The animated face/);
+  assert.match(blogIndex, /Animating My Face/);
   await assert.rejects(readFile(`${dir}/software/biolink/index.html`));
   await assert.rejects(readFile(`${dir}/software/tenzies/index.html`));
 });
