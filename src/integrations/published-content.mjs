@@ -1,9 +1,8 @@
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { publishingTransport } from './publishing-transport.mjs';
+import { publishingIntegration } from './publishing-integration.mjs';
 import sharp from 'sharp';
 
-const virtualId = 'virtual:published-content';
-const resolvedId = '\0' + virtualId;
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
 function validateLinks(value) {
@@ -22,28 +21,8 @@ function validateLinks(value) {
 
 export async function preparePublishedContent(env, fetcher = fetch) {
   try {
-    const base = new URL(env.PUBLISHING_POCKETBASE_URL);
-    if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname))) ||
-      base.username || base.password || base.search || base.hash || base.pathname !== '/' ||
-      !env.PUBLISHING_BUILD_EMAIL || !env.PUBLISHING_BUILD_PASSWORD) throw new Error();
-    async function request(path, options = {}, limit = 20 * 1024 * 1024) {
-      const response = await fetcher(new URL(path, base), { ...options, redirect: 'error', signal: AbortSignal.timeout(30000) });
-      if (!response.ok || !response.body) throw new Error();
-      const chunks = []; let size = 0;
-      for await (const chunk of response.body) {
-        size += chunk.length;
-        if (size > limit) throw new Error();
-        chunks.push(chunk);
-      }
-      return Buffer.concat(chunks);
-    }
-    const auth = JSON.parse(await request('/api/collections/publishing_builds/auth-with-password', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity: env.PUBLISHING_BUILD_EMAIL, password: env.PUBLISHING_BUILD_PASSWORD }),
-    }));
-    if (!auth.token || auth.record?.collectionName !== 'publishing_builds') throw new Error();
-    const headers = { Authorization: auth.token };
-    const snapshots = JSON.parse(await request('/api/publishing/content', { headers }));
+    const request = await publishingTransport(env, { fetcher, timeout: 30000, limit: 20 * 1024 * 1024 });
+    const snapshots = JSON.parse(await request('/api/publishing/content'));
     if (!Array.isArray(snapshots)) throw new Error();
     const files = [], content = [], identities = new Set();
     for (const snapshot of snapshots) {
@@ -68,7 +47,7 @@ export async function preparePublishedContent(env, fetcher = fetch) {
           !/^\/api\/publishing\/content-assets\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/.test(asset.path) ||
           !/^[a-f0-9]{64}$/.test(asset.sha256)) throw new Error();
         names.add(asset.name);
-        const bytes = await request(asset.path, { headers }, 10 * 1024 * 1024);
+        const bytes = await request(asset.path, 10 * 1024 * 1024);
         if (hash(bytes) !== asset.sha256) throw new Error();
         const pdf = bytes.subarray(0, 5).toString() === '%PDF-';
         let extension, variants = [], width, height;
@@ -104,28 +83,5 @@ export async function preparePublishedContent(env, fetcher = fetch) {
 }
 
 export default function publishedContent() {
-  let prepared;
-  return { name: 'published-content', hooks: {
-    'astro:config:setup': async ({ updateConfig }) => {
-      prepared = await preparePublishedContent(process.env);
-      updateConfig({ vite: { plugins: [{ name: 'published-content-data',
-        resolveId(id) { if (id === virtualId) return resolvedId; },
-        load(id) { if (id === resolvedId) return `export default ${JSON.stringify(prepared.content)};`; },
-      }] } });
-    },
-    'astro:build:done': async ({ dir }) => {
-      for (const file of prepared.files) {
-        const target = new URL(file.path.slice(1), dir);
-        await mkdir(new URL('.', target), { recursive: true });
-        await writeFile(target, file.bytes);
-      }
-    },
-    'astro:server:setup': ({ server }) => {
-      server.middlewares.use((req, res, next) => {
-        const file = prepared.files.find(file => file.path === req.url);
-        if (!file) return next();
-        res.setHeader('Content-Type', file.type); res.end(file.bytes);
-      });
-    },
-  } };
+  return publishingIntegration('published-content', preparePublishedContent, 'content');
 }

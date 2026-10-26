@@ -1,25 +1,13 @@
 import { createHash } from 'node:crypto';
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { access } from 'node:fs/promises';
+import { publishingTransport } from './publishing-transport.mjs';
+import { publishingIntegration } from './publishing-integration.mjs';
 import sharp from 'sharp';
 import siteSettings from '../config/site-settings.json' with { type: 'json' };
 
 const releaseCategoryIds = siteSettings.categories.releases.map(category => category.id);
 
-const virtualId = 'virtual:published-release';
-const resolvedId = '\0' + virtualId;
 const maxArtworkBytes = 10 * 1024 * 1024;
-
-async function readResponse(response, limit) {
-  if (!response.ok) throw new Error('Published release request failed');
-  const chunks = [];
-  let size = 0;
-  for await (const chunk of response.body) {
-    size += chunk.length;
-    if (size > limit) throw new Error('Published release response exceeds limit');
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-}
 
 // Validate only the public projection of the authoritative CMS catalogue.
 function publicRelease(source) {
@@ -63,27 +51,14 @@ function publicRelease(source) {
       .filter(key => source.streaming[key]).map(key => [key, link(source.streaming[key])])) }) };
 }
 
-export async function preparePublishedRelease(env) {
+export async function preparePublishedRelease(env, fetcher = fetch) {
   const endpoint = env.PUBLISHING_POCKETBASE_URL;
   if (!endpoint || !env.PUBLISHING_BUILD_EMAIL || !env.PUBLISHING_BUILD_PASSWORD) {
     throw new Error('Incomplete publishing configuration');
   }
   try {
-    const base = new URL(endpoint);
-    if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(base.hostname))) ||
-      base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error();
-    async function request(route, options = {}, limit = 1024 * 1024) {
-      return readResponse(await fetch(new URL(route, base), {
-        ...options, redirect: 'error', signal: AbortSignal.timeout(15000),
-      }), limit);
-    }
-    const auth = JSON.parse(await request('/api/collections/publishing_builds/auth-with-password', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity: env.PUBLISHING_BUILD_EMAIL, password: env.PUBLISHING_BUILD_PASSWORD }),
-    }));
-    if (typeof auth.token !== 'string' || !auth.token || auth.record?.collectionName !== 'publishing_builds') throw new Error();
-    const headers = { Authorization: auth.token };
-    const response = JSON.parse(await request('/api/publishing/releases', { headers }, 10 * 1024 * 1024));
+    const request = await publishingTransport(env, { fetcher, timeout: 15000, limit: 1024 * 1024 });
+    const response = JSON.parse(await request('/api/publishing/releases', 10 * 1024 * 1024));
     if (!Array.isArray(response)) throw new Error();
     const releases = [], allFiles = [], seen = new Set();
     for (const snapshot of response) {
@@ -104,7 +79,7 @@ export async function preparePublishedRelease(env) {
     const { artwork } = snapshot;
     if (typeof snapshot.revision !== 'string' || !snapshot.revision) throw new Error();
     if (!artwork || artwork.path !== `/api/publishing/artwork/${snapshot.revision}` || !/^[a-zA-Z0-9_-]+$/.test(snapshot.revision) || !/^[a-f0-9]{64}$/.test(artwork.sha256)) throw new Error();
-    const source = await request(artwork.path, { headers }, maxArtworkBytes);
+    const source = await request(artwork.path, maxArtworkBytes);
     if (createHash('sha256').update(source).digest('hex') !== artwork.sha256) throw new Error();
     const image = sharp(source, { limitInputPixels: 40_000_000, animated: false });
     const metadata = await image.metadata();
@@ -114,7 +89,7 @@ export async function preparePublishedRelease(env) {
     const files = await Promise.all(widths.map(async width => {
       const bytes = await image.clone().resize({ width }).webp({ quality: 80 }).toBuffer();
       const hash = createHash('sha256').update(bytes).digest('hex');
-      return { path: `/published-releases/${hash}-${width}.webp`, bytes, width };
+      return { path: `/published-releases/${hash}-${width}.webp`, bytes, width, type: 'image/webp' };
     }));
     releases.push({ ...release,
       publishedArtwork: { src: files.at(-1).path, thumbnail: files.find(file => file.width >= 320)?.path ?? files.at(-1).path,
@@ -130,32 +105,5 @@ export async function preparePublishedRelease(env) {
 
 /** One authenticated snapshot per build; only its public projection enters Vite. */
 export default function publishedRelease() {
-  let prepared;
-  return {
-    name: 'published-release',
-    hooks: {
-      'astro:config:setup': async ({ updateConfig }) => {
-        prepared = await preparePublishedRelease(process.env);
-        updateConfig({ vite: { plugins: [{ name: 'published-release-data',
-          resolveId(id) { if (id === virtualId) return resolvedId; },
-          load(id) { if (id === resolvedId) return `export default ${JSON.stringify(prepared.release)};`; },
-        }] } });
-      },
-      'astro:build:done': async ({ dir }) => {
-        for (const file of prepared.files) {
-          const target = new URL(file.path.slice(1), dir);
-          await mkdir(new URL('.', target), { recursive: true });
-          await writeFile(target, file.bytes);
-        }
-      },
-      'astro:server:setup': ({ server }) => {
-        server.middlewares.use((req, res, next) => {
-          const file = prepared.files.find(file => file.path === req.url);
-          if (!file) return next();
-          res.setHeader('Content-Type', 'image/webp');
-          res.end(file.bytes);
-        });
-      },
-    },
-  };
+  return publishingIntegration('published-release', preparePublishedRelease, 'release');
 }

@@ -1,5 +1,5 @@
 import publishedRelease from 'virtual:published-release';
-import { categorySettings } from './editorial-content';
+import { categorySettings } from './site-settings';
 
 export type ReleaseData = {
   slug: string;

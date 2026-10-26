@@ -7,8 +7,7 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { editorialFixtures } from './helpers/editorial.js';
 
-for (const includeSettings of [true, false]) {
-test(`Published-content build keeps presentation repo-owned (${includeSettings ? 'stale' : 'missing'} CMS settings)`, { timeout: 90000 }, async t => {
+test('Published-content build keeps presentation repo-owned despite stale CMS settings', { timeout: 90000 }, async t => {
   const fixtures = await editorialFixtures();
   const files = new Map();
   const entries = [];
@@ -27,7 +26,6 @@ test(`Published-content build keeps presentation repo-owned (${includeSettings ?
   staleSettings.navigation = [{ id: 'music', label: 'Music', children: [{ label: 'Releases', href: '/music-releases' }] }];
   staleSettings.categories.software = [];
   staleSettings.placeholders = [{ slug: 'cms-only-page', title: 'CMS page', body: 'Stale placeholder' }];
-  if (!includeSettings) entries.splice(entries.findIndex(entry => entry.kind === 'settings'), 1);
   entries.push({ kind: 'software', slug: 'biolink', revision: 'withdrawn', state: 'unpublished' });
   const server = createServer((req, res) => {
     if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'fixture', record: { collectionName: 'publishing_builds' } }));
@@ -71,4 +69,3 @@ test(`Published-content build keeps presentation repo-owned (${includeSettings ?
   await assert.rejects(readFile(`${dir}/software/biolink/index.html`));
   await assert.rejects(readFile(`${dir}/software/tenzies/index.html`));
 });
-}

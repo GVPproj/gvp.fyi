@@ -1,7 +1,8 @@
 ---
 import type { InferGetStaticPropsType } from 'astro';
 import Layout from '../../layouts/Layout.astro';
-import { softwareProjects, sectionLabel } from '../../lib/editorial-content';
+import { softwareProjects } from '../../lib/software-content';
+import { sectionLabel } from '../../lib/site-settings';
 
 export function getStaticPaths() {
   return softwareProjects.map(project => ({

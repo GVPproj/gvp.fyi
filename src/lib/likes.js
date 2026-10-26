@@ -6,15 +6,20 @@ export function webURL(value) {
   } catch { return null; }
 }
 
+export function likeAssetKind(item) {
+  // Materialized extensions reflect verified bytes, not the source filename.
+  const asset = item.publishedAsset?.url ?? item.asset;
+  return asset ? (/\.pdf$/i.test(asset) ? 'pdf' : 'image') : null;
+}
+
 export function likeItemTitle(item) {
-  if (item.type === 'quote' || item.type === 'note') return textItemTitle(item);
-  return item.title || (item.asset ? /\.pdf$/i.test(item.asset) ? 'PDF document' : 'Image' : 'Link');
+  if (item.title) return item.title;
+  if (item.type === 'quote') return 'Quote';
+  if (item.type === 'note') return 'Personal note';
+  const kind = likeAssetKind(item);
+  return kind === 'pdf' ? 'PDF document' : kind === 'image' ? 'Image' : 'Link';
 }
 
 export function likesItemURL(item) {
   return `/likes/${encodeURIComponent(item.id)}`;
-}
-
-export function textItemTitle(item) {
-  return item.title || (item.type === 'quote' ? 'Quote' : 'Personal note');
 }

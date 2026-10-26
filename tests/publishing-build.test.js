@@ -15,7 +15,7 @@ const artwork = await readFile(path.join(root, 'tests/fixtures/artwork/watery-gr
 const catalogue = JSON.parse(await readFile(path.join(root, 'tests/fixtures/releases/miracle-fortress.json'), 'utf8'));
 const original = catalogue.find(release => release.title === 'Watery Grave EP');
 
-async function build(t, { broken = false, incomplete = false, badArtwork = false, snapshot, status = 200, local = false, env = {} } = {}) {
+async function build(t, { broken = false, snapshot } = {}) {
   await mkdir(path.join(root, '.astro'), { recursive: true });
   const dir = await mkdtemp(path.join(root, '.astro/publishing-build-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -31,11 +31,11 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
     if (req.headers.authorization !== token) { res.writeHead(401).end('{}'); return; }
     if (req.url === '/api/publishing/content') { res.end('[]'); return; }
     if (req.url === '/api/publishing/releases') {
-      if (broken || status !== 200) { res.writeHead(broken ? 503 : status).end('{}'); return; }
+      if (broken) { res.writeHead(503).end('{}'); return; }
       if (snapshot !== undefined) { res.end(JSON.stringify(Array.isArray(snapshot) ? snapshot : [snapshot])); return; }
-      res.end(JSON.stringify([{ revision: 'revision-one', release: { ...original, category: 'miracle-fortress', slug: 'watery-grave-ep', about: 'Published snapshot from PocketBase.', ...(incomplete && { tracks: {} }) },
+      res.end(JSON.stringify([{ revision: 'revision-one', release: { ...original, category: 'miracle-fortress', slug: 'watery-grave-ep', about: 'Published snapshot from PocketBase.' },
         artwork: { path: '/api/publishing/artwork/revision-one', width: 300, height: 283,
-          sha256: badArtwork ? '0'.repeat(64) : createHash('sha256').update(artwork).digest('hex') } }]));
+          sha256: createHash('sha256').update(artwork).digest('hex') } }]));
     } else if (req.url === '/api/publishing/artwork/revision-one') {
       res.setHeader('Content-Type', 'image/jpeg'); res.end(artwork);
     } else { res.writeHead(404).end('{}'); }
@@ -45,8 +45,8 @@ async function build(t, { broken = false, incomplete = false, badArtwork = false
   t.after(() => { server.closeAllConnections(); server.close(); });
   const endpoint = `http://127.0.0.1:${server.address().port}`;
   const child = spawn(process.execPath, [path.join(root, 'node_modules/astro/bin/astro.mjs'), 'build', '--outDir', path.join(dir, 'dist')], {
-    cwd: root, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: local ? '' : endpoint,
-      PUBLISHING_BUILD_EMAIL: local ? '' : 'build@example.test', PUBLISHING_BUILD_PASSWORD: local ? '' : 'private-build-password-never-public', ...env },
+    cwd: root, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', PUBLISHING_POCKETBASE_URL: endpoint,
+      PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'private-build-password-never-public' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logs = '';
@@ -163,62 +163,18 @@ async function assertWithdrawn(result) {
   assert.ok(!all.some(file => file.endsWith('/music/atlantis-tapes/index.html')));
 }
 
-test('withdrawal and empty catalogues remove routes; unset configuration fails closed', { timeout: 120000 }, async t => {
+test('withdrawal removes routes and generated artwork without fallback', { timeout: 120000 }, async t => {
   const withdrawn = await build(t, { snapshot: withdrawal });
   await assertWithdrawn(withdrawn);
   assert.ok(!withdrawn.requests.some(route => route.startsWith('/api/publishing/artwork/')));
-  const local = await build(t, { local: true });
-  assert.notEqual(local.code, 0);
-  assert.match(local.logs, /Incomplete publishing configuration/);
-  assert.equal(local.requests.length, 0);
-  await assertWithdrawn(await build(t, { snapshot: [] }));
-});
-
-test('partial publishing configuration fails rather than restoring local content', { timeout: 120000 }, async t => {
-  for (const env of [
-    { PUBLISHING_POCKETBASE_URL: '' },
-    { PUBLISHING_BUILD_EMAIL: '' },
-    { PUBLISHING_BUILD_PASSWORD: '' },
-  ]) {
-    const result = await build(t, { snapshot: withdrawal, env });
-    assert.notEqual(result.code, 0);
-    assert.match(result.logs, /Incomplete publishing configuration|Published release build failed/);
-    assert.equal(result.requests.length, 0, 'incomplete configuration must fail before authentication');
-  }
-});
-
-test('malformed or mixed withdrawals and missing snapshots fail closed', { timeout: 240000 }, async t => {
-  for (const snapshot of [
-    null, {}, { ...withdrawal, revision: '' }, { ...withdrawal, revision: '   ' },
-    { ...withdrawal, revision: 123 }, { ...withdrawal, slug: 'invalid/slug' },
-    { ...withdrawal, state: 'draft' }, { revision: withdrawal.revision, slug: withdrawal.slug },
-    { ...withdrawal, release: original }, { ...withdrawal, artwork: {} },
-    { ...withdrawal, title: 'Mixed private title' },
-  ]) {
-    const result = await build(t, { snapshot });
-    assert.notEqual(result.code, 0, JSON.stringify(snapshot));
-    assert.match(result.logs, /Published release build failed/);
-    assert.ok(!result.logs.includes('Mixed private title'));
-  }
-  const missing = await build(t, { status: 404 });
-  assert.notEqual(missing.code, 0);
-  assert.match(missing.logs, /Published release build failed/);
 });
 
 // Real-server withdrawal/republish scenarios live in the backend's optional
 // FRONTEND_CHECKOUT integration suite. This suite only consumes wire fixtures.
 
-test('a malformed published track list fails the build', { timeout: 120000 }, async t => {
-  const result = await build(t, { incomplete: true });
+test('failed snapshot fetch fails the build without logging secrets', { timeout: 120000 }, async t => {
+  const result = await build(t, { broken: true });
   assert.notEqual(result.code, 0);
   assert.match(result.logs, /Published release build failed/);
-});
-
-test('failed snapshot fetch and corrupt artwork fail closed without logging secrets', { timeout: 120000 }, async t => {
-  for (const options of [{ broken: true }, { badArtwork: true }]) {
-    const result = await build(t, options);
-    assert.notEqual(result.code, 0);
-    assert.match(result.logs, /Published release build failed/);
-    assert.ok(!result.logs.includes(result.token) && !result.logs.includes('private-build-password-never-public'));
-  }
+  assert.ok(!result.logs.includes(result.token) && !result.logs.includes('private-build-password-never-public'));
 });

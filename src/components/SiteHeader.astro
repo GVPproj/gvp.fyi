@@ -5,7 +5,7 @@ import PixelMenu from './elements/PixelMenu.astro'
 
 const path = Astro.url.pathname
 
-import { siteSettings } from '../lib/editorial-content'
+import { siteSettings } from '../lib/site-settings'
 const matches = (href?: string) => !!href && (path === href || path.startsWith(`${href}/`))
 type NavigationItem = { id?: string; label: string; href?: string; children?: { label: string; href: string }[] }
 const navigation = siteSettings.navigation.map((item: NavigationItem, index) => {

@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { likeItemTitle, webURL } from '../../lib/likes.js';
+import { likeItemTitle, likeAssetKind, webURL } from '../../lib/likes.js';
 import { publishedLikes } from '../../lib/published-likes.js';
 export function getStaticPaths() {
   return publishedLikes.map(item => ({ params: { slug: item.id }, props: { item } }));
@@ -10,7 +10,7 @@ const { item } = Astro.props;
 const title = likeItemTitle(item);
 const source = webURL(item.url);
 const asset = item.publishedAsset?.url;
-const pdf = asset && /\.pdf$/i.test(item?.asset ?? '');
+const pdf = asset && likeAssetKind(item) === 'pdf';
 const textItem = item?.type === 'quote' || item?.type === 'note';
 ---
 

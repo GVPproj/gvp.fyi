@@ -22,7 +22,7 @@ function assertStaticRows(document) {
 }
 
 // Real Astro build: the public Likes output must not need a running backend.
-test('full-content mode emits static Likes and ignores draft/withdrawn items', { timeout: 90000 }, async t => {
+test('published content emits static Likes and ignores draft/withdrawn items', { timeout: 90000 }, async t => {
   const settings = JSON.parse(await readFile(new URL('../src/config/site-settings.json', import.meta.url)));
   const image = await sharp({ create: { width: 320, height: 320, channels: 3, background: '#336699' } }).png().toBuffer();
   const entries = [

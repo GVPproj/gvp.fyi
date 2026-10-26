@@ -1,5 +1,5 @@
 import type { ContentRowItem } from '../components/ContentRow.astro';
-import { webURL, likesItemURL, likeItemTitle } from './likes.js';
+import { webURL, likesItemURL, likeItemTitle, likeAssetKind } from './likes.js';
 
 export interface CollectionOverview {
   id: string;
@@ -13,7 +13,7 @@ export function collectionRows(rows: CollectionOverview[]) {
     ...row,
     items: row.items.map((item): ContentRowItem => {
       const asset = item.publishedAsset?.url;
-      const pdf = asset && /\.pdf$/i.test(item.asset ?? '');
+      const pdf = asset && likeAssetKind(item) === 'pdf';
       const textItem = item.type === 'quote' || item.type === 'note';
       const url = webURL(item.url);
       const published = item.publishedAsset;
