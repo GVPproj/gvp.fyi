@@ -1,11 +1,13 @@
 ---
 // import Face from '../components/elements/Face.astro';
+import underConstruction from '../../under-construction.gif?url';
 import AmbientPad from '../components/AmbientPad.astro';
 import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout>
   <div class="home-playground">
+    <img src={underConstruction} alt="Under construction" />
     <AmbientPad />
     {/* <Face /> */}
   </div>
@@ -14,14 +16,16 @@ import Layout from '../layouts/Layout.astro';
 <style>
   .home-playground {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: clamp(2rem, 6vw, 6rem);
     width: 100%;
   }
 
-  @media (max-width: 760px) {
-    .home-playground { flex-direction: column; }
+  .home-playground > img {
+    max-width: 100%;
+    height: auto;
   }
 
   @media (max-width: 400px) {
