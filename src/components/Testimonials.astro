@@ -1,0 +1,121 @@
+---
+// Selected from prototype/homepage-testimonials: character files, without a section heading.
+const milton = {
+  name: 'Milton Gonzalez',
+  role: 'Senior Software Engineer',
+  avatar: '/images/testimonials/milton-pixel.png',
+  paragraphs: [
+    'I had the pleasure of working with Graham, a highly skilled full stack developer who was always proactive in tackling challenges.',
+    'His attention to detail ensured clean, efficient, and reliable solutions every time.',
+    'Graham is a dedicated professional who would be an asset to any team.',
+  ],
+};
+
+const ben = {
+  name: 'Ben Frey',
+  role: 'UX/UI Design Lead, Jr Product Manager',
+  avatar: '/images/testimonials/ben-pixel.png',
+  paragraphs: [
+    "Graham and I worked together for nearly two years on a product designed to enable better task management and file storage for the film and TV industry. It was an absolute treat to work alongside Graham, someone who can multitask, has great insight into both engineering and design trends, is always curious, and is very professional. I've never worked with an Engineer who could easily run a product demo with potential investors or beta testers, and Graham could with ease.",
+    'Graham will be an invaluable asset to any team, and I hope that we can work together in any capacity in the future.',
+  ],
+};
+
+const jeff = {
+  name: 'Jeff Stefani',
+  role: 'Creative Director / Design Lead at Fastwave.ai',
+  avatar: '/images/testimonials/jeff-pixel.png',
+  paragraphs: [
+    "I had the pleasure of working with Graham for about a year and a half. His attention to detail both on front-end design and back-end problem solving was incredible. Communication is key on any project and Graham is great at bouncing ideas around, talking through technical challenges, and discussing possible solutions that we hadn't thought of.",
+    'His polite, kind and professional attitude makes him an asset on any team. I hope to work with Graham again in the future and can absolutely recommend him to add value for all digital projects.',
+  ],
+};
+
+const testimonials = [milton, ben, jeff];
+---
+
+<section id="testimonials" aria-label="Testimonials">
+  {testimonials.map(testimonial => (
+    <figure>
+      <figcaption>
+        <div class="person">
+          <img src={testimonial.avatar} width="80" height="80" alt="" loading="lazy" />
+          <div>
+            <span class="person-name">{testimonial.name}</span>
+            <span class="person-role">{testimonial.role}</span>
+          </div>
+        </div>
+      </figcaption>
+      <blockquote>{testimonial.paragraphs.map(paragraph => <p>{paragraph}</p>)}</blockquote>
+    </figure>
+  ))}
+</section>
+
+<style>
+  #testimonials {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    width: min(100%, 72rem);
+    padding-block: 0.5rem 2rem;
+    text-align: left;
+  }
+
+  figure {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin: 0;
+    border: 2px solid #171c25;
+    background: var(--nord1);
+    box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0), 4px 6px 0 #1d222c;
+  }
+
+  .person {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 1.25rem;
+  }
+
+  img {
+    flex-shrink: 0;
+    border: 4px solid var(--nord0);
+    outline: 1px solid var(--nord3);
+    image-rendering: pixelated;
+    object-fit: cover;
+  }
+
+  .person-name {
+    display: block;
+    color: var(--nord6);
+    line-height: 1.4;
+  }
+
+  .person-role {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--nord4);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  blockquote {
+    flex: 1;
+    margin: 0 0.75rem 1.5rem;
+    padding: 1.25rem;
+    border-top: 2px solid #222833;
+    background: var(--nord0);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  blockquote p + p { margin-top: 1rem; }
+
+  @media (width < 60rem) {
+    #testimonials {
+      grid-template-columns: minmax(0, 1fr);
+      max-width: 34rem;
+    }
+  }
+</style>
