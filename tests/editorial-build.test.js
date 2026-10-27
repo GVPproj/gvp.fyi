@@ -49,30 +49,53 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   t.after(() => { if (child.exitCode === null) child.kill(); });
   let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
   const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
-  const home = await readFile(`${dir}/index.html`, 'utf8');
-  const { document: homeDocument } = parseHTML(home);
-  const testimonials = homeDocument.querySelector('#testimonials');
-  assert.ok(testimonials);
-  assert.equal(testimonials.querySelectorAll('figure').length, 3);
-  assert.match(testimonials.textContent, /Milton Gonzalez/);
-  const ben = testimonials.querySelectorAll('figure')[1];
-  assert.match(ben.querySelector('figcaption').textContent, /Ben Frey/);
-  assert.equal(ben.querySelector('.person-role').textContent, 'UX/UI Design Lead, Jr Product Manager');
-  assert.equal(ben.querySelector('img').getAttribute('src'), '/images/testimonials/ben-pixel.png');
-  assert.deepEqual([...ben.querySelectorAll('blockquote p')].map(paragraph => paragraph.textContent), [
-    "Graham and I worked together for nearly two years on a product designed to enable better task management and file storage for the film and TV industry. It was an absolute treat to work alongside Graham, someone who can multitask, has great insight into both engineering and design trends, is always curious, and is very professional. I've never worked with an Engineer who could easily run a product demo with potential investors or beta testers, and Graham could with ease.",
-    'Graham will be an invaluable asset to any team, and I hope that we can work together in any capacity in the future.',
-  ]);
-  const jeff = testimonials.querySelectorAll('figure')[2];
-  assert.match(jeff.querySelector('figcaption').textContent, /Jeff Stefani/);
-  assert.equal(jeff.querySelector('.person-role').textContent, 'Creative Director / Design Lead at Fastwave.ai');
-  assert.equal(jeff.querySelector('img').getAttribute('src'), '/images/testimonials/jeff-pixel.png');
-  assert.deepEqual([...jeff.querySelectorAll('blockquote p')].map(paragraph => paragraph.textContent), [
-    "I had the pleasure of working with Graham for about a year and a half. His attention to detail both on front-end design and back-end problem solving was incredible. Communication is key on any project and Graham is great at bouncing ideas around, talking through technical challenges, and discussing possible solutions that we hadn't thought of.",
-    'His polite, kind and professional attitude makes him an asset on any team. I hope to work with Graham again in the future and can absolutely recommend him to add value for all digital projects.',
-  ]);
-  assert.equal(testimonials.querySelector('h2'), null);
-  assert.doesNotMatch(home, /Layout sample|LAYOUT SAMPLE|prototype-switcher|data-prototype-variant|From the other side of the desk/);
+  await t.test('homepage renders accessible testimonial choices and attribution', async () => {
+    const home = await readFile(`${dir}/index.html`, 'utf8');
+    const { document: homeDocument } = parseHTML(home);
+    const testimonials = homeDocument.querySelector('#testimonials');
+    assert.ok(testimonials);
+    assert.equal(testimonials.querySelectorAll('figure').length, 3);
+    assert.match(testimonials.textContent, /Milton Gonzalez/);
+    const expected = [
+      {
+        name: 'Ben Frey',
+        role: 'UX/UI Design Lead, Jr Product Manager',
+        avatar: 'ben',
+        paragraphs: [
+          "Graham and I worked together for nearly two years on a product designed to enable better task management and file storage for the film and TV industry. It was an absolute treat to work alongside Graham, someone who can multitask, has great insight into both engineering and design trends, is always curious, and is very professional. I've never worked with an Engineer who could easily run a product demo with potential investors or beta testers, and Graham could with ease.",
+          'Graham will be an invaluable asset to any team, and I hope that we can work together in any capacity in the future.',
+        ],
+      },
+      {
+        name: 'Jeff Stefani',
+        role: 'Creative Director / Design Lead at Fastwave.ai',
+        avatar: 'jeff',
+        paragraphs: [
+          "I had the pleasure of working with Graham for about a year and a half. His attention to detail both on front-end design and back-end problem solving was incredible. Communication is key on any project and Graham is great at bouncing ideas around, talking through technical challenges, and discussing possible solutions that we hadn't thought of.",
+          'His polite, kind and professional attitude makes him an asset on any team. I hope to work with Graham again in the future and can absolutely recommend him to add value for all digital projects.',
+        ],
+      },
+    ];
+    for (const [index, person] of expected.entries()) {
+      const figure = testimonials.querySelectorAll('figure')[index + 1];
+      assert.equal(figure.querySelector('.person-name').textContent, person.name);
+      assert.equal(figure.querySelector('.person-role').textContent, person.role);
+      assert.equal(figure.querySelector('img').getAttribute('src'), `/images/testimonials/${person.avatar}-pixel.png`);
+      assert.deepEqual([...figure.querySelectorAll('blockquote p')].map(paragraph => paragraph.textContent), person.paragraphs);
+    }
+    const heading = testimonials.querySelector('h2');
+    assert.equal(heading.textContent, 'Testimonials:');
+    assert.equal(testimonials.getAttribute('aria-labelledby'), heading.id);
+    const radios = [...testimonials.querySelectorAll('input[type="radio"]')];
+    assert.equal(radios.length, 3);
+    assert.deepEqual(radios.map(radio => radio.hasAttribute('checked')), [true, false, false]);
+    for (const radio of radios) {
+      assert.equal(radio.name, 'testimonial');
+      assert.equal(radio.nextElementSibling.getAttribute('for'), radio.id);
+      assert.ok(radio.nextElementSibling.querySelector('img').getAttribute('alt'));
+    }
+    assert.doesNotMatch(home, /Layout sample|LAYOUT SAMPLE|prototype-switcher|data-prototype-variant|From the other side of the desk/);
+  });
   const software = await readFile(`${dir}/software/example-project/index.html`, 'utf8');
   assert.match(software, /Project gallery detail/);
   assert.match(software, /Example teammate/);
