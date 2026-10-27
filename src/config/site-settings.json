@@ -1,23 +1,90 @@
 {
-  "description": "Graham Van Pelt's home on the web.",
+  "description": "My little corner of the web.  Find music, software, and anything I find interesting.",
   "identity": "Graham Van Pelt",
   "title": "gvp.fyi",
   "homeLabel": "Home",
-  "sections": { "software": "Software", "blog": "Blog", "likes": "Likes", "music": "Music" },
+  "sections": {
+    "software": "Software",
+    "blog": "Blog",
+    "likes": "Likes",
+    "music": "Music"
+  },
   "navigation": [
-    { "id": "software", "label": "Software", "href": "/software" },
-    { "id": "music", "label": "Music", "href": "/music" },
-    { "id": "likes", "label": "Likes", "href": "/likes" },
-    { "id": "blog", "label": "Blog", "href": "/blog" }
+    {
+      "id": "software",
+      "label": "Software",
+      "href": "/software"
+    },
+    {
+      "id": "music",
+      "label": "Music",
+      "href": "/music"
+    },
+    {
+      "id": "likes",
+      "label": "Likes",
+      "href": "/likes"
+    },
+    {
+      "id": "blog",
+      "label": "Blog",
+      "href": "/blog"
+    }
   ],
   "categories": {
-    "software": [{ "id": "portfolio", "title": "Applications" }, { "id": "small-websites", "title": "Small websites" }, { "id": "early-projects", "title": "Early projects" }],
-    "releases": [{ "id": "graham-van-pelt", "title": "as Graham Van Pelt" }, { "id": "miracle-fortress", "title": "as Miracle Fortress" }, { "id": "think-about-life", "title": "with Think About Life" }, { "id": "other-credits", "title": "Other Credits" }]
+    "software": [
+      {
+        "id": "portfolio",
+        "title": "Applications"
+      },
+      {
+        "id": "small-websites",
+        "title": "Small websites"
+      },
+      {
+        "id": "early-projects",
+        "title": "Early projects"
+      }
+    ],
+    "releases": [
+      {
+        "id": "graham-van-pelt",
+        "title": "as Graham Van Pelt"
+      },
+      {
+        "id": "miracle-fortress",
+        "title": "as Miracle Fortress"
+      },
+      {
+        "id": "think-about-life",
+        "title": "with Think About Life"
+      },
+      {
+        "id": "other-credits",
+        "title": "Other Credits"
+      }
+    ]
   },
   "placeholders": [
-    { "slug": "video", "title": "Video", "body": "Coming soon..." },
-    { "slug": "film", "title": "Film", "body": "Coming soon..." },
-    { "slug": "projects", "title": "Projects", "body": "Coming soon..." },
-    { "slug": "utils", "title": "Utils", "body": "Coming soon..." }
+    {
+      "slug": "video",
+      "title": "Video",
+      "body": "Coming soon..."
+    },
+    {
+      "slug": "film",
+      "title": "Film",
+      "body": "Coming soon..."
+    },
+    {
+      "slug": "projects",
+      "title": "Projects",
+      "body": "Coming soon..."
+    },
+    {
+      "slug": "utils",
+      "title": "Utils",
+      "body": "Coming soon..."
+    }
   ]
 }
