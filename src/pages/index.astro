@@ -1,14 +1,10 @@
 ---
-// import Face from '../components/elements/Face.astro';
-import { Image } from 'astro:assets';
-import underConstruction from '../../under-construction.gif';
 import AmbientPad from '../components/AmbientPad.astro';
 import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout>
   <div class="home-playground">
-    <Image src={underConstruction} alt="Under construction" />
     <h1 class="home-intro">
       Graham Van Pelt makes <a href="/music">music</a> and <a href="/software">software</a>.  This website is a work in progress!
     </h1>
@@ -27,7 +23,6 @@ import Layout from '../layouts/Layout.astro';
   }
 
   .home-intro {
-    margin-block-start: 2rem;
     max-width: 24ch;
     padding-block-start: clamp(1rem, 4vw, 3rem);
     font-size: clamp(1.75rem, 4.5vw, 3rem);
@@ -46,11 +41,6 @@ import Layout from '../layouts/Layout.astro';
   .home-intro a:focus-visible {
     color: var(--color-accent);
     text-decoration-color: currentColor;
-  }
-
-  .home-playground > img {
-    max-width: 100%;
-    height: auto;
   }
 
   @media (max-width: 400px) {

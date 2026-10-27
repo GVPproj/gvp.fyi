@@ -46,6 +46,13 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
         <li><a href={group.href} class:list={{ current: group.current }} aria-current={group.current ? 'page' : undefined}>{group.label}</a></li>
       ))}
       <li>
+        <img
+          class="under-construction"
+          src="https://web.archive.org/web/20091026184210im_/http://geocities.com/gioabergamo2002/personalphoto/images/under_cos.gif"
+          alt="Under construction"
+        />
+      </li>
+      <li>
         <a href="https://github.com/GVPproj" target="_blank" rel="noopener noreferrer" aria-label="Visit my GitHub profile">
           <Github width="22" height="22" />
         </a>
@@ -89,6 +96,13 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       ) : (
         <li><a href={group.href} class:list={{ current: group.current }} aria-current={group.current ? 'page' : undefined}><span>{group.label}</span></a></li>
       ))}
+      <li>
+        <img
+          class="under-construction"
+          src="https://web.archive.org/web/20091026184210im_/http://geocities.com/gioabergamo2002/personalphoto/images/under_cos.gif"
+          alt="Under construction"
+        />
+      </li>
       <li>
         <a href="https://github.com/GVPproj" target="_blank" rel="noopener noreferrer">
           <span class="gh"><Github width="22" height="22" /> GitHub</span>
@@ -241,6 +255,12 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   .desktop {
     display: none;
     align-self: center;
+  }
+
+  .under-construction {
+    display: block;
+    width: auto;
+    height: 2rem;
   }
 
   .desktop li > a {
@@ -409,6 +429,10 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   }
 
   #site-nav li + li { margin-block-start: 0.5rem; }
+
+  #site-nav .under-construction {
+    margin-inline-start: 1rem;
+  }
 
   #site-nav a:hover,
   #site-nav summary:hover,
