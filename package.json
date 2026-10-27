@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "generate:social": "node scripts/generate-social-images.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "test": "node --test --test-concurrency=1 tests/*.test.js",

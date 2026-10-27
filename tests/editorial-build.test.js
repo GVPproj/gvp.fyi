@@ -6,6 +6,8 @@ import { spawn } from 'node:child_process';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { editorialFixtures } from './helpers/editorial.js';
+import { parseHTML } from 'linkedom';
+import sharp from 'sharp';
 
 test('Published-content build keeps presentation repo-owned despite stale CMS settings', { timeout: 90000 }, async t => {
   const fixtures = await editorialFixtures();
@@ -62,6 +64,40 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   const blog = await readFile(`${dir}/blog/the-animated-face/index.html`, 'utf8');
   assert.match(blog, /<h1\b[^>]*>Animating My Face<\/h1>/);
   assert.match(blog, /class="face"/);
+  for (const [html, pathname, type] of [
+    [software, '/software/example-project/', 'website'],
+    [blog, '/blog/the-animated-face/', 'article'],
+  ]) {
+    const { document } = parseHTML(html);
+    const meta = key => document.querySelector(`meta[property="${key}"], meta[name="${key}"]`)?.getAttribute('content');
+    assert.equal(meta('og:title'), document.title);
+    assert.equal(meta('og:description'), meta('description'));
+    assert.equal(meta('og:type'), type);
+    assert.equal(new URL(meta('og:url')).pathname.replace(/\/$/, ''), pathname.replace(/\/$/, ''));
+    assert.equal(new URL(meta('og:url')).origin, 'https://gvp.fyi');
+    assert.equal(document.querySelector('link[rel="canonical"]').href, meta('og:url'));
+    assert.equal(meta('og:image'), 'https://gvp.fyi/social/og-image.png');
+    assert.equal(meta('og:image:width'), '1200');
+    assert.equal(meta('og:image:height'), '630');
+    assert.ok(meta('og:image:alt'));
+    assert.equal(meta('twitter:card'), 'summary_large_image');
+    for (const field of ['title', 'description', 'image', 'image:alt']) {
+      assert.equal(meta(`twitter:${field}`), meta(`og:${field}`));
+    }
+    assert.ok(document.querySelector('link[rel="icon"][type="image/svg+xml"]'));
+    assert.ok(document.querySelector('link[rel="apple-touch-icon"]'));
+  }
+  for (const [file, width, height] of [
+    ['social/og-image.png', 1200, 630], ['favicon-32.png', 32, 32], ['apple-touch-icon.png', 180, 180],
+  ]) {
+    const image = await sharp(await readFile(`${dir}/${file}`)).metadata();
+    assert.equal(image.format, 'png');
+    assert.equal(image.width, width);
+    assert.equal(image.height, height);
+  }
+  const icon = await readFile(`${dir}/favicon.svg`, 'utf8');
+  assert.match(icon, /<path\b/);
+  assert.doesNotMatch(icon, /animation|stroke-dashoffset/);
   assert.match(blog, /data-language="astro"/);
   const blogIndex = await readFile(`${dir}/blog/index.html`, 'utf8');
   assert.match(blogIndex, /href="\/blog\/the-animated-face\/?"/);
