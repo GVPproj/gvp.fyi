@@ -7,6 +7,10 @@ import Layout from '../layouts/Layout.astro';
 
 const latestPost = (await getCollection('blog'))
   .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
+const firstParagraph = latestPost?.body?.trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ') ?? '';
+const excerpt = firstParagraph.length > 160
+  ? `${firstParagraph.slice(0, 160).replace(/\s+\S*$/, '')}…`
+  : firstParagraph;
 ---
 
 <Layout>
@@ -16,11 +20,16 @@ const latestPost = (await getCollection('blog'))
     </h1>
     <AmbientPad />
     {latestPost && (
-      <PixelBox as="section" class="latest-post" aria-labelledby="latest-post-heading">
+      <section class="latest-post" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post</h2>
-        <h3><a href={`/blog/${latestPost.id}/`}>{latestPost.data.title}</a></h3>
-        <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
-      </PixelBox>
+        <PixelBox>
+          <div class="latest-post-card">
+            <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
+            <h3><a href={`/blog/${latestPost.id}/`}>{latestPost.data.title}</a></h3>
+            {excerpt && <p>{excerpt}</p>}
+          </div>
+        </PixelBox>
+      </section>
     )}
     <Testimonials />
   </div>
@@ -59,23 +68,34 @@ const latestPost = (await getCollection('blog'))
 
   .latest-post {
     width: min(100%, 29rem);
-    padding: 1.5rem 1.25rem;
     text-align: left;
   }
 
   .latest-post h2 {
-    margin: 0 0 1rem;
+    margin: 0 0 0.75rem;
     font-size: 1.5rem;
   }
 
   .latest-post h3 {
-    margin: 0 0 0.5rem;
-    font-size: 1.25rem;
+    margin: 0;
+    font-size: 1.5rem;
     overflow-wrap: anywhere;
   }
 
-  .latest-post a { color: var(--color-accent); }
-  .latest-post time { color: var(--nord4); }
+  .latest-post-card {
+    position: relative;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .latest-post-card:hover { background: var(--nord2); }
+  .latest-post-card:hover a { color: var(--nord8); }
+  .latest-post-card:has(a:focus-visible) { outline: 2px solid var(--nord8); outline-offset: -4px; }
+  .latest-post a { color: var(--color-accent); text-underline-offset: 0.18em; }
+  .latest-post a::after { content: ''; position: absolute; inset: 0; z-index: 1; cursor: pointer; }
+  .latest-post time { color: var(--nord4); font-size: 0.875rem; }
+  .latest-post p { margin: 0; color: var(--nord4); line-height: 1.5; }
 
   @media (max-width: 400px) {
     .home-playground { width: calc(100% + clamp(0px, calc(7.5rem - 30vw), 1.5rem)); }
