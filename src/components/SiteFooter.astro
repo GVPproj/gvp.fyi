@@ -14,7 +14,7 @@ const year = new Date().getFullYear();
   .site-footer {
     width: 100%;
     border-block-start: 1px solid var(--ink-700);
-    padding: 2rem 1.5rem;
+    padding: 0.5em 1.5rem;
     margin-top: 8rem;
     padding-block-end: max(2rem, env(safe-area-inset-bottom));
   }
@@ -25,7 +25,21 @@ const year = new Date().getFullYear();
   }
 
 
+  @media (width >= 48rem) {
+    .site-footer {
+      display: grid;
+      grid-template-columns: subgrid;
+      padding-inline: 0;
+    }
 
+    .footer-content {
+      grid-column: 2;
+      max-width: none;
+      margin: 0;
+      /* Match the header's border and inline-start padding. */
+      padding-inline-start: calc(1.625rem + 1px);
+    }
+  }
 
   p {
     margin-block-start: 1.5rem;

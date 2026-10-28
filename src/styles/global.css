@@ -82,6 +82,24 @@ body {
   font-synthesis: none;
 }
 
+@media (width >= 48rem) {
+  body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    align-items: stretch;
+  }
+
+  .site-header {
+    grid-column: 2;
+  }
+
+  main,
+  .site-footer {
+    grid-column: 1 / -1;
+  }
+}
+
 main {
   display: flex;
   flex-direction: column;
