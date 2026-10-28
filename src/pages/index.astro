@@ -21,13 +21,13 @@ const excerpt = firstParagraph.length > 160
     <AmbientPad />
     {latestPost && (
       <section class="latest-post" aria-labelledby="latest-post-heading">
-        <h2 id="latest-post-heading">Latest blog post</h2>
+        <h2 id="latest-post-heading">Latest blog post:</h2>
         <PixelBox>
-          <div class="latest-post-card">
+          <a class="latest-post-card" href={`/blog/${latestPost.id}/`} aria-labelledby="latest-post-title">
             <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
-            <h3><a href={`/blog/${latestPost.id}/`}>{latestPost.data.title}</a></h3>
+            <h3 id="latest-post-title">{latestPost.data.title}</h3>
             {excerpt && <p>{excerpt}</p>}
-          </div>
+          </a>
         </PixelBox>
       </section>
     )}
@@ -87,13 +87,13 @@ const excerpt = firstParagraph.length > 160
     display: grid;
     gap: 0.75rem;
     padding: 1.5rem;
+    color: var(--color-accent);
+    text-decoration: none;
   }
 
-  .latest-post-card:hover { background: var(--nord2); }
-  .latest-post-card:hover a { color: var(--nord8); }
-  .latest-post-card:has(a:focus-visible) { outline: 2px solid var(--nord8); outline-offset: -4px; }
-  .latest-post a { color: var(--color-accent); text-underline-offset: 0.18em; }
-  .latest-post a::after { content: ''; position: absolute; inset: 0; z-index: 1; cursor: pointer; }
+  .latest-post-card h3 { text-decoration: underline; text-underline-offset: 0.18em; }
+  .latest-post-card:hover { background: var(--nord2); color: var(--nord8); }
+  .latest-post-card:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
   .latest-post time { color: var(--nord4); font-size: 0.875rem; }
   .latest-post p { margin: 0; color: var(--nord4); line-height: 1.5; }
 

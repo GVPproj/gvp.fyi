@@ -124,6 +124,63 @@ h1 {
   font-size: 28px;
 }
 
+/* Counter-translate the shadow so it stays grounded as the link lifts. */
+:is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary) {
+  --link-lift: 3px;
+  position: relative;
+  isolation: isolate;
+  transition: translate 300ms;
+}
+
+a {
+  display: inline-block;
+}
+
+:is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  top: 100%;
+  left: 5%;
+  width: 90%;
+  height: 10px;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 35%), transparent 80%);
+  transition: translate 300ms, opacity 300ms;
+}
+
+:is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary):focus-visible {
+  translate: 0 calc(-1 * var(--link-lift));
+}
+
+:is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary):focus-visible::before {
+  opacity: 1;
+  translate: 0 var(--link-lift);
+}
+
+@media (hover: hover) {
+  :is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary):hover {
+    translate: 0 calc(-1 * var(--link-lift));
+  }
+
+  :is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary):hover::before {
+    opacity: 1;
+    translate: 0 var(--link-lift);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary) {
+    --link-lift: 0px;
+    transition: none;
+  }
+
+  :is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary)::before {
+    transition: none;
+  }
+}
+
 /* Navigation stays interactive while Astro prepares the next page. */
 :root[data-navigation-loading],
 :root[data-navigation-loading] * {
