@@ -6,6 +6,7 @@ const blog = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
   schema: z.object({
     title: z.string().min(1),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   }),
 });
 

@@ -1,7 +1,12 @@
 ---
+import { getCollection } from 'astro:content';
 import AmbientPad from '../components/AmbientPad.astro';
+import PixelBox from '../components/elements/PixelBox.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Layout from '../layouts/Layout.astro';
+
+const latestPost = (await getCollection('blog'))
+  .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
 ---
 
 <Layout>
@@ -10,6 +15,13 @@ import Layout from '../layouts/Layout.astro';
       Maker of <a href="/music">music</a> and <a href="/software">software</a>.
     </h1>
     <AmbientPad />
+    {latestPost && (
+      <PixelBox as="section" class="latest-post" aria-labelledby="latest-post-heading">
+        <h2 id="latest-post-heading">Latest blog post</h2>
+        <h3><a href={`/blog/${latestPost.id}/`}>{latestPost.data.title}</a></h3>
+        <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
+      </PixelBox>
+    )}
     <Testimonials />
   </div>
 </Layout>
@@ -20,15 +32,14 @@ import Layout from '../layouts/Layout.astro';
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10rem;
+    gap: 5rem;
     width: 100%;
   }
 
   .home-intro {
-    /* max-width: 24ch; */
     width: min(100%, 29rem);
-    padding-block-start: clamp(3rem, 5vw, 5rem);
-    font-size: clamp(3rem, 4vw, 4rem);
+    padding-block-start: clamp(2rem, 4vw, 3rem);
+    font-size: clamp(2rem, 3vw, 4rem);
     line-height: 1.2;
     text-wrap: balance;
   }
@@ -45,6 +56,26 @@ import Layout from '../layouts/Layout.astro';
     color: var(--color-accent);
     text-decoration-color: currentColor;
   }
+
+  .latest-post {
+    width: min(100%, 29rem);
+    padding: 1.5rem 1.25rem;
+    text-align: left;
+  }
+
+  .latest-post h2 {
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+  }
+
+  .latest-post h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    overflow-wrap: anywhere;
+  }
+
+  .latest-post a { color: var(--color-accent); }
+  .latest-post time { color: var(--nord4); }
 
   @media (max-width: 400px) {
     .home-playground { width: calc(100% + clamp(0px, calc(7.5rem - 30vw), 1.5rem)); }

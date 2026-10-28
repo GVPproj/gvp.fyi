@@ -4,7 +4,7 @@ import { sectionLabel } from '../../lib/site-settings';
 import Layout from '../../layouts/Layout.astro';
 
 const posts = (await getCollection('blog'))
-  .sort((a, b) => a.data.title.localeCompare(b.data.title));
+  .sort((a, b) => b.data.date.localeCompare(a.data.date));
 const title = sectionLabel('blog');
 ---
 
@@ -12,7 +12,7 @@ const title = sectionLabel('blog');
   <h1>{title}</h1>
   <ul>
     {posts.map((post) => (
-      <li><a href={`/blog/${post.id}/`}>{post.data.title}</a></li>
+      <li><a href={`/blog/${post.id}/`}>{post.data.title}</a> - <time datetime={post.data.date}>{post.data.date}</time></li>
     ))}
   </ul>
 </Layout>
