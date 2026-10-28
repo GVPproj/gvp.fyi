@@ -148,7 +148,7 @@ const padKeys = "qwerasdfzxcv";
         text-align: left;
         color: var(--nord4);
     }
-    /* Stepped highlights and short, hard shadows keep the enclosure pixel-like. */
+    /* Inset highlights keep the enclosure pixel-like. */
     .controller {
         position: relative;
         display: grid;
@@ -156,28 +156,11 @@ const padKeys = "qwerasdfzxcv";
         gap: 0.75rem;
         padding: 1rem;
         border: 2px solid #171c25;
-        border-radius: 6px;
+        border-radius: 0;
         background: var(--nord2);
         box-shadow:
             inset 2px 2px 0 var(--nord3),
-            inset -2px -2px 0 var(--nord0),
-            0 6px 0 #1d222c,
-            0 8px 0 #141922,
-            6px 12px 0 #0003;
-    }
-    .controller::after {
-        content: "";
-        position: absolute;
-        bottom: -5px;
-        left: 14px;
-        right: 14px;
-        height: 2px;
-        background: repeating-linear-gradient(
-            to right,
-            #080d15 0 10px,
-            transparent 10px 15px
-        );
-        pointer-events: none;
+            inset -2px -2px 0 var(--nord0);
     }
     .nameplate {
         grid-column: 1 / -1;
