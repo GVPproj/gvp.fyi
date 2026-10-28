@@ -1,12 +1,15 @@
 ---
-import { siteSettings } from '../lib/site-settings';
-
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
   <div class="footer-content">
-    <p>&copy; {year} {siteSettings.identity}</p>
+    <p>&copy; {year}</p>
+    <div class="footer-badges">
+      <img src="/images/Censor_Gc.gif" alt="Web rated G" width="100" height="35" loading="lazy" />
+      <img src="/images/button471.png" alt="Under construction" width="88" height="31" loading="lazy" />
+      <img src="/images/website-copy-1.gif" alt="Website" width="88" height="31" loading="lazy" />
+    </div>
   </div>
 </footer>
 
@@ -20,7 +23,10 @@ const year = new Date().getFullYear();
   }
 
   .footer-content {
-    max-width: 64rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     margin-inline: auto;
   }
 
@@ -36,13 +42,26 @@ const year = new Date().getFullYear();
       grid-column: 2;
       max-width: none;
       margin: 0;
-      /* Match the header's border and inline-start padding. */
-      padding-inline-start: calc(1.625rem + 1px);
+      /* Match the header's width, border and inline padding. */
+      width: 29rem;
+      padding-inline: calc(1.625rem + 1px) calc(2rem + 1px);
     }
   }
 
+  .footer-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  img {
+    flex-shrink: 0;
+  }
+
   p {
-    margin-block-start: 1.5rem;
+    margin-block: 1.5rem;
     color: var(--colour-text-muted);
     font-size: 0.875rem;
   }
