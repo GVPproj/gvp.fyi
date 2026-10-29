@@ -126,10 +126,10 @@ h1 {
 
 /* Counter-translate the shadow so it stays grounded as the link lifts. */
 :is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary) {
-  --link-lift: 3px;
+  --link-lift: 2px;
   position: relative;
   isolation: isolate;
-  transition: translate 300ms;
+  transition: translate 180ms ease-out;
 }
 
 a {
@@ -141,13 +141,14 @@ a {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  top: 100%;
-  left: 5%;
-  width: 90%;
-  height: 10px;
+  top: calc(100% - 2px);
+  left: var(--link-text-center, 50%);
+  width: var(--link-text-width, 100%);
+  height: 6px;
+  transform: translateX(-50%);
   opacity: 0;
-  background: radial-gradient(ellipse at center, rgb(0 0 0 / 35%), transparent 80%);
-  transition: translate 300ms, opacity 300ms;
+  background: radial-gradient(ellipse, #11172288 15%, #11172244 55%, transparent 100%);
+  transition: translate 180ms ease-out, opacity 180ms ease-out;
 }
 
 :is(a:not(.latest-post-card, .content-row a), .site-header .group-toggle, .site-header summary):focus-visible {
