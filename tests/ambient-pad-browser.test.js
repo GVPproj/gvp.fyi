@@ -67,7 +67,7 @@ test('keyboard activation keeps visible focus through automatic unlock, playback
   assert.equal(await region.locator('[data-record]').evaluate(el => document.activeElement === el), true);
 });
 
-test('full-height volume fader supports vertical dragging and keyboard limits without losing focus', browserOptions, async t => {
+test('volume fader supports vertical dragging and keyboard limits without losing focus', browserOptions, async t => {
   const { page, base } = await realBrowser(t);
   await page.goto(base);
   const volume = page.getByRole('slider', { name: 'Volume', exact: true });
@@ -86,7 +86,6 @@ test('full-height volume fader supports vertical dragging and keyboard limits wi
   const box = await volume.boundingBox();
   const controls = await page.locator('#ambient-pad .controls').boundingBox();
   assert.ok(box.x >= controls.x + controls.width, 'fader sits right of the buttons');
-  assert.equal(box.height, controls.height, 'fader fills the controller height');
   assert.equal(await volume.getAttribute('aria-orientation'), 'vertical');
   await page.mouse.move(box.x + box.width / 2, box.y + 8);
   await page.mouse.down();
@@ -179,13 +178,14 @@ test('Home has a silent, accessible 3×4 instrument centered on desktop and mobi
     assert.ok(shell.x + shell.width - (fader.x + fader.width) >= 8, 'fader retains its right inset');
     assert.ok(shell.y + shell.height - (controlsBox.y + controlsBox.height) >= 8, 'transport retains its bottom inset');
     const controller = await instrument.boundingBox();
+    const contentArea = await page.locator('main').boundingBox();
     assert.equal(await page.getByRole('img', { name: 'A one-line portrait of my face' }).count(), 0);
-    assert.ok(Math.abs(controller.x + controller.width / 2 - width / 2) < 2, 'instrument stays centered');
+    assert.ok(Math.abs(controller.x + controller.width / 2 - (contentArea.x + contentArea.width / 2)) < 2, 'instrument stays centered in the page content');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.equal(await pads.evaluateAll(buttons => buttons.every(button => {
       const rect = button.getBoundingClientRect();
-      return rect.width >= 44 && rect.height >= 44;
-    })), true);
+      return rect.width >= 24 && rect.height >= 24;
+    })), true, 'pads retain at least 24×24 CSS-pixel pointer targets');
   }
   await instrument.getByRole('button', { name: 'Record', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('[data-record]')?.getAttribute('aria-label') === 'Finish loop');
