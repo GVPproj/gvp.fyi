@@ -17,7 +17,7 @@ function assertStaticRows(document) {
   assert.equal(document.querySelector('#collection-rows h2 a'), null, 'collection headings are not navigation');
   assert.equal(document.querySelector('a[href*="?collection="], a[href*="?view="], a[href^="#collection-"], a[href="#all-items"]'), null);
   assert.equal(document.querySelectorAll('#collection-rows .content-row').length, 1);
-  assert.ok(document.querySelector('#collection-rows a[href="/likes/publicnote00001"]'));
+  assert.ok(document.querySelector('#collection-rows a[href="/likes/static-publication-fixture"]'));
   assert.equal(document.querySelectorAll('#collection-rows .content-row li').length, 10, 'rows include all items, not only the former eight previews');
 }
 
@@ -57,7 +57,11 @@ test('published content emits static Likes and ignores draft/withdrawn items', {
   const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
   server.closeAllConnections(); server.close();
   const overview = await readFile(join(dir, 'likes/index.html'), 'utf8');
-  const detail = await readFile(join(dir, 'likes/publicnote00001/index.html'), 'utf8');
+  const detail = await readFile(join(dir, 'likes/static-publication-fixture/index.html'), 'utf8');
+  const legacy = await readFile(join(dir, 'likes/publicnote00001/index.html'), 'utf8');
+  assert.match(legacy, /url=\/likes\/static-publication-fixture/i);
+  const imageDetail = await readFile(join(dir, 'likes/published-image-fixture/index.html'), 'utf8');
+  assert.doesNotMatch(imageDetail, /Open original image/);
   assert.match(overview, /Static publication fixture/);
   assert.match(overview, /Reading/);
   assert.match(overview, /id="collection-rows"/, 'Static Likes must reuse the shared collection overview');

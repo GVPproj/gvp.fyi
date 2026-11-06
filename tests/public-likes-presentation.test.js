@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { likeAssetKind, likeItemTitle, likesItemURL, webURL } from '../src/lib/likes.js';
+import { likeAssetKind, likeItemTitle, likesItemURL, webURL, withLikeSlugs } from '../src/lib/likes.js';
 import { collectionRows } from '../src/lib/likes-presentation.ts';
 
 test('Likes destinations accept only credential-free web URLs', () => {
@@ -47,7 +47,24 @@ for (const { asset, url, kind, title } of [
   });
 }
 
-test('public item URLs use only the stable record ID as an encoded path segment', () => {
+test('public item URLs prefer the readable slug and encode path segments', () => {
+  assert.equal(likesItemURL({ id: 'item00000000001', slug: 'mutable-title' }), '/likes/mutable-title');
   assert.equal(likesItemURL({ id: 'item00000000001', title: 'Mutable title', url: 'https://example.com' }), '/likes/item00000000001');
   assert.equal(likesItemURL({ id: 'a/b?c#d &"' }), '/likes/a%2Fb%3Fc%23d%20%26%22');
+});
+
+test('readable slugs normalize titles and avoid duplicates and legacy ID paths', () => {
+  const items = [
+    { id: 'b', title: 'Café & Cats!' },
+    { id: 'a', title: 'Café & Cats!' },
+    { id: 'cafe-cats', title: 'Other' },
+    { id: 'c', title: '!!!' },
+    { id: 'd', type: 'note' },
+    { id: 'e', title: '日本語' },
+  ];
+  const result = withLikeSlugs(items);
+  assert.deepEqual(result.map(item => item.slug), ['cafe-cats-3', 'cafe-cats-2', 'other', 'item', 'personal-note', '日本語']);
+  const reversed = withLikeSlugs([...items].reverse());
+  for (const item of result) assert.equal(reversed.find(other => other.id === item.id).slug, item.slug);
+  assert.equal(items[0].slug, undefined, 'source records remain unchanged');
 });

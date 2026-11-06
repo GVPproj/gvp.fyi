@@ -20,6 +20,27 @@ export function likeItemTitle(item) {
   return kind === 'pdf' ? 'PDF document' : kind === 'image' ? 'Image' : 'Link';
 }
 
+// Reserve legacy ID paths so readable URLs never shadow existing links.
+/**
+ * @template {{ id: string }} T
+ * @param {T[]} items
+ * @returns {(T & { slug: string })[]}
+ */
+export function withLikeSlugs(items) {
+  const used = new Set(items.map(item => item.id));
+  const slugs = new Map();
+  for (const item of [...items].sort((a, b) => a.id.localeCompare(b.id))) {
+    const base = likeItemTitle(item).normalize('NFKD').replace(/\p{M}/gu, '')
+      .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'item';
+    let slug = base;
+    let suffix = 2;
+    while (used.has(slug)) slug = `${base}-${suffix++}`;
+    used.add(slug);
+    slugs.set(item.id, slug);
+  }
+  return items.map(item => ({ ...item, slug: slugs.get(item.id) }));
+}
+
 export function likesItemURL(item) {
-  return `/likes/${encodeURIComponent(item.id)}`;
+  return `/likes/${encodeURIComponent(item.slug ?? item.id)}`;
 }
