@@ -14,7 +14,7 @@ export default defineConfig({
     '/blog/drawing-my-face/': '/blog/the-animated-face/',
   },
   // Local Astro handles SSR directly; this site needs no Netlify dev emulation.
-  adapter: netlify({ devFeatures: false }),
+  adapter: netlify({ devFeatures: false, imageCDN: false }),
   server: {
     host: '127.0.0.1',
     port: 4324,

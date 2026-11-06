@@ -9,8 +9,9 @@ No sibling checkout is required here.
 ## Frontend responsibilities
 
 - `src/integrations/published-release.mjs` fetches published music releases and
-  artwork; `src/integrations/published-content.mjs` fetches published software and
-  Likes collection items and their assets.
+  artwork; `src/integrations/published-content.mjs` fetches published Likes
+  collection items and their assets. It ignores legacy software and site-settings
+  snapshots before validating their fields or requesting their assets.
 - Both authenticate with a restricted `publishing_builds` identity using
   `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and
   `PUBLISHING_BUILD_PASSWORD`. These are server-only variables: never use public
@@ -22,10 +23,12 @@ No sibling checkout is required here.
   the build. No checked-in CMS fallback is used. Failed deployments leave the
   previous successful deployment intact; published static pages do not require
   a running backend.
-- Blog MDX, site settings, presentation and interaction behavior remain Git-owned.
-- Software also has a validated Git content collection staged for migration (see
-  below). Production software rendering and both publishing integrations still
-  use the CMS in this ticket; the Git entries are not a fallback.
+- Software, blog MDX, site settings, presentation and interaction behavior are
+  Git-owned. Software index and detail pages render the validated content
+  collection, not CMS snapshots or a checked-in CMS fallback. Astro's asset
+  pipeline emits original software images and responsive WebP variants into the
+  static output; Netlify's image CDN is disabled so media works independently of
+  the backend and CDN.
 
 ## API surface consumed here
 
@@ -34,7 +37,7 @@ No sibling checkout is required here.
 | `POST /api/collections/publishing_builds/auth-with-password` | Restricted build authentication |
 | `GET /api/publishing/releases` | Published release snapshots and withdrawal tombstones |
 | `GET /api/publishing/artwork/{revision}` | Integrity-checked release artwork |
-| `GET /api/publishing/content` | Software and Likes snapshots and withdrawals |
+| `GET /api/publishing/content` | Likes snapshots and withdrawals; legacy software/settings are ignored |
 | `GET /api/publishing/content-assets/{revision}/{file}` | Integrity-checked content assets |
 
 This is a consumer overview, not a second authoritative API specification.
@@ -83,10 +86,19 @@ Astro resolves local images as build inputs and catches missing image files.
 
 For layouts beyond the shared structured fields, compose Markdown/MDX in the
 entry body instead of extending a CMS schema. Tipbox demonstrates an MDX figure
-using Astro's `Image` component and a local original image. This body is not
-rendered by the current CMS-backed pages; the publishing cutover is separate work.
+using Astro's `Image` component and a local original image. This demonstration
+body remains unrendered by the shared software pages to preserve the existing
+visible content; those pages render the structured frontmatter.
 After editing entries, run `pnpm check`, `pnpm build` (requires publishing
 configuration), and `node --test tests/software-collection.test.js` (offline).
+
+## Software cutover sequencing
+
+Deploy and review the collection-backed software pages against the previous
+output before withdrawing software in the backend (#25 before #26). The frontend
+already ignores software snapshots and their assets, but the backend's legacy
+software contract and the one-off exporter remain available until that separate,
+backend-first cleanup. No software is unpublished by a frontend build.
 
 ## Testing boundary
 

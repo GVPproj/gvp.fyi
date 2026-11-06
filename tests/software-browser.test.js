@@ -33,7 +33,6 @@ test('Software orders Applications, Small websites and Early projects and rows s
     const row = page.getByRole('region', { name: categoryNames[project.category], exact: true });
     const link = row.locator(`a[href="/software/${project.slug}"]`);
     assert.ok((await link.textContent()).includes(project.title));
-    assert.match(await link.locator('img').getAttribute('src'), /^\/published-content\//);
     await link.locator('img').evaluate(image => image.decode());
   }
   for (const width of [1280, 320]) {

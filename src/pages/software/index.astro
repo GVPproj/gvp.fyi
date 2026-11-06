@@ -1,9 +1,13 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { softwareProjects } from '../../lib/software-content';
+import { getCollection } from 'astro:content';
+import { softwareImage } from '../../lib/software-image';
 import { categorySettings, sectionLabel } from '../../lib/site-settings';
 
+const softwareProjects = await Promise.all((await getCollection('software'))
+  .sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id))
+  .map(async entry => ({ ...entry, image: await softwareImage(entry.data.screenshot) })));
 const categories = categorySettings('software');
 const title = sectionLabel('software');
 ---
@@ -12,16 +16,16 @@ const title = sectionLabel('software');
   <div class="software">
     <h1>{title}</h1>
     {categories.map(category => {
-      const projects = softwareProjects.filter(project => project.category === category.id);
+      const projects = softwareProjects.filter(project => project.data.category === category.id);
       return <ContentRow
         id={category.id}
         title={category.title}
         summary={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`}
         items={projects.map(project => ({
-          href: `/software/${project.slug}`,
-          title: project.title,
-          image: { src: project.screenshot, srcset: project.screenshotSrcset, width: project.screenshotWidth, height: project.screenshotHeight },
-          metadata: project.tooling.join(' · '),
+          href: `/software/${project.id}`,
+          title: project.data.title,
+          image: project.image,
+          metadata: project.data.tooling.join(' · '),
         }))}
       />;
     })}

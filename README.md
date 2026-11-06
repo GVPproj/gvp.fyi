@@ -17,10 +17,11 @@ pnpm dev
 
 Set the server-only publishing variables in `.env` to a PocketBase instance
 with a restricted build identity, then open `http://127.0.0.1:4324`.
-Development and builds both require published PocketBase content for music,
-software and Likes; there is no checked-in fallback for those sections. The blog
-is Git-owned MDX in `src/content/blog/`, not a CMS fallback. Missing configuration
-or backend failures stop the build rather than silently publishing old content.
+Development and builds both require published PocketBase content for music and
+Likes; there is no checked-in fallback for those sections. Software and the blog
+are Git-owned content collections in `src/content/software/` and
+`src/content/blog/`, not CMS fallbacks. Missing configuration or backend failures
+stop the build rather than silently publishing old content.
 
 ## Testing
 
@@ -39,10 +40,12 @@ Backend API, migration and upgrade coverage lives in the backend repository.
 ## Publishing
 
 See [frontend API boundary](docs/backend-api.md) for integration ownership and
-backend documentation. Edit music, software and Likes in
-PocketBase, then deploy manually in Netlify. Site settings and interactions stay
-in code. Blog posts are authored only in the Astro content collection; PocketBase
-has no blog publishing support.
+backend documentation. Edit music and Likes in PocketBase, then deploy manually
+in Netlify. Edit software in `src/content/software/` and commit its entries and
+original images with the frontend. Astro builds responsive software images into
+the static output; they do not need Netlify's image CDN or the publishing backend.
+Site settings and interactions stay in code. Blog posts are authored only in the
+Astro content collection; PocketBase has no blog publishing support.
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).
 
 ### Blog

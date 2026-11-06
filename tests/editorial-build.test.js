@@ -12,13 +12,14 @@ import sharp from 'sharp';
 test('Published-content build keeps presentation repo-owned despite stale CMS settings', { timeout: 90000 }, async t => {
   const fixtures = await editorialFixtures();
   const files = new Map();
+  const assetRequests = [];
   const entries = [];
   for (const entry of fixtures) {
     const assets = [];
     for (const file of entry.assets) {
       const { bytes } = file;
       const path = `/api/publishing/content-assets/fixture/${file.name}`;
-      files.set(path, bytes);
+      if (entry.kind !== 'software') files.set(path, bytes);
       assets.push({ name: file.name, path, sha256: createHash('sha256').update(bytes).digest('hex') });
     }
     entries.push({ ...entry, revision: 'fixture', state: 'published', assets });
@@ -29,7 +30,17 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   staleSettings.categories.software = [];
   staleSettings.placeholders = [{ slug: 'cms-only-page', title: 'CMS page', body: 'Stale placeholder' }];
   entries.push({ kind: 'software', slug: 'biolink', revision: 'withdrawn', state: 'unpublished' });
+  entries.push({ kind: 'software', state: 'invalid', data: { url: 'javascript:unused()' } });
+  const likeImage = fixtures[0].assets[0].bytes;
+  const likePath = '/api/publishing/content-assets/likes1/retained.png';
+  const likeHash = createHash('sha256').update(likeImage).digest('hex');
+  files.set(likePath, likeImage);
+  entries.push({ kind: 'like', slug: 'retained-image', revision: 'likes1', state: 'published',
+    data: { type: 'image', title: 'Retained Likes image' },
+    assets: [{ name: 'retained.png', path: likePath, sha256: likeHash }] });
+  entries.push({ kind: 'like', slug: 'withdrawn-image', revision: 'likes2', state: 'unpublished' });
   const server = createServer((req, res) => {
+    if (req.url.startsWith('/api/publishing/content-assets/')) assetRequests.push(req.url);
     if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'fixture', record: { collectionName: 'publishing_builds' } }));
     if (req.headers.authorization !== 'fixture') return res.writeHead(403).end();
     if (req.url === '/api/publishing/content') return res.end(JSON.stringify(entries));
@@ -49,6 +60,12 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   t.after(() => { if (child.exitCode === null) child.kill(); });
   let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
   const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
+  assert.deepEqual(assetRequests, [likePath], 'only Likes assets are fetched; legacy software media may be unavailable');
+  const likes = await readFile(`${dir}/likes/retained-image/index.html`, 'utf8');
+  assert.match(likes, /Retained Likes image/);
+  assert.match(likes, /\/published-content\//);
+  assert.deepEqual(await readFile(`${dir}/published-content/${likeHash}.png`), likeImage);
+  await assert.rejects(readFile(`${dir}/likes/withdrawn-image/index.html`));
   await t.test('homepage renders accessible testimonial choices and attribution', async () => {
     const home = await readFile(`${dir}/index.html`, 'utf8');
     const { document: homeDocument } = parseHTML(home);
@@ -96,11 +113,45 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
     }
     assert.doesNotMatch(home, /Layout sample|LAYOUT SAMPLE|prototype-switcher|data-prototype-variant|From the other side of the desk/);
   });
-  const software = await readFile(`${dir}/software/example-project/index.html`, 'utf8');
-  assert.match(software, /Project gallery detail/);
-  assert.match(software, /Example teammate/);
-  assert.match(software, /Built for a rendering test/);
-  assert.match(software, /\/published-content\//);
+  const software = await readFile(`${dir}/software/tipbox/index.html`, 'utf8');
+  assert.match(software, /Tipbox\.io/);
+  assert.match(software, /Full-Stack Engineer/);
+  assert.match(software, /Howard Baral/);
+  assert.match(software, /\/_astro\//);
+  assert.doesNotMatch(software, /<figcaption|\/published-content\//);
+  const { document: softwareDocument } = parseHTML(software);
+  const screenshot = softwareDocument.querySelector('img.screenshot');
+  assert.equal(screenshot.getAttribute('width'), '2548');
+  assert.equal(screenshot.getAttribute('height'), '1299');
+  assert.equal(screenshot.getAttribute('alt'), 'Screenshot of Tipbox.io');
+  assert.equal(screenshot.getAttribute('sizes'), '(min-width: 45rem) 65ch, calc(100vw - 3rem)');
+  assert.deepEqual(screenshot.getAttribute('srcset').split(', ').map(candidate => candidate.split(' ')[1]),
+    ['160w', '320w', '640w', '960w', '2548w']);
+  assert.equal(softwareDocument.querySelectorAll('.gallery img[loading="lazy"]').length, 3);
+  for (const image of softwareDocument.querySelectorAll('.software-detail img')) {
+    for (const [source, expectedWidth] of [
+      [image.getAttribute('src'), Number(image.getAttribute('width'))],
+      ...image.getAttribute('srcset').split(', ').map(candidate => {
+        const [source, width] = candidate.split(' ');
+        return [source, parseInt(width)];
+      }),
+    ]) {
+      assert.match(source, /^\/_astro\//);
+      const metadata = await sharp(await readFile(`${dir}${source}`)).metadata();
+      assert.equal(metadata.width, expectedWidth);
+    }
+  }
+  const { document: softwareIndex } = parseHTML(await readFile(`${dir}/software/index.html`, 'utf8'));
+  for (const [category, slugs] of [
+    ['portfolio', ['tipbox', 'biolink']],
+    ['small-websites', ['groundwaves']],
+    ['early-projects', ['bloom-bnb', 'quizzical', 'tenzies', 'colour-scheme-generator']],
+  ]) {
+    assert.deepEqual([...softwareIndex.querySelector(`#${category}-heading`).closest('section').querySelectorAll('li a')].map(link => link.getAttribute('href')),
+      slugs.map(slug => `/software/${slug}`));
+    for (const slug of slugs) assert.ok(await readFile(`${dir}/software/${slug}/index.html`, 'utf8'));
+  }
+  await assert.rejects(readFile(`${dir}/software/example-project/index.html`));
   assert.doesNotMatch(software, /\/images\/fixture\//);
   assert.doesNotMatch(software, /Snapshot-only description/);
   assert.match(software, /href="\/music"[^>]*>Music<\/a>/);
@@ -112,7 +163,7 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   assert.match(blog, /<h1\b[^>]*>Animating My Face<\/h1>/);
   assert.match(blog, /class="face"/);
   for (const [html, pathname, type] of [
-    [software, '/software/example-project/', 'website'],
+    [software, '/software/tipbox/', 'website'],
     [blog, '/blog/the-animated-face/', 'article'],
   ]) {
     const { document } = parseHTML(html);
@@ -149,6 +200,6 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   const blogIndex = await readFile(`${dir}/blog/index.html`, 'utf8');
   assert.match(blogIndex, /href="\/blog\/the-animated-face\/?"/);
   assert.match(blogIndex, /Animating My Face/);
-  await assert.rejects(readFile(`${dir}/software/biolink/index.html`));
-  await assert.rejects(readFile(`${dir}/software/tenzies/index.html`));
+  assert.match(await readFile(`${dir}/software/biolink/index.html`, 'utf8'), /Linktree/);
+  assert.match(await readFile(`${dir}/software/tenzies/index.html`, 'utf8'), /Dice Game/);
 });

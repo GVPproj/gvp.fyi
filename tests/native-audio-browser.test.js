@@ -76,6 +76,8 @@ test('Native audio loads metadata, seeks and plays', browserOptions, async (t) =
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
   await page.goto(`${base}/music/${slugOf(release)}`);
+  // Vite may reload during dependency discovery after the initial heading appears.
+  await page.waitForLoadState('networkidle');
   await page.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
   const players = page.getByRole('main').locator('ol audio');
   assert.equal(await players.count(), tracks.length);

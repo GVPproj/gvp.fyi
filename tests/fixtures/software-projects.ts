@@ -1,4 +1,4 @@
-import type { SoftwareProject } from '../../src/lib/software-project.ts';
+import type { SoftwareProject } from './software-project.ts';
 
 // Historical portfolio retained only as rich rendering fixtures. Images live in
 // tests/fixtures/software, never in the production public directory.
