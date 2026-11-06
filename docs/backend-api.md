@@ -23,6 +23,9 @@ No sibling checkout is required here.
   previous successful deployment intact; published static pages do not require
   a running backend.
 - Blog MDX, site settings, presentation and interaction behavior remain Git-owned.
+- Software also has a validated Git content collection staged for migration (see
+  below). Production software rendering and both publishing integrations still
+  use the CMS in this ticket; the Git entries are not a fallback.
 
 ## API surface consumed here
 
@@ -39,6 +42,51 @@ Changes to the backend contract must preserve compatibility or be coordinated
 with the frontend; deploy required backend support before its frontend consumer.
 Saving a published item in PocketBase does not deploy the website: deploy Netlify
 manually to publish the new static output.
+
+## Repeatable software export
+
+`scripts/export-software.mjs` exports published software snapshots using the same
+restricted build identity and endpoints as the integrations. It reads the three
+server-only `PUBLISHING_*` variables above from the environment or local `.env`;
+never supply superuser credentials. With these configured, run:
+
+```sh
+# Initial migration only, when src/content/software does not exist:
+pnpm export:software
+
+# Repeat into a NEW directory for comparison with the checked-in entries:
+pnpm export:software /tmp/software-export-review
+```
+
+The destination must not exist: rerunning cannot overwrite hand-authored MDX.
+The script ignores Likes, legacy settings and withdrawal tombstones, resolves
+CMS upload aliases, verifies each downloaded original against its SHA-256 digest,
+and stages the whole export before moving it into place. No resized variants,
+credentials or tokens are saved. Failed exports remove the staging directory.
+
+Each project lives at `src/content/software/<slug>/index.mdx` with original
+screenshots and gallery images in its adjacent `assets/` directory. Frontmatter
+is formatted as JSON (valid YAML) to preserve nested CMS values losslessly.
+Editorial fields are retained, including alt text, dimensions, ordering, tooling,
+links, role, team, gallery and tagline. Only image paths are relocated to local
+assets; the transport-only `assetNames` map and redundant CMS `slug` are omitted.
+The entry path supplies its identity. Compare a repeat export before copying
+changes, preserving any authored body content.
+
+The `software` collection in `src/content.config.ts` requires `title`,
+`description` (the index-card summary), `category`, integer `order`, `tooling`, a
+local `screenshot`, and at least one HTTP(S) project link (`url` for the website
+or `repo` for the repository). Category IDs must exist in the production Git
+site settings, `src/config/site-settings.json`; unknown IDs fail at collection
+load. Role, team, gallery and tagline remain optional structured frontmatter.
+Astro resolves local images as build inputs and catches missing image files.
+
+For layouts beyond the shared structured fields, compose Markdown/MDX in the
+entry body instead of extending a CMS schema. Tipbox demonstrates an MDX figure
+using Astro's `Image` component and a local original image. This body is not
+rendered by the current CMS-backed pages; the publishing cutover is separate work.
+After editing entries, run `pnpm check`, `pnpm build` (requires publishing
+configuration), and `node --test tests/software-collection.test.js` (offline).
 
 ## Testing boundary
 

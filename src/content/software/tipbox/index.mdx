@@ -1,0 +1,94 @@
+---
+{
+  "team": [
+    {
+      "name": "Graham Van Pelt",
+      "role": "Full-Stack Engineer"
+    },
+    {
+      "href": "https://www.linkedin.com/in/howie-baral-9550aa4/",
+      "name": "Howard Baral",
+      "role": "Founder & Chief Executive Officer"
+    },
+    {
+      "href": "https://www.linkedin.com/in/michaelschlein/",
+      "name": "Michael Schlein",
+      "role": "Chief Product Officer"
+    },
+    {
+      "href": "https://www.linkedin.com/in/giovangonzalez/",
+      "name": "Milton Gonzalez",
+      "role": "Chief Technical Officer"
+    },
+    {
+      "href": "https://www.linkedin.com/in/ben-frey-88186a65/",
+      "name": "Ben Frey",
+      "role": "Creative Director & Senior Product Designer"
+    },
+    {
+      "href": "https://www.linkedin.com/in/jeffrey-stefani-85563a221/",
+      "name": "Jeffery Stefani",
+      "role": "Creative Director"
+    },
+    {
+      "role": "Full-stack, DevOps Engineer",
+      "href": "https://www.linkedin.com/in/jonny-nguyen/",
+      "name": "Jonny Nguyen"
+    },
+    {
+      "href": "https://www.linkedin.com/in/dionkodhyat/",
+      "name": "Dion Kodhyat",
+      "role": "Front-End Developer"
+    }
+  ],
+  "tooling": [
+    "TypeScript",
+    "React",
+    "CSS"
+  ],
+  "title": "Tipbox.io",
+  "gallery": [
+    {
+      "alt": "Tipbox.io laptop and mobile mockup",
+      "height": 1698,
+      "src": "./assets/laptop.png",
+      "width": 2012
+    },
+    {
+      "alt": "No looking back",
+      "height": 1302,
+      "src": "./assets/no-looking-back.png",
+      "width": 1538
+    },
+    {
+      "width": 1920,
+      "alt": "A Tipbox.io project board with attached media",
+      "height": 1080,
+      "src": "./assets/project-board.jpg"
+    }
+  ],
+  "screenshotHeight": 1299,
+  "screenshotWidth": 2548,
+  "url": "https://www.tipbox.io",
+  "category": "portfolio",
+  "screenshot": "./assets/tipboxThumb.webp",
+  "order": 0,
+  "role": {
+    "paragraphs": [
+      "As a Full-Stack Engineer and Product Experience Lead at Tipbox, I architected and delivered end-to-end solutions for a collaborative document and tasks platform. My hundreds of commits span the frontend and backend, encompassing an entire task management ecosystem—from GraphQL schema design to React component implementation. I've owned database optimization, API development, UI state management, and UX design, leading architectural decisions and enhancing authentication flows. Bridging product vision with technical execution, I deliver complex features, integrating AWS, PostgreSQL, and React/TypeScript for robust performance and exceptional user experience."
+    ],
+    "title": "My Role"
+  },
+  "tagline": "Your production team's best friend – take all the headaches out of file sharing, task tracking, workflows and project management.",
+  "description": "A collaboration and workflow tool for the film and TV industries.",
+  "screenshotAlt": "Screenshot of Tipbox.io"
+}
+---
+
+import { Image } from 'astro:assets';
+import projectBoard from './assets/project-board.jpg';
+
+<figure>
+  <Image src={projectBoard} alt="A Tipbox.io project board with attached media" />
+  <figcaption>A Tipbox.io project board with attached media.</figcaption>
+</figure>
