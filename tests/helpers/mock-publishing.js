@@ -24,10 +24,10 @@ export async function startMockPublishing(t) {
   for (const [index, category] of categories.entries()) {
     for (const source of category.releases) {
       const slug = slugOf(source);
-      const revision = `release-${slug}`;
-      const path = `/api/publishing/artwork/${revision}`;
+      const id = `release-${slug}`;
+      const path = `/api/publishing/current/music-assets/${id}/cover.jpg`;
       assets.set(path, bytes);
-      releases.push({ revision,
+      releases.push({ id,
         release: { ...source, slug, category: categoryIds[index], release_date: dateOf(source), about: source.about ?? null },
         artwork: { path, width, height, sha256: hash(bytes) },
       });
@@ -49,8 +49,8 @@ export async function startMockPublishing(t) {
       }
       if (req.headers.authorization !== token) return json(401, {});
       if (req.method !== 'GET') return json(405, {});
-      if (req.url === '/api/publishing/content') return json(200, content);
-      if (req.url === '/api/publishing/releases') return json(200, releases);
+      if (req.url === '/api/publishing/current/likes') return json(200, content);
+      if (req.url === '/api/publishing/current/music') return json(200, releases);
       if (assets.has(req.url)) {
         res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
         return res.end(assets.get(req.url));

@@ -20,7 +20,7 @@ function publicRelease(source) {
     if (url.protocol !== 'https:' || url.username || url.password) throw new Error();
     return url.href;
   };
-  if (!source || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(source.slug)) throw new Error();
+  if (!source || typeof source.slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(source.slug)) throw new Error();
   if (!releaseCategoryIds.includes(source.category)) throw new Error();
   if (source.tracks != null && !Array.isArray(source.tracks)) throw new Error();
   const tracks = (source.tracks ?? []).map((track, index) => {
@@ -58,27 +58,23 @@ export async function preparePublishedRelease(env, fetcher = fetch) {
   }
   try {
     const request = await publishingTransport(env, { fetcher, timeout: 15000, limit: 1024 * 1024 });
-    const response = JSON.parse(await request('/api/publishing/releases', 10 * 1024 * 1024));
+    const response = JSON.parse(await request('/api/publishing/current/music', 10 * 1024 * 1024));
     if (!Array.isArray(response)) throw new Error();
-    const releases = [], allFiles = [], seen = new Set();
-    for (const snapshot of response) {
-    const slug = snapshot?.state === 'unpublished' ? snapshot.slug : snapshot?.release?.slug;
-    if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || seen.has(slug)) throw new Error();
-    seen.add(slug);
-    // Withdrawals are explicit tombstones, never public release data.
-    if (snapshot?.state === 'unpublished') {
-      if (Object.keys(snapshot).sort().join(',') !== 'revision,slug,state' ||
-        typeof snapshot.revision !== 'string' || !snapshot.revision.trim()) throw new Error();
-      continue;
-    }
-    if (!snapshot || 'state' in snapshot || 'slug' in snapshot) throw new Error();
-    const release = publicRelease(snapshot.release);
+    const releases = [], allFiles = [], seen = new Set(), identities = new Set();
+    for (const item of response) {
+    if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.id) || identities.has(item.id) ||
+      Object.keys(item).sort().join(',') !== 'artwork,id,release') throw new Error();
+    identities.add(item.id);
+    const release = publicRelease(item.release);
+    if (seen.has(release.slug)) throw new Error();
+    seen.add(release.slug);
     for (const track of release.tracks) {
       if (track.audio_url) await access(new URL(`../../public${track.audio_url}`, import.meta.url));
     }
-    const { artwork } = snapshot;
-    if (typeof snapshot.revision !== 'string' || !snapshot.revision) throw new Error();
-    if (!artwork || artwork.path !== `/api/publishing/artwork/${snapshot.revision}` || !/^[a-zA-Z0-9_-]+$/.test(snapshot.revision) || !/^[a-f0-9]{64}$/.test(artwork.sha256)) throw new Error();
+    const { artwork } = item;
+    if (!artwork || typeof artwork.path !== 'string' ||
+      !new RegExp(`^/api/publishing/current/music-assets/${item.id}/[a-zA-Z0-9_.-]+$`).test(artwork.path) ||
+      !/^[a-f0-9]{64}$/.test(artwork.sha256)) throw new Error();
     const source = await request(artwork.path, maxArtworkBytes);
     if (createHash('sha256').update(source).digest('hex') !== artwork.sha256) throw new Error();
     const image = sharp(source, { limitInputPixels: 40_000_000, animated: false });
@@ -99,11 +95,11 @@ export async function preparePublishedRelease(env, fetcher = fetch) {
     return { release: releases, files: allFiles };
   } catch {
     // Backend bodies, URLs, credentials and private source data must never reach build logs.
-    throw new Error('Published release build failed: verify publishing configuration, snapshot and artwork integrity');
+    throw new Error('Published release build failed: verify publishing configuration, current records and artwork integrity');
   }
 }
 
-/** One authenticated snapshot per build; only its public projection enters Vite. */
+/** Acquire published working records once per build; only public data enters Vite. */
 export default function publishedRelease() {
   return publishingIntegration('published-release', preparePublishedRelease, 'release');
 }

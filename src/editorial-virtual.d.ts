@@ -1,12 +1,9 @@
 declare module 'virtual:published-content' {
-  interface PublishedContentSnapshot {
-    revision: string;
-    kind: string;
-    slug: string;
-    state: 'published' | 'unpublished';
+  interface PublishedLike {
+    id: string;
     data: any;
     assets: { name: string; path: string; sha256: string; url: string }[];
   }
-  const snapshots: PublishedContentSnapshot[];
-  export default snapshots;
+  const items: PublishedLike[];
+  export default items;
 }

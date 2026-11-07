@@ -17,8 +17,8 @@ pnpm dev
 
 Set the server-only publishing variables in `.env` to a PocketBase instance
 with a restricted build identity, then open `http://127.0.0.1:4324`.
-Development and builds both require published PocketBase content for music and
-Likes; there is no checked-in fallback for those sections. Software and the blog
+Development and builds acquire current published PocketBase records for music and
+Likes; there is no snapshot or checked-in fallback for those sections. Software and the blog
 are Git-owned content collections in `src/content/software/` and
 `src/content/blog/`, not CMS fallbacks. Missing configuration or backend failures
 stop the build rather than silently publishing old content.
@@ -40,8 +40,17 @@ Backend API, migration and upgrade coverage lives in the backend repository.
 ## Publishing
 
 See [frontend API boundary](docs/backend-api.md) for integration ownership and
-backend documentation. Edit music and Likes in PocketBase, then deploy manually
-in Netlify. Edit software in `src/content/software/` and commit its entries and
+backend documentation. Edit music in PocketBase's `music_items` and Likes in
+`likes_items`, then deploy manually in Netlify. Save makes published edits eligible
+for the next build; it does not deploy. Unpublishing/deleting removes items on the
+next successful deployment that observes the change. Named-collection names and
+memberships also come from current records, excluding drafts. Acquisition is not
+an atomic site-wide capture: media changes may fail a build and require retry.
+Failed builds leave the existing static deployment intact. Backend support must
+ship before this frontend; see the [cutover/recovery steps](docs/backend-api.md#current-record-cutover-2829).
+Production deployment requires separate owner approval.
+
+Edit software in `src/content/software/` and commit its entries and
 original images with the frontend. Astro builds responsive software images into
 the static output; they do not need Netlify's image CDN or the publishing backend.
 Site settings and interactions stay in code. Blog posts are authored only in the

@@ -1,9 +1,9 @@
 import content from 'virtual:published-content';
 import { withLikeSlugs } from './likes.js';
 
-export const publishedLikes = withLikeSlugs(content.filter(entry => entry.kind === 'like' && entry.state === 'published').map(entry => {
+export const publishedLikes = withLikeSlugs(content.map(entry => {
   const media = entry.assets[0];
-  return { ...entry.data, id: entry.slug, asset: media?.name ?? '', publishedAsset: media ?? null };
+  return { ...entry.data, id: entry.id, asset: media?.name ?? '', publishedAsset: media ?? null };
 }).sort((a, b) => String(b.created ?? '').localeCompare(String(a.created ?? '')) || b.id.localeCompare(a.id)));
 
 const collections = [...new Map(publishedLikes.flatMap(item => (item.collections ?? []).map(group => [group.id, group]))).values()]
