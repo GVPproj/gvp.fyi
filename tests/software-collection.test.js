@@ -14,6 +14,7 @@ async function collectionSite(t) {
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(join(root, 'src/pages'), { recursive: true });
   await cp(new URL('../src/content/software', import.meta.url), join(root, 'src/content/software'), { recursive: true });
+  await writeFile(join(root, 'src/content/named-collections.json'), '[]\n');
   await cp(new URL('../src/content.config.ts', import.meta.url), join(root, 'src/content.config.ts'));
   await mkdir(join(root, 'src/config'));
   await cp(new URL('../src/config/site-settings.json', import.meta.url), join(root, 'src/config/site-settings.json'));

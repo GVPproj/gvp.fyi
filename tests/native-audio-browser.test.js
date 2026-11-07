@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
-import { releases, titleOf, slugOf } from './helpers/release-catalog.js';
-
-const release = releases.find(release => release.tracks.some(track => track.audio_url));
-assert.ok(release, 'Keep an audio-bearing release to exercise native playback');
-const tracks = release.tracks.filter(track => track.audio_url).map(track => ({ title: track.title, src: track.audio_url }));
+// Public audio paths are compatibility contracts, not a mock catalogue.
+const tracks = [
+  { title: 'Watery Grave', src: '/audio/watery-grave/01-watery-grave.mp3' },
+  { title: 'Forgiven', src: '/audio/watery-grave/02-forgiven.mp3' },
+  { title: 'Secret Passage Way', src: '/audio/watery-grave/03-secret-passage-way.mp3' },
+  { title: 'Eschatology', src: '/audio/watery-grave/04-eschatology.mp3' },
+  { title: 'Sacred Flowers', src: '/audio/watery-grave/05-sacred-flowers.mp3' },
+];
 
 async function blockExternalRequests(context, base) {
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
@@ -24,10 +27,10 @@ for (const javaScriptEnabled of [true, false]) {
     });
     const page = await native.newPage();
     page.setDefaultTimeout(5000);
-    await page.goto(`${base}/music/${slugOf(release)}`);
+    await page.goto(`${base}/music/watery-grave-ep`);
     await page.waitForLoadState('networkidle');
     const main = page.getByRole('main');
-    await main.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
+    await main.getByRole('heading', { name: 'Watery Grave EP', exact: true }).waitFor();
     assert.equal(await main.locator('audio').count(), tracks.length);
     const list = main.locator('ol').filter({ has: page.locator('audio') });
     assert.equal(await list.count(), 1);
@@ -75,10 +78,10 @@ test('Local audio supports byte-range responses', browserOptions, async (t) => {
 test('Native audio loads metadata, seeks and plays', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
-  await page.goto(`${base}/music/${slugOf(release)}`);
+  await page.goto(`${base}/music/watery-grave-ep`);
   // Vite may reload during dependency discovery after the initial heading appears.
   await page.waitForLoadState('networkidle');
-  await page.getByRole('heading', { name: titleOf(release), exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Watery Grave EP', exact: true }).waitFor();
   const players = page.getByRole('main').locator('ol audio');
   assert.equal(await players.count(), tracks.length);
   if (!await page.evaluate(() => document.createElement('audio').canPlayType('audio/mpeg'))) {

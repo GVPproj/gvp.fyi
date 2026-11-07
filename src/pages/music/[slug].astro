@@ -1,9 +1,10 @@
 ---
 import type { InferGetStaticPropsType } from 'astro';
 import Layout from '../../layouts/Layout.astro';
-import { releaseCategories } from '../../lib/music-releases';
+import { getReleaseCategories } from '../../lib/music-releases';
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const releaseCategories = await getReleaseCategories();
   return releaseCategories.flatMap(category => category.releases.map(release => ({
     params: { slug: release.slug },
     props: { release },
@@ -30,9 +31,9 @@ const streaming = [
       <p><time datetime={release.date}>{release.display_date ?? release.date}</time></p>
     </header>
     <div class="release-media">
-      <img src={release.publishedArtwork.src} alt={`${release.title} album cover`}
-        width={release.publishedArtwork.width} height={release.publishedArtwork.height}
-        srcset={release.publishedArtwork.srcset}
+      <img src={release.artwork.src} alt={`${release.title} album cover`}
+        width={release.artwork.width} height={release.artwork.height}
+        srcset={release.artwork.srcset}
         sizes="(max-width: 48rem) calc(100vw - 2rem), 65ch"
         loading="eager" decoding="async" />
       {release.album_id && <iframe

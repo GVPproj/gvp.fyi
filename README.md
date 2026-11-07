@@ -1,8 +1,8 @@
 # gvp.fyi
 
-Astro frontend with static Netlify publishing. The separately maintained
-[PocketBase backend](https://github.com/GVPproj/pocketbase-fly-starter) owns the API,
-schema, migrations and deployment; this repository consumes its HTTP API only.
+Astro site with repository-managed content and static Netlify publishing.
+Edit content files and their adjacent assets, commit, then build and deploy.
+No database, external CMS or publishing credentials are required.
 
 ## Development
 
@@ -10,18 +10,13 @@ Requires Node.js 22.12+ and pnpm 11.17.
 
 ```sh
 pnpm install
-cp .env.example .env
-# Fill in the PocketBase publishing credentials in .env.
 pnpm dev
 ```
 
-Set the server-only publishing variables in `.env` to a PocketBase instance
-with a restricted build identity, then open `http://127.0.0.1:4324`.
-Development and builds acquire current published PocketBase records for music and
-Likes; there is no snapshot or checked-in fallback for those sections. Software and the blog
-are Git-owned content collections in `src/content/software/` and
-`src/content/blog/`, not CMS fallbacks. Missing configuration or backend failures
-stop the build rather than silently publishing old content.
+Open `http://127.0.0.1:4324`. There is no required `.env` setup.
+Likes, music, software and blog content live under `src/content/`.
+Only publication-ready content belongs in this public repository; there is no
+draft feature. Missing or invalid required content/assets must fail the build.
 
 ## Testing
 
@@ -31,38 +26,41 @@ pnpm test
 pnpm build
 ```
 
-Frontend tests use local HTTP API fixtures, not a PocketBase binary or backend
-source checkout. Browser tests require `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; missing
-browser prerequisites skip tests, not pass them. Run browser/build suites serially,
-without a dev server sharing the generated Astro/Netlify workspace.
-Backend API, migration and upgrade coverage lives in the backend repository.
+Tests exercise repository content, static output and browser behavior without a
+backend checkout or server. Browser tests require `PLAYWRIGHT_CHROMIUM_EXECUTABLE`
+pointing to a working Chromium executable; missing browser prerequisites skip
+tests, not pass them. Run browser/build suites serially, without a dev server
+sharing the generated Astro/Netlify workspace.
 
 ## Publishing
 
-See [frontend API boundary](docs/backend-api.md) for integration ownership and
-backend documentation. Edit music in PocketBase's `music_items` and Likes in
-`likes_items`, then deploy manually in Netlify. Save makes published edits eligible
-for the next build; it does not deploy. Unpublishing/deleting removes items on the
-next successful deployment that observes the change. Named-collection names and
-memberships also come from current records, excluding drafts. Acquisition is not
-an atomic site-wide capture: media changes may fail a build and require retry.
-Failed builds leave the existing static deployment intact. Backend support must
-ship before this frontend; see the [cutover/recovery steps](docs/backend-api.md#current-record-cutover-2829).
+See [file authoring](docs/migrations/35/authoring.md) for Likes, named collections,
+music and assets, and [the static boundary](docs/backend-api.md) for ownership.
+Likes and music each use `<slug>/index.md` with JSON frontmatter and adjacent
+originals. Keep explicit slugs stable when titles change and preserve each
+collection item's date added. Software remains in `src/content/software/` with
+its existing MDX entries and local images; blog authoring is described below.
+Site settings and interactions stay in code.
+
+Commit content and assets together, run the checks above, and manually deploy the
+successful static build in Netlify. Saving or committing is not deployment.
+Removing an entry removes it from the next successful deployment, not from the
+currently live site. Failed builds leave the previous static deployment live.
 Production deployment requires separate owner approval.
 
-Edit software in `src/content/software/` and commit its entries and
-original images with the frontend. Astro builds responsive software images into
-the static output; they do not need Netlify's image CDN or the publishing backend.
-Site settings and interactions stay in code. Blog posts are authored only in the
-Astro content collection; PocketBase has no blog publishing support.
+The [#35 migration record](docs/migrations/35/README.md) tracks imported public
+content and baseline evidence. Final native verification/parity is pending; use
+the [cutover checklist](docs/migrations/35/cutover.md) before any deployment.
+Preserve existing `public/published-content/` and `public/published-releases/`
+compatibility files: new Astro image output is not a replacement for old URLs.
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).
 
 ### Blog
 
-Author posts as Git-owned `.mdx` files in `src/content/blog/`, with a `title` in
-frontmatter. Astro's local `blog` collection renders them; the filename determines
-the `/blog/<slug>/` route. Commit and deploy blog edits with the frontend, not
-through PocketBase.
+Author posts as Git-owned `.mdx` files in `src/content/blog/`, with a `title` and
+a quoted `YYYY-MM-DD` `date` in frontmatter. Astro's local `blog` collection renders
+them; the filename determines the `/blog/<slug>/` route. Commit and deploy blog
+edits with the site.
 
 Import components only in articles that use them. For example,
 `the-animated-face.mdx` imports `Face` directly:

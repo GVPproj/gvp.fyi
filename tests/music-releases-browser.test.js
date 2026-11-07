@@ -1,40 +1,50 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { categories, releases, titleOf, slugOf, dateOf } from './helpers/release-catalog.js';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
+
+// Public titles/categories are the migration contract; the server loads actual
+// repository releases and their own artwork, never historical API fixtures.
+const categories = [
+  { name: 'as Graham Van Pelt', titles: ['The Lookout', 'Atlantis Tapes', 'Under The Heat Dome', 'Salt Spring: Sun and Shadow', 'Sense Appeal EP', 'Time Travel'] },
+  { name: 'as Miracle Fortress', titles: ['Even In America', 'Let Me Be the 1', "Here's To Feeling Good All the Time", 'Everything Works EP', 'Was I the Wave?', 'Miscalculations (Promo)', 'Raw Spectacle (Pantha du Prince Remix)', 'Maybe Lately', 'Five Roses', 'Have You Seen In Your Dreams', 'Poetaster (Promo)', 'Watery Grave EP'] },
+  { name: 'with Think About Life', titles: ['HBO', 'Family (Japanese Edition)', 'Family', 'Sweet Sixteen', 'Think About Life (Japanese Edition)', 'Black Champagne EP', 'Presents: Miracle Fortress Remixes 2 HITS!', 'Think About Life', 'Paul Cries'] },
+  { name: 'Other Credits', titles: ['New Found Land', 'Free Dimensional', 'Fallen Empires (Japanese Edition)', 'National Parks Project', 'Sunglasses EP', 'Show Me Your Stuff (12-inch)', 'No Joy 7"', 'Subterranean Megazit', 'Sing That Yell That Spell'] },
+];
 
 async function blockExternalRequests(context, base) {
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
 }
 
-test('Music links the current catalogue and remains keyboard-browsable on mobile', browserOptions, async t => {
+test('Music links the real 36-release catalogue and remains keyboard-browsable on mobile', browserOptions, async t => {
   const { base, context, page } = await realBrowser(t);
   await blockExternalRequests(context, base);
   await page.goto(`${base}/music`);
   await page.getByRole('heading', { name: 'Music', exact: true }).waitFor();
   await page.setViewportSize({ width: 320, height: 700 });
-  for (const { name, releases } of categories) {
+  const artwork = new Set();
+  assert.equal(await page.locator('main .content-row li a').count(), 36);
+  for (const { name, titles } of categories) {
     const category = page.getByRole('region', { name, exact: true });
-    assert.equal(await category.getByRole('link').count(), releases.length);
-    for (const release of releases) {
-      const link = category.locator(`a[href="/music/${slugOf(release)}"]`);
+    assert.equal(await category.getByRole('link').count(), titles.length);
+    for (const title of titles) {
+      const link = category.getByRole('link').filter({ has: page.getByText(title, { exact: true }) });
       assert.equal(await link.count(), 1);
-      assert.ok((await link.textContent()).includes(titleOf(release)));
+      assert.match(await link.getAttribute('href'), /^\/music\/[a-z0-9-]+$/);
       const image = link.locator('img');
       assert.equal(await image.count(), 1);
-      assert.match(await image.getAttribute('src'), /^\/published-releases\//);
+      assert.equal(new URL(await image.getAttribute('src'), base).origin, base);
+      artwork.add(await image.getAttribute('src'));
       await image.scrollIntoViewIfNeeded();
       await image.evaluate(img => img.decode());
     }
-    if (releases.length) {
-      const last = category.getByRole('link').last();
-      await last.focus();
-      assert.equal(await last.evaluate(el => {
-        const rect = el.getBoundingClientRect();
-        return rect.left >= 0 && rect.right <= innerWidth;
-      }), true);
-    }
+    const last = category.getByRole('link').last();
+    await last.focus();
+    assert.equal(await last.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.left >= 0 && rect.right <= innerWidth;
+    }), true);
   }
+  assert.ok(artwork.size > 30, 'real releases must not all use a shared sample cover');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
 
@@ -45,23 +55,23 @@ test('Representative release pages render metadata, listening options and back n
   await blockExternalRequests(native, base);
   const page = await native.newPage();
   page.setDefaultTimeout(5000);
-  // Cover rendering variants, not every editorial entry.
-  const examples = [...new Set([
-    releases.find(release => release.album_id),
-    releases.find(release => !release.album_id && release.streaming),
-    releases.find(release => !release.album_id && !release.url && !release.streaming && !release.tracks.some(track => track.audio_url)),
-    releases.find(release => release.credit),
-  ].filter(Boolean))];
-  assert.ok(examples.length > 0);
+  // Cover rendering variants and original date precision, not every editorial field.
+  const examples = [
+    { slug: 'atlantis-tapes', title: 'Atlantis Tapes', artist: 'Graham Van Pelt', date: '2023-02-23', album_id: 2547459725, url: 'https://grahamvanpelt.bandcamp.com/album/atlantis-tapes' },
+    { slug: 'even-in-america', title: 'Even In America', artist: 'Miracle Fortress', date: '2014-09-16', streaming: { apple: 'https://music.apple.com/us/album/even-in-america-single/911392433' } },
+    { slug: 'miscalculations-promo', title: 'Miscalculations (Promo)', artist: 'Miracle Fortress', date: '2011' },
+    { slug: 'no-joy-7', title: 'No Joy 7"', artist: 'No Joy', date: '2009-12-15', album_id: 225174049, url: 'https://nojoy.bandcamp.com/album/no-joy-7', credit: 'Recording, mixing & mastering' },
+    { slug: 'family-japanese-edition', title: 'Family (Japanese Edition)', artist: 'Think About Life', date: '2009-10' },
+  ];
   for (const release of examples) {
     await page.goto(`${base}/music`);
-    await page.getByRole('main').locator(`a[href="/music/${slugOf(release)}"]`).click();
+    await page.getByRole('main').locator(`a[href="/music/${release.slug}"]`).click();
     const main = page.getByRole('main');
-    await main.getByRole('heading', { name: titleOf(release), level: 1, exact: true }).waitFor();
+    await main.getByRole('heading', { name: release.title, level: 1, exact: true }).waitFor();
     assert.equal(await main.locator('header p').first().textContent(), release.artist);
-    assert.equal(await main.locator('time').getAttribute('datetime'), dateOf(release));
+    assert.equal(await main.locator('time').getAttribute('datetime'), release.date);
     const image = main.getByRole('img');
-    assert.match(await image.getAttribute('src'), /^\/published-releases\//);
+    assert.equal(new URL(await image.getAttribute('src'), base).origin, base);
     await image.evaluate(img => img.decode());
     assert.equal(await main.locator('iframe').count(), release.album_id ? 1 : 0);
     if (release.album_id) assert.ok((await main.locator('iframe').getAttribute('src')).includes(`/album=${release.album_id}/`));

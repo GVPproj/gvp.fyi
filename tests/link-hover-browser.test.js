@@ -3,7 +3,7 @@ import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
 async function assertTextShadow(link) {
-  await link.page().evaluate(() => document.fonts.ready);
+  await link.page().waitForFunction(() => document.fonts.status === 'loaded');
   await link.page().waitForFunction(() => [...document.querySelectorAll('.site-header a')]
     .filter(el => el.checkVisibility() && el.textContent.trim())
     .every(el => el.style.getPropertyValue('--link-text-width')));
@@ -32,7 +32,8 @@ async function assertTextShadow(link) {
 
 test('link shadows track text across header layout, navigation and reduced motion', browserOptions, async t => {
   const { base, page } = await realBrowser(t);
-  await page.goto(base);
+  // Let the initial Vite dependency reload settle before measuring text ranges.
+  await page.goto(base, { waitUntil: 'networkidle' });
   assert.equal(await page.locator('#hover-prototype').count(), 0);
   const desktop = page.getByRole('navigation', { name: 'Main navigation', exact: true });
   for (const label of ['Software', 'Music', 'Likes', 'Blog']) {

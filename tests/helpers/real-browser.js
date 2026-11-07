@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { startMockPublishing } from './mock-publishing.js';
+import { credentialFreeEnv, fixtureSite } from './fixture-site.js';
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 export const browserOptions = {
@@ -13,7 +13,7 @@ export const browserOptions = {
 };
 
 async function startServer(t) {
-  const publishingEnv = await startMockPublishing(t);
+  const { root, dispose } = await fixtureSite(t, { empty: [], cleanup: false });
   const socket = net.createServer();
   socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
@@ -24,8 +24,8 @@ async function startServer(t) {
     fileURLToPath(new URL('../../node_modules/astro/bin/astro.mjs', import.meta.url)),
     'dev', '--ignore-lock', '--host', '127.0.0.1', '--port', String(port),
   ], {
-    cwd: fileURLToPath(new URL('../../', import.meta.url)),
-    env: { ...process.env, ...publishingEnv, PUBLIC_POCKETBASE_URL: '', ASTRO_TELEMETRY_DISABLED: '1' },
+    cwd: root,
+    env: credentialFreeEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logs = '', spawnError;
@@ -42,12 +42,14 @@ async function startServer(t) {
       await exited;
       clearTimeout(force);
     }
+    // Stop file watchers before removing their isolated working directory.
+    await dispose();
   });
   let ready = false;
   for (let attempt = 0; attempt < 200; attempt++) {
     if (spawnError || child.exitCode !== null) break;
     try {
-      // Probe a page rendered from the mock's authenticated current records.
+      // The real repository collection must load without credentials or a backend.
       if ((await fetch(`${base}/software`, { signal: AbortSignal.timeout(1000) })).ok) { ready = true; break; }
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 100));
