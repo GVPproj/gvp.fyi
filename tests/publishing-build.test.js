@@ -15,7 +15,7 @@ const artwork = await readFile(path.join(root, 'tests/fixtures/artwork/watery-gr
 const catalogue = JSON.parse(await readFile(path.join(root, 'tests/fixtures/releases/miracle-fortress.json'), 'utf8'));
 const original = catalogue.find(release => release.title === 'Watery Grave EP');
 
-async function build(t, { broken = false, snapshot } = {}) {
+async function build(t, { broken = false, items, artworkStatus = 200, artworkBytes = artwork } = {}) {
   await mkdir(path.join(root, '.astro'), { recursive: true });
   const dir = await mkdtemp(path.join(root, '.astro/publishing-build-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -29,15 +29,15 @@ async function build(t, { broken = false, snapshot } = {}) {
       return;
     }
     if (req.headers.authorization !== token) { res.writeHead(401).end('{}'); return; }
-    if (req.url === '/api/publishing/content') { res.end('[]'); return; }
-    if (req.url === '/api/publishing/releases') {
+    if (req.url === '/api/publishing/current/likes') { res.end('[]'); return; }
+    if (req.url === '/api/publishing/current/music') {
       if (broken) { res.writeHead(503).end('{}'); return; }
-      if (snapshot !== undefined) { res.end(JSON.stringify(Array.isArray(snapshot) ? snapshot : [snapshot])); return; }
-      res.end(JSON.stringify([{ revision: 'revision-one', release: { ...original, category: 'miracle-fortress', slug: 'watery-grave-ep', about: 'Published snapshot from PocketBase.' },
-        artwork: { path: '/api/publishing/artwork/revision-one', width: 300, height: 283,
+      if (items !== undefined) { res.end(JSON.stringify(items)); return; }
+      res.end(JSON.stringify([{ id: 'music1', release: { ...original, category: 'miracle-fortress', slug: 'watery-grave-ep', about: 'Current published music from PocketBase.' },
+        artwork: { path: '/api/publishing/current/music-assets/music1/cover.jpg', width: 300, height: 283,
           sha256: createHash('sha256').update(artwork).digest('hex') } }]));
-    } else if (req.url === '/api/publishing/artwork/revision-one') {
-      res.setHeader('Content-Type', 'image/jpeg'); res.end(artwork);
+    } else if (/^\/api\/publishing\/current\/music-assets\/music[01]\/cover\.jpg$/.test(req.url)) {
+      res.setHeader('Content-Type', 'image/jpeg'); res.writeHead(artworkStatus).end(artworkBytes);
     } else { res.writeHead(404).end('{}'); }
   });
   server.listen(0, '127.0.0.1');
@@ -70,17 +70,18 @@ async function files(dir) {
   return (await Promise.all(entries.map(entry => entry.isDirectory() ? files(path.join(dir, entry.name)) : path.join(dir, entry.name)))).flat();
 }
 
-test('Astro builds one published snapshot and deploys responsive artwork without backend credentials', { timeout: 120000 }, async t => {
+test('Astro builds current published music and deploys responsive artwork without backend credentials', { timeout: 120000 }, async t => {
   const result = await build(t);
   assert.equal(result.code, 0, result.logs);
-  assert.ok(result.requests.includes('/api/publishing/releases'), 'build must read the published snapshot');
+  assert.ok(result.requests.includes('/api/publishing/current/music'), 'build must read current published records');
+  assert.ok(!result.requests.some(route => /^\/api\/publishing\/(releases|artwork|content)/.test(route)), 'no snapshot reads');
   const output = path.join(result.dir, 'dist');
   const all = await files(output);
   const htmlPath = all.find(file => file.endsWith('/music/watery-grave-ep/index.html'));
   assert.ok(htmlPath, 'emit the release at its public Music URL');
   const html = await readFile(htmlPath, 'utf8');
   const { document } = parseHTML(html);
-  assert.match(html, /Published snapshot from PocketBase\./);
+  assert.match(html, /Current published music from PocketBase\./);
   const img = document.querySelector('.release-media img');
   assert.match(img.getAttribute('src'), /^\/published-releases\/[a-f0-9]+-\d+\.webp$/);
   assert.match(img.getAttribute('srcset'), /160w/);
@@ -136,21 +137,30 @@ test('Astro builds one published snapshot and deploys responsive artwork without
 });
 
 test('CMS catalogue builds arbitrary releases across categories without the tracer', { timeout: 120000 }, async t => {
-  const snapshot = ['other-credits', 'think-about-life'].map((category, index) => ({
-    revision: 'revision-one',
-    release: { ...original, slug: `cms-release-${index}`, category, title: `CMS release ${index}`, tracks: [] },
-    artwork: { path: '/api/publishing/artwork/revision-one', width: 300, height: 283,
+  const items = ['other-credits', 'think-about-life'].map((category, index) => ({
+    id: `music${index}`,
+    release: { ...original, slug: `cms-release-${index}`, category, title: `CMS release ${index}`, tracks: index ? null : [],
+      credit: 'Mixing', display_title: `Display ${index}`, album_id: 123, player_height: 400,
+      artwork_url: 'https://example.test/private.jpg' },
+    artwork: { path: `/api/publishing/current/music-assets/music${index}/cover.jpg`, width: 300, height: 283,
       sha256: createHash('sha256').update(artwork).digest('hex') },
   }));
-  const result = await build(t, { snapshot });
+  const result = await build(t, { items });
   assert.equal(result.code, 0, result.logs);
   const all = await files(path.join(result.dir, 'dist'));
-  for (const index of [0, 1]) assert.ok(all.some(file => file.endsWith(`/music/cms-release-${index}/index.html`)));
+  for (const index of [0, 1]) {
+    const html = await readFile(all.find(file => file.endsWith(`/music/cms-release-${index}/index.html`)), 'utf8');
+    const document = parseHTML(html).document;
+    assert.match(document.querySelector('.release-credit').textContent, /Mixing/);
+    assert.match(document.querySelector('iframe').getAttribute('src'), /album=123/);
+    assert.equal(document.querySelector('iframe').getAttribute('height'), '400');
+    assert.equal(document.querySelector('audio'), null);
+    assert.doesNotMatch(html, /example.test\/private.jpg/);
+  }
+  assert.match(await readFile(path.join(result.dir, 'dist/music/index.html'), 'utf8'), /Display 0/);
   assert.ok(!all.some(file => file.includes('/music/watery-grave-ep/')));
   assert.ok(!result.requests.some(route => route.startsWith('/api/publishing/releases/')));
 });
-
-const withdrawal = { revision: 'abc123def456ghi', slug: 'watery-grave-ep', state: 'unpublished' };
 
 async function assertWithdrawn(result) {
   assert.equal(result.code, 0, result.logs);
@@ -163,16 +173,32 @@ async function assertWithdrawn(result) {
   assert.ok(!all.some(file => file.endsWith('/music/atlantis-tapes/index.html')));
 }
 
-test('withdrawal removes routes and generated artwork without fallback', { timeout: 120000 }, async t => {
-  const withdrawn = await build(t, { snapshot: withdrawal });
-  await assertWithdrawn(withdrawn);
-  assert.ok(!withdrawn.requests.some(route => route.startsWith('/api/publishing/artwork/')));
+test('absent current records remove routes and generated artwork without tombstones or fallback', { timeout: 120000 }, async t => {
+  const removed = await build(t, { items: [] });
+  await assertWithdrawn(removed);
+  assert.ok(!removed.requests.some(route => route.startsWith('/api/publishing/current/music-assets/')));
 });
 
-// Real-server withdrawal/republish scenarios live in the backend's optional
+test('missing or changed current artwork fails the Astro build, never a partial catalogue', { timeout: 120000 }, async t => {
+  const source = { id: 'music1', release: { ...original, slug: 'watery-grave-ep', category: 'miracle-fortress' },
+    artwork: { path: '/api/publishing/current/music-assets/music1/cover.jpg', width: 300, height: 283,
+      sha256: createHash('sha256').update(artwork).digest('hex') } };
+  for (const options of [{ artworkStatus: 404 }, { artworkBytes: Buffer.from('changed artwork') }, { items: [{}] },
+    { items: [{ ...source, release: { ...source.release, slug: undefined } }] },
+    { items: [{ ...source, release: { ...source.release, slug: null } }] },
+    { items: [{ ...source, release: { ...source.release, tracks: [null] } }] },
+    { items: [source, { ...source, release: { ...source.release, slug: 'different-slug' } }] }]) {
+    const result = await build(t, options);
+    assert.notEqual(result.code, 0);
+    assert.match(result.logs, /Published release build failed/);
+    assert.ok(!result.logs.includes(result.token) && !result.logs.includes('private-build-password-never-public'));
+  }
+});
+
+// Real-server edit/unpublish/deletion scenarios live in the backend's optional
 // FRONTEND_CHECKOUT integration suite. This suite only consumes wire fixtures.
 
-test('failed snapshot fetch fails the build without logging secrets', { timeout: 120000 }, async t => {
+test('failed current-record fetch fails the build without logging secrets', { timeout: 120000 }, async t => {
   const result = await build(t, { broken: true });
   assert.notEqual(result.code, 0);
   assert.match(result.logs, /Published release build failed/);

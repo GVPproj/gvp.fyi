@@ -12,8 +12,8 @@ import { publishingIntegration } from '../src/integrations/publishing-integratio
 const env = { PUBLISHING_POCKETBASE_URL: 'http://127.0.0.1:8090', PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'private-password' };
 const auth = { token: 'private-token', record: { collectionName: 'publishing_builds' } };
 for (const [name, prepare, route] of [
-  ['release', preparePublishedRelease, '/api/publishing/releases'],
-  ['content', preparePublishedContent, '/api/publishing/content'],
+  ['release', preparePublishedRelease, '/api/publishing/current/music'],
+  ['content', preparePublishedContent, '/api/publishing/current/likes'],
 ]) {
   test(`${name}: authenticates once and routes published data`, async () => {
     const requests = [];

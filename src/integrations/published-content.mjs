@@ -5,44 +5,51 @@ import sharp from 'sharp';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
-function validateLinks(value) {
-  if (!value || typeof value !== 'object') return;
-  for (const [key, child] of Object.entries(value)) {
-    if (['href', 'url', 'repo'].includes(key) && child) {
-      if (typeof child !== 'string' || /[\u0000-\u0020\\\\]/.test(child)) throw new Error();
-      if (!(child.startsWith('/') && !child.startsWith('//')) && !child.startsWith('#')) {
-        const url = new URL(child);
-        if (!['https:', 'http:', 'mailto:'].includes(url.protocol) || url.username || url.password) throw new Error();
-      }
-    }
-    validateLinks(child);
+function publicLike(item) {
+  const source = item.data;
+  if (!source || typeof source !== 'object' || Array.isArray(source) || source.id !== item.id ||
+    !Array.isArray(source.collections) || !Array.isArray(item.assets)) throw new Error();
+  const data = { id: item.id };
+  for (const [key, max] of Object.entries({ title: 500, url: 8192, description: 10000, commentary: 10000,
+    type: 5, body: 100000, attribution: 1000, created: 100, updated: 100, asset: 255 })) {
+    const value = source[key];
+    if (typeof value !== 'string' || [...value].length > max) throw new Error();
+    data[key] = value;
   }
+  if (!['', 'quote', 'note'].includes(data.type)) throw new Error();
+  if (data.type ? !data.body.trim() || data.asset : !data.title.trim() || !(data.url || data.asset)) throw new Error();
+  if (data.url) {
+    if (/[\u0000-\u0020\\\\]/.test(data.url)) throw new Error();
+    const url = new URL(data.url);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error();
+  }
+  if (item.assets.length !== (data.asset ? 1 : 0) || (data.asset && item.assets[0]?.name !== data.asset)) throw new Error();
+  const groups = new Set();
+  data.collections = source.collections.map(group => {
+    if (!group || typeof group.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(group.id) || groups.has(group.id) ||
+      typeof group.name !== 'string' || !group.name.trim() || [...group.name].length > 100) throw new Error();
+    groups.add(group.id);
+    return { id: group.id, name: group.name };
+  });
+  return data;
 }
 
 export async function preparePublishedContent(env, fetcher = fetch) {
   try {
     const request = await publishingTransport(env, { fetcher, timeout: 30000, limit: 20 * 1024 * 1024 });
-    const snapshots = JSON.parse(await request('/api/publishing/content'));
-    if (!Array.isArray(snapshots)) throw new Error();
+    const items = JSON.parse(await request('/api/publishing/current/likes'));
+    if (!Array.isArray(items)) throw new Error();
     const files = [], content = [], identities = new Set();
-    for (const snapshot of snapshots) {
-      if (!snapshot || snapshot.kind !== 'like' ||
-        typeof snapshot.slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(snapshot.slug) ||
-        typeof snapshot.revision !== 'string' || !snapshot.revision ||
-        !['published', 'unpublished'].includes(snapshot.state)) throw new Error();
-      const identity = `${snapshot.kind}/${snapshot.slug}`;
-      if (identities.has(identity)) throw new Error();
-      identities.add(identity);
-      if (snapshot.state === 'unpublished') {
-        content.push({ revision: snapshot.revision, kind: snapshot.kind, slug: snapshot.slug, state: snapshot.state });
-        continue;
-      }
-      if (!snapshot.data || typeof snapshot.data !== 'object' || Array.isArray(snapshot.data) || !Array.isArray(snapshot.assets)) throw new Error();
-      validateLinks(snapshot.data);
+    for (const item of items) {
+      if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.id) ||
+        Object.keys(item).sort().join(',') !== 'assets,data,id' || identities.has(item.id)) throw new Error();
+      identities.add(item.id);
+      const data = publicLike(item);
       const assets = [], names = new Set();
-      for (const asset of snapshot.assets) {
+      for (const asset of item.assets) {
         if (!asset || typeof asset.name !== 'string' || names.has(asset.name) ||
-          !/^\/api\/publishing\/content-assets\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/.test(asset.path) ||
+          asset.path !== `/api/publishing/current/likes-assets/${item.id}/${asset.name}` ||
+          !/^[a-zA-Z0-9_.-]+$/.test(asset.name) ||
           !/^[a-f0-9]{64}$/.test(asset.sha256)) throw new Error();
         names.add(asset.name);
         const bytes = await request(asset.path, 10 * 1024 * 1024);
@@ -71,12 +78,11 @@ export async function preparePublishedContent(env, fetcher = fetch) {
           thumbnail: variants.find(v => v.width >= 320)?.path ?? url,
           srcset: variants.map(v => `${v.path} ${v.width}w`).join(', ') });
       }
-      content.push({ revision: snapshot.revision, kind: snapshot.kind, slug: snapshot.slug,
-        state: 'published', data: snapshot.data, assets });
+      content.push({ id: item.id, data, assets });
     }
     return { content, files };
   } catch {
-    throw new Error('Published content build failed: verify publishing configuration, snapshots and asset integrity');
+    throw new Error('Published content build failed: verify publishing configuration, current records and asset integrity');
   }
 }
 

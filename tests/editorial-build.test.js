@@ -7,25 +7,24 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { parseHTML } from 'linkedom';
 import sharp from 'sharp';
+import { currentLike } from './helpers/current-likes.js';
 
 test('Likes-only publishing endpoint builds Git-owned software pages and static media', { timeout: 90000 }, async t => {
   const files = new Map();
   const assetRequests = [];
   const entries = [];
   const likeImage = await sharp({ create: { width: 24, height: 16, channels: 3, background: '#123456' } }).png().toBuffer();
-  const likePath = '/api/publishing/content-assets/likes1/retained.png';
+  const likePath = '/api/publishing/current/likes-assets/retained-image/retained.png';
   const likeHash = createHash('sha256').update(likeImage).digest('hex');
   files.set(likePath, likeImage);
-  entries.push({ kind: 'like', slug: 'retained-image', revision: 'likes1', state: 'published',
-    data: { type: 'image', title: 'Retained Likes image' },
-    assets: [{ name: 'retained.png', path: likePath, sha256: likeHash }] });
-  entries.push({ kind: 'like', slug: 'withdrawn-image', revision: 'likes2', state: 'unpublished' });
+  entries.push(currentLike('retained-image', { title: 'Retained Likes image', asset: 'retained.png' },
+    [{ name: 'retained.png', path: likePath, sha256: likeHash }]));
   const server = createServer((req, res) => {
-    if (req.url.startsWith('/api/publishing/content-assets/')) assetRequests.push(req.url);
+    if (req.url.startsWith('/api/publishing/current/likes-assets/')) assetRequests.push(req.url);
     if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'fixture', record: { collectionName: 'publishing_builds' } }));
     if (req.headers.authorization !== 'fixture') return res.writeHead(403).end();
-    if (req.url === '/api/publishing/content') return res.end(JSON.stringify(entries));
-    if (req.url === '/api/publishing/releases') return res.end('[]');
+    if (req.url === '/api/publishing/current/likes') return res.end(JSON.stringify(entries));
+    if (req.url === '/api/publishing/current/music') return res.end('[]');
     if (files.has(req.url)) return res.end(files.get(req.url));
     res.writeHead(404).end();
   });

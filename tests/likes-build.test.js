@@ -10,6 +10,7 @@ import { chromium } from 'playwright-core';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { parseHTML } from 'linkedom';
+import { currentLike } from './helpers/current-likes.js';
 
 const removedViews = '#collection-filters, #all-items, #likes-board, .likes-grid, nav[aria-label="Likes pagination"]';
 function assertStaticRows(document) {
@@ -22,24 +23,21 @@ function assertStaticRows(document) {
 }
 
 // Real Astro build: the public Likes output must not need a running backend.
-test('published content emits static Likes and ignores draft/withdrawn items', { timeout: 90000 }, async t => {
+test('current published content emits static Likes with no snapshot dependency', { timeout: 90000 }, async t => {
   const image = await sharp({ create: { width: 320, height: 320, channels: 3, background: '#336699' } }).png().toBuffer();
   const entries = [
-    { revision: 'note1', kind: 'like', slug: 'publicnote00001', state: 'published', data: { title: 'Static publication fixture', type: 'note', body: 'Works with the backend offline.', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [] },
-    { revision: 'note2', kind: 'like', slug: 'withdrawn000001', state: 'unpublished' },
-    { revision: 'image1', kind: 'like', slug: 'publicimage001', state: 'published', data: { title: 'Published image fixture', type: 'image', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [{ name: 'fixture.png', path: '/api/publishing/content-assets/image1/fixture.png', sha256: createHash('sha256').update(image).digest('hex') }] },
+    currentLike('publicnote00001', { title: 'Static publication fixture', type: 'note', body: 'Works with the backend offline.', collections: [{ id: 'group1', name: 'Reading' }] }),
+    currentLike('publicimage001', { title: 'Published image fixture', asset: 'fixture.png', collections: [{ id: 'group1', name: 'Reading' }] }, [{ name: 'fixture.png', path: '/api/publishing/current/likes-assets/publicimage001/fixture.png', sha256: createHash('sha256').update(image).digest('hex') }]),
   ];
-  for (let i = 0; i < 8; i++) entries.push({
-    revision: `extra${i}`, kind: 'like', slug: `extra-note-${i}`, state: 'published',
-    data: { title: `Extra note ${i}`, type: 'note', body: 'More row content', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [],
-  });
+  for (let i = 0; i < 8; i++) entries.push(currentLike(`extra-note-${i}`,
+    { title: `Extra note ${i}`, type: 'note', body: 'More row content', collections: [{ id: 'group1', name: 'Reading' }] }));
   const server = createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'private-fixture-token', record: { collectionName: 'publishing_builds' } }));
     if (req.headers.authorization !== 'private-fixture-token') return res.writeHead(403).end('{}');
-    if (req.url === '/api/publishing/content-assets/image1/fixture.png') { res.setHeader('Content-Type', 'image/png'); return res.end(image); }
-    if (req.url === '/api/publishing/content') return res.end(JSON.stringify(entries));
-    if (req.url === '/api/publishing/releases') return res.end('[]');
+    if (req.url === '/api/publishing/current/likes-assets/publicimage001/fixture.png') { res.setHeader('Content-Type', 'image/png'); return res.end(image); }
+    if (req.url === '/api/publishing/current/likes') return res.end(JSON.stringify(entries));
+    if (req.url === '/api/publishing/current/music') return res.end('[]');
     res.writeHead(404).end('{}');
   });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
