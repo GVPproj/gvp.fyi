@@ -1,0 +1,9 @@
+# Make repository-managed Astro content authoritative
+
+Replace PocketBase with repository-managed Astro content collections for Likes, software and music releases, keeping content and required assets with the project so neither PocketBase nor a replacement database or external CMS is required to build or run the site. This is a content-platform migration, not a redesign: preserve published content, public URLs and visitor-facing functionality, and keep the public site's appearance identical. The owner will edit content files and assets directly and commit them, without a replacement browser-based editor; publication requires a successful build and deployment, with failed builds leaving the previous site live.
+
+Likes and music use a folder per entry with an `index.md`, structured frontmatter and adjacent assets; existing software MDX entries remain unchanged. Preserve existing text interpretation rather than introducing Markdown rendering for currently literal text. Give each migrated collection item an explicit slug matching its current readable URL, retain its legacy PocketBase-ID redirect, and keep the slug stable when its title changes; new items also receive explicit slugs.
+
+Use native Astro asset handling going forward, retaining static compatibility files for existing public media URLs rather than retaining PocketBase's publishing machinery. The currently deployed site is the migration baseline: reconcile differences from exported records before cutover and verify content, URLs, ordering, interactions and desktop/mobile appearance; byte-identical HTML is not required.
+
+The public repository contains publication-ready content only. Draft support and migration of unpublished records are out of scope; existing unpublished backend data remains untouched. Removing this site's dependency does not authorize shutdown of the shared PocketBase service.

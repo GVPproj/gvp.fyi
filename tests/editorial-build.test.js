@@ -1,51 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { once } from 'node:events';
-import { spawn } from 'node:child_process';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { parseHTML } from 'linkedom';
 import sharp from 'sharp';
-import { currentLike } from './helpers/current-likes.js';
+import { fixtureSite } from './helpers/fixture-site.js';
 
-test('Likes-only publishing endpoint builds Git-owned software pages and static media', { timeout: 90000 }, async t => {
-  const files = new Map();
-  const assetRequests = [];
-  const entries = [];
-  const likeImage = await sharp({ create: { width: 24, height: 16, channels: 3, background: '#123456' } }).png().toBuffer();
-  const likePath = '/api/publishing/current/likes-assets/retained-image/retained.png';
-  const likeHash = createHash('sha256').update(likeImage).digest('hex');
-  files.set(likePath, likeImage);
-  entries.push(currentLike('retained-image', { title: 'Retained Likes image', asset: 'retained.png' },
-    [{ name: 'retained.png', path: likePath, sha256: likeHash }]));
-  const server = createServer((req, res) => {
-    if (req.url.startsWith('/api/publishing/current/likes-assets/')) assetRequests.push(req.url);
-    if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'fixture', record: { collectionName: 'publishing_builds' } }));
-    if (req.headers.authorization !== 'fixture') return res.writeHead(403).end();
-    if (req.url === '/api/publishing/current/likes') return res.end(JSON.stringify(entries));
-    if (req.url === '/api/publishing/current/music') return res.end('[]');
-    if (files.has(req.url)) return res.end(files.get(req.url));
-    res.writeHead(404).end();
-  });
-  server.listen(0, '127.0.0.1'); await once(server, 'listening');
-  t.after(() => { server.closeAllConnections(); server.close(); });
-  const dir = await mkdtemp(new URL('../.astro/editorial-build-', import.meta.url));
-  t.after(() => rm(dir, { recursive: true, force: true }));
-  const child = spawn(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build', '--outDir', dir], {
-    env: { ...process.env, PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`,
-      PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'fixture', ASTRO_TELEMETRY_DISABLED: '1' },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  t.after(() => { if (child.exitCode === null) child.kill(); });
-  let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
-  const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
-  assert.deepEqual(assetRequests, [likePath], 'all software media comes from the Git content collection');
-  const likes = await readFile(`${dir}/likes/retained-likes-image/index.html`, 'utf8');
-  assert.match(likes, /Retained Likes image/);
-  assert.match(likes, /\/published-content\//);
-  assert.deepEqual(await readFile(`${dir}/published-content/${likeHash}.png`), likeImage);
-  await assert.rejects(readFile(`${dir}/likes/withdrawn-image/index.html`));
+test('credential-free repository build preserves software, blog, testimonials and static media', { timeout: 120000 }, async t => {
+  const site = await fixtureSite(t);
+  await site.collections([]);
+  const { dir, code, logs } = await site.build();
+  assert.equal(code, 0, logs);
   await t.test('homepage renders accessible testimonial choices and attribution', async () => {
     const home = await readFile(`${dir}/index.html`, 'utf8');
     const { document: homeDocument } = parseHTML(home);

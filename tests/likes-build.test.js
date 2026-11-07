@@ -1,16 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { once } from 'node:events';
-import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { parseHTML } from 'linkedom';
-import { currentLike } from './helpers/current-likes.js';
+import { fixtureSite, staticServer } from './helpers/fixture-site.js';
 
 const removedViews = '#collection-filters, #all-items, #likes-board, .likes-grid, nav[aria-label="Likes pagination"]';
 function assertStaticRows(document) {
@@ -22,104 +17,75 @@ function assertStaticRows(document) {
   assert.equal(document.querySelectorAll('#collection-rows .content-row li').length, 10, 'rows include all items, not only the former eight previews');
 }
 
-// Real Astro build: the public Likes output must not need a running backend.
-test('current published content emits static Likes with no snapshot dependency', { timeout: 90000 }, async t => {
+test('repository content builds static Likes without credentials, a backend or JavaScript', { timeout: 120000 }, async t => {
+  const site = await fixtureSite(t);
+  await site.collections([{ id: 'group1', name: 'Reading' }]);
+  const note = { id: 'publicnote00001', slug: 'static-publication-fixture', title: 'Static publication fixture', type: 'note',
+    body: 'Works with the backend offline.', created: '2026-01-01 12:00:00Z', collections: ['group1'] };
+  await site.entry('likes', 'a-note-folder', note);
   const image = await sharp({ create: { width: 320, height: 320, channels: 3, background: '#336699' } }).png().toBuffer();
-  const entries = [
-    currentLike('publicnote00001', { title: 'Static publication fixture', type: 'note', body: 'Works with the backend offline.', collections: [{ id: 'group1', name: 'Reading' }] }),
-    currentLike('publicimage001', { title: 'Published image fixture', asset: 'fixture.png', collections: [{ id: 'group1', name: 'Reading' }] }, [{ name: 'fixture.png', path: '/api/publishing/current/likes-assets/publicimage001/fixture.png', sha256: createHash('sha256').update(image).digest('hex') }]),
-  ];
-  for (let i = 0; i < 8; i++) entries.push(currentLike(`extra-note-${i}`,
-    { title: `Extra note ${i}`, type: 'note', body: 'More row content', collections: [{ id: 'group1', name: 'Reading' }] }));
-  const server = createServer((req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    if (req.url.endsWith('auth-with-password')) return res.end(JSON.stringify({ token: 'private-fixture-token', record: { collectionName: 'publishing_builds' } }));
-    if (req.headers.authorization !== 'private-fixture-token') return res.writeHead(403).end('{}');
-    if (req.url === '/api/publishing/current/likes-assets/publicimage001/fixture.png') { res.setHeader('Content-Type', 'image/png'); return res.end(image); }
-    if (req.url === '/api/publishing/current/likes') return res.end(JSON.stringify(entries));
-    if (req.url === '/api/publishing/current/music') return res.end('[]');
-    res.writeHead(404).end('{}');
-  });
-  server.listen(0, '127.0.0.1'); await once(server, 'listening');
-  t.after(() => { server.closeAllConnections(); server.close(); });
-  const dir = await mkdtemp(fileURLToPath(new URL('../.astro/content-build-', import.meta.url)));
-  t.after(() => rm(dir, { recursive: true, force: true }));
-  const child = spawn(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build', '--outDir', dir], {
-    env: { ...process.env, PUBLISHING_POCKETBASE_URL: `http://127.0.0.1:${server.address().port}`, PUBLISHING_BUILD_EMAIL: 'build@example.test', PUBLISHING_BUILD_PASSWORD: 'private-fixture-password', ASTRO_TELEMETRY_DISABLED: '1' },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  t.after(() => { if (child.exitCode === null) child.kill(); });
-  let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
-  const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
-  server.closeAllConnections(); server.close();
-  const overview = await readFile(join(dir, 'likes/index.html'), 'utf8');
-  const detail = await readFile(join(dir, 'likes/static-publication-fixture/index.html'), 'utf8');
-  const legacy = await readFile(join(dir, 'likes/publicnote00001/index.html'), 'utf8');
-  assert.match(legacy, /url=\/likes\/static-publication-fixture/i);
-  const imageDetail = await readFile(join(dir, 'likes/published-image-fixture/index.html'), 'utf8');
+  await site.entry('likes', 'an-image-folder', { id: 'publicimage001', slug: 'published-image-fixture', title: 'Published image fixture',
+    image: './fixture.png', created: note.created, collections: ['group1'] }, { 'fixture.png': image });
+  for (let i = 0; i < 8; i++) await site.entry('likes', `extra-${i}`, { ...note, id: `extra-id-${i}`, slug: `extra-note-${i}`, title: `Extra note ${i}`, body: 'More row content' });
+  const result = await site.build();
+  assert.equal(result.code, 0, result.logs);
+  const overview = await result.html('likes');
+  const detail = await result.html('likes/static-publication-fixture');
+  assert.match(await result.html('likes/publicnote00001'), /url=\/likes\/static-publication-fixture/i);
+  assert.match(await result.html('links'), /url=\/likes/i);
+  const imageDetail = await result.html('likes/published-image-fixture');
   assert.doesNotMatch(imageDetail, /Open original image/);
   assert.match(overview, /Static publication fixture/);
   assert.match(overview, /Reading/);
-  assert.match(overview, /id="collection-rows"/, 'Static Likes must reuse the shared collection overview');
-  assert.match(overview, /class="content-row"/, 'Static Likes must use the same ContentRow presentation as other pages');
   assert.match(detail, /Works with the backend offline/);
   assertStaticRows(parseHTML(overview).document);
-  for (const html of [overview, detail]) {
-    assert.doesNotMatch(html, /private-fixture|withdrawn000001|api\/files/);
-  }
-  await assert.rejects(readFile(join(dir, 'likes/withdrawn000001/index.html')));
-  await assert.rejects(readFile(join(dir, 'likes/manage/index.html')));
-  await assert.rejects(readFile(join(dir, 'login/index.html')));
-  assert.doesNotMatch(overview, /id="owner-session"|id="manage-likes"/);
-  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE) {
-    const staticServer = createServer(async (req, res) => {
-      const pathname = new URL(req.url, 'http://localhost').pathname;
-      if (pathname.includes('..')) return res.writeHead(400).end();
-      const file = pathname.endsWith('/') ? `${pathname}index.html` : pathname.includes('.') ? pathname : `${pathname}/index.html`;
-      try {
-        const bytes = await readFile(join(dir, file));
-        res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : 'application/octet-stream');
-        res.end(bytes);
-      } catch { res.writeHead(404).end(); }
-    });
-    staticServer.listen(0, '127.0.0.1'); await once(staticServer, 'listening');
-    t.after(() => { staticServer.closeAllConnections(); staticServer.close(); });
-    const origin = `http://127.0.0.1:${staticServer.address().port}`;
+  const imageURL = parseHTML(imageDetail).document.querySelector('#like-detail img').getAttribute('src');
+  assert.match(imageURL, /^\/_astro\//);
+  assert.equal((await sharp(await readFile(join(result.dir, imageURL))).metadata()).width, 320);
+  for (const html of [overview, detail, imageDetail]) assert.doesNotMatch(html, /api\/files|api\/publishing|owner-session|manage-likes/);
+  for (const route of ['likes/withdrawn000001', 'likes/manage', 'login']) await assert.rejects(result.html(route));
+
+  await t.test('static rows and native navigation work on desktop/mobile with external requests blocked', {
+    skip: !process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE && 'Set PLAYWRIGHT_CHROMIUM_EXECUTABLE for browser checks',
+  }, async () => {
+    const origin = await staticServer(t, result.dir);
     const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true });
     t.after(() => browser.close());
-    const page = await browser.newPage();
-    const apiRequests = [];
-    page.on('request', request => { if (request.url().includes('/api/')) apiRequests.push(request.url()); });
-    await page.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
-    await page.goto(`${origin}/likes/`);
-    assert.equal(await page.locator('#collection-rows').isVisible(), true);
-    assert.equal(await page.locator('#collection-rows .content-row').count(), 1);
-    const preview = page.locator('#collection-rows img');
-    assert.match(await preview.getAttribute('src'), /^\/published-content\//);
-    await preview.evaluate(image => image.decode());
-    assert.ok(await preview.evaluate(image => image.naturalWidth > 0));
-    assert.equal(await page.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).count(), 1);
-    for (const suffix of ['?collection=group1', '?view=all', '#collection-group1', '#all-items']) {
-      await page.goto(`${origin}/likes/${suffix}`);
-      assert.equal(await page.locator('#collection-rows').isVisible(), true);
-      assert.equal(await page.locator(removedViews).count(), 0);
-      assertStaticRows(parseHTML(await page.content()).document);
+    for (const javaScriptEnabled of [true, false]) {
+      const context = await browser.newContext({ javaScriptEnabled });
+      const page = await context.newPage();
+      const apiRequests = [];
+      page.on('request', request => { if (request.url().includes('/api/')) apiRequests.push(request.url()); });
+      await context.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+      for (const width of [390, 1280]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.goto(`${origin}/likes/`);
+        assert.equal(await page.locator('#collection-rows').isVisible(), true);
+        const preview = page.locator('#collection-rows img');
+        assert.match(await preview.getAttribute('src'), /^\/_astro\//);
+        await preview.scrollIntoViewIfNeeded();
+        await preview.evaluate(image => image.decode());
+        assert.ok(await preview.evaluate(image => image.naturalWidth > 0));
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        for (const suffix of ['?collection=group1', '?view=all', '#collection-group1', '#all-items']) {
+          await page.goto(`${origin}/likes/${suffix}`);
+          assertStaticRows(parseHTML(await page.content()).document);
+        }
+        await page.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).click();
+        await page.waitForURL(/\/likes\/static-publication-fixture\/?$/);
+        assert.match(await page.locator('#like-detail').textContent(), /Works with the backend offline/);
+        await page.reload();
+        assert.equal(await page.locator('#like-detail').isVisible(), true);
+        if (javaScriptEnabled) await page.getByRole('link', { name: '← Likes', exact: true }).click();
+        else await page.goBack();
+        await page.locator('#collection-rows').waitFor({ state: 'visible' });
+        assert.equal(await page.locator('#collection-rows').isVisible(), true);
+        await page.goto(`${origin}/likes/publicnote00001/`);
+        await page.waitForURL(/\/likes\/static-publication-fixture\/?$/);
+        assert.equal(await page.locator('#like-detail').isVisible(), true);
+      }
+      assert.deepEqual(apiRequests, []);
+      await context.close();
     }
-    await page.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).click();
-    await page.locator('#like-detail').getByText('Works with the backend offline.', { exact: true }).waitFor();
-    assert.deepEqual(apiRequests, []);
-
-    // Native links and shared rows must work with both the CMS and JavaScript offline.
-    const noScript = await browser.newPage({ javaScriptEnabled: false });
-    await noScript.goto(`${origin}/likes/`);
-    assert.equal(await noScript.locator('#collection-rows').isVisible(), true);
-    assertStaticRows(parseHTML(await noScript.content()).document);
-    await noScript.locator('#collection-rows').getByRole('link', { name: /Static publication fixture/ }).click();
-    assert.equal(await noScript.locator('#like-detail').isVisible(), true);
-    assert.match(await noScript.locator('#like-detail').textContent(), /Works with the backend offline/);
-    await noScript.reload();
-    assert.equal(await noScript.locator('#like-detail').isVisible(), true);
-    await noScript.goBack();
-    assert.equal(await noScript.locator('#collection-rows').isVisible(), true);
-  }
+  });
 });

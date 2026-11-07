@@ -1,8 +1,10 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { releaseCategories } from '../../lib/music-releases';
+import { getReleaseCategories } from '../../lib/music-releases';
 import { sectionLabel } from '../../lib/site-settings';
+
+const releaseCategories = await getReleaseCategories();
 ---
 
 <Layout title={sectionLabel('music')}>
@@ -15,8 +17,8 @@ import { sectionLabel } from '../../lib/site-settings';
       items={category.releases.map(release => ({
         href: `/music/${release.slug}`,
         title: release.title,
-        image: { src: release.publishedArtwork.thumbnail, srcset: release.publishedArtwork.srcset,
-          width: release.publishedArtwork.width, height: release.publishedArtwork.height },
+        image: { src: release.artwork.thumbnail, srcset: release.artwork.srcset,
+          width: release.artwork.width, height: release.artwork.height },
         subtitle: release.credit ? release.artist : undefined,
         metadata: release.credit,
       }))}

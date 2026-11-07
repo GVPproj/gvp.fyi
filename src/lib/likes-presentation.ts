@@ -12,19 +12,19 @@ export function collectionRows(rows: CollectionOverview[]) {
   return rows.map(row => ({
     ...row,
     items: row.items.map((item): ContentRowItem => {
-      const asset = item.publishedAsset?.url;
+      const asset = item.media?.url;
       const pdf = asset && likeAssetKind(item) === 'pdf';
       const textItem = item.type === 'quote' || item.type === 'note';
       const url = webURL(item.url);
-      const published = item.publishedAsset;
+      const media = item.media;
       return {
         href: likesItemURL(item),
         title: likeItemTitle(item),
         image: !textItem && asset && !pdf ? {
-          src: published?.thumbnail || asset,
-          srcset: published?.srcset || undefined,
-          width: published?.width || 320,
-          height: published?.height || 320,
+          src: media?.thumbnail || asset,
+          srcset: media?.srcset || undefined,
+          width: media?.width || 320,
+          height: media?.height || 320,
         } : undefined,
         text: textItem ? (item.body ?? '').slice(0, 400) : undefined,
         label: pdf ? 'PDF document' : url ? new URL(url).hostname : 'Link unavailable',

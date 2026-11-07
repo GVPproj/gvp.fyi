@@ -1,48 +1,43 @@
-import publishedRelease from 'virtual:published-release';
+import { stat } from 'node:fs/promises';
+import { getCollection } from 'astro:content';
+import { contentImage } from './content-image';
+import { publicDir } from 'astro:config/server';
 import { categorySettings } from './site-settings';
 
-export type ReleaseData = {
-  slug: string;
-  category: string;
-  youtube_video_id?: string;
-  publishedArtwork: { src: string; thumbnail: string; srcset: string; width: number; height: number };
-  title: string;
-  artist: string;
-  release_date: string;
-  tracks: { title: string; duration?: number; track_num: number; audio_url?: string }[];
-  about: string | null;
-  credit?: string;
-  display_title?: string;
-  display_date?: string;
-  player_height?: number;
-  streaming?: { spotify?: string; apple?: string; tidal?: string };
-  album_id?: number;
-  url?: string;
-};
-
-// Keep the published catalogue intact; derive display fields in one place.
-function prepareReleases(catalogue: ReleaseData[]) {
-  return catalogue.map(release => {
-    const title = release.display_title ?? release.title;
+/** Native collection data, prepared only for the existing music templates. */
+export async function getReleaseCategories() {
+  const entries = await getCollection('music');
+  for (const field of ['id', 'slug'] as const) {
+    const seen = new Map<string, string>();
+    for (const entry of entries) {
+      const value = entry.data[field];
+      if (seen.has(value)) {
+        throw new Error(`Duplicate music ${field} "${value}" in entries "${seen.get(value)}" and "${entry.id}"`);
+      }
+      seen.set(value, entry.id);
+    }
+  }
+  const releases = await Promise.all(entries.map(async ({ data }) => {
+    for (const track of data.tracks) {
+      if (!track.audio_url) continue;
+      const audio = await stat(new URL(`.${track.audio_url}`, publicDir)).catch(() => undefined);
+      if (!audio?.isFile()) {
+        throw new Error(`Music release "${data.slug}" track ${track.track_num}: missing audio file "${track.audio_url}"`);
+      }
+    }
     return {
-      ...release,
-      title,
-      slug: release.slug,
+      ...data,
+      title: data.display_title ?? data.title,
       // Preserve year/month precision rather than inventing an exact day.
-      date: /^\d{4}(?:-\d{2})?$/.test(release.release_date)
-        ? release.release_date
-        : new Date(release.release_date).toISOString().slice(0, 10),
+      date: /^\d{4}(?:-\d{2})?$/.test(data.release_date)
+        ? data.release_date
+        : new Date(data.release_date).toISOString().slice(0, 10),
+      artwork: await contentImage(data.artwork, data.artworkVariants),
     };
-  }).sort((a, b) => b.date.localeCompare(a.date));
+  }));
+  return categorySettings('releases').map(category => ({
+    id: category.id, name: category.title,
+    releases: releases.filter(release => release.category === category.id)
+      .sort((a, b) => b.date.localeCompare(a.date) || a.order - b.order || a.id.localeCompare(b.id)),
+  }));
 }
-
-// The CMS catalogue is authoritative, including an intentionally empty catalogue.
-const configuredCategories = categorySettings('releases');
-if (publishedRelease.some(release => !configuredCategories.some(category => category.id === release.category))) {
-  throw new Error('Published release references an unknown category');
-}
-
-export const releaseCategories = configuredCategories.map(category => ({
-  id: category.id, name: category.title,
-  releases: prepareReleases(publishedRelease.filter(release => release.category === category.id)),
-}));

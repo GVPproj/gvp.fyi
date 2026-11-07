@@ -1,24 +1,5 @@
 # Personal Site
 
-The site's language for presenting personal interests and collected finds.
+The site's language for presenting personal interests and collected finds is defined in [GLOSSARY.md](GLOSSARY.md).
 
-## Language
-
-**Likes**:
-The site's public-facing personal collection of things that catch the owner's attention, including links, images, quotes, PDFs, and notes. The name conveys personal taste, but inclusion does not require an explanation or formal endorsement.
-_Avoid_: Collection (as the page name), Links (as the page name), Recommendations
-
-**Collection item**:
-An individual find saved in Likes: a link, image, quote, PDF, or personal note. An item need not have a destination link.
-_Avoid_: Bookmark (when referring to all item types)
-
-**Named collection**:
-An optional, named grouping of collection items. An item can belong to several named collections; the all-items view includes items regardless of grouping.
-_Avoid_: Folder, channel
-
-**Published item**:
-A collection item designated for public visitors, including its saved edits.
-
-**Draft item**:
-A collection item visible only to its owner until marked published; all new collection items start as drafts.
-_Avoid_: Inbox item
+Architectural decisions live in [docs/adr/](docs/adr/). Issues and specifications live in GitHub Issues; see [docs/issues.md](docs/issues.md).

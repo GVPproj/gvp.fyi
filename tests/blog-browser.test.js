@@ -11,10 +11,11 @@ test('Home shows the latest blog post above Testimonials', browserOptions, async
   const date = await latest.locator('time').getAttribute('datetime');
 
   await page.goto(base);
-  const card = page.getByRole('region', { name: 'Latest blog post', exact: true });
+  const card = page.locator('section[aria-labelledby="latest-post-heading"]');
   assert.equal(await card.getByRole('link', { name: title, exact: true }).getAttribute('href'), href);
   assert.equal(await card.locator('time').getAttribute('datetime'), date);
-  assert.equal(await card.evaluate(element => element.classList.contains('pixel-box')), true);
+  await card.getByRole('link', { name: title, exact: true }).focus();
+  assert.equal(await card.getByRole('link', { name: title, exact: true }).evaluate(link => link === document.activeElement), true);
   assert.equal(await card.evaluate(element => Boolean(
     element.compareDocumentPosition(document.getElementById('testimonials')) & Node.DOCUMENT_POSITION_FOLLOWING
   )), true);

@@ -2,10 +2,10 @@
 import Layout from '../layouts/Layout.astro';
 import ContentRow from '../components/ContentRow.astro';
 import { collectionRows } from '../lib/likes-presentation';
-import { publishedCollectionOverview } from '../lib/published-likes.js';
+import { collectionOverview } from '../lib/likes-collection';
 import { sectionLabel } from '../lib/site-settings';
 
-const rows = collectionRows(publishedCollectionOverview);
+const rows = collectionRows(collectionOverview);
 ---
 
 <Layout title={sectionLabel('likes')}>

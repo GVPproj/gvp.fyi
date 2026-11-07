@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { realBrowser, browserOptions } from './helpers/real-browser.js';
 
-test('Music and Software are direct links and GitHub is available on desktop and mobile', browserOptions, async (t) => {
+test('section links support keyboard navigation on desktop and mobile', browserOptions, async (t) => {
   const { base, context, page } = await realBrowser(t);
   await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
   await page.goto(`${base}/blog`);
   const desktop = page.getByRole('navigation', { name: 'Main navigation', exact: true });
-  assert.equal(await desktop.getByRole('link', { name: 'Visit my GitHub profile', exact: true }).getAttribute('href'), 'https://github.com/GVPproj');
+  assert.equal(await desktop.getByRole('link', { name: 'Likes', exact: true }).getAttribute('href'), '/likes');
   const music = desktop.getByRole('link', { name: 'Music', exact: true });
   assert.equal(await music.getAttribute('href'), '/music');
   assert.equal(await music.locator('svg').count(), 0);
@@ -31,7 +31,7 @@ test('Music and Software are direct links and GitHub is available on desktop and
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Open menu', exact: true }).click();
   const mobile = page.getByRole('navigation', { name: 'Mobile navigation', exact: true });
-  assert.equal(await mobile.getByRole('link', { name: 'GitHub', exact: true }).getAttribute('href'), 'https://github.com/GVPproj');
+  assert.equal(await mobile.getByRole('link', { name: 'Likes', exact: true }).getAttribute('href'), '/likes');
   const mobileSoftware = mobile.getByRole('link', { name: 'Software', exact: true });
   assert.equal(await mobileSoftware.getAttribute('href'), '/software');
   assert.equal(await mobileSoftware.getAttribute('aria-current'), 'page');
