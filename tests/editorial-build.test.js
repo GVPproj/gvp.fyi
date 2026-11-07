@@ -5,33 +5,14 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { editorialFixtures } from './helpers/editorial.js';
 import { parseHTML } from 'linkedom';
 import sharp from 'sharp';
 
-test('Published-content build keeps presentation repo-owned despite stale CMS settings', { timeout: 90000 }, async t => {
-  const fixtures = await editorialFixtures();
+test('Likes-only publishing endpoint builds Git-owned software pages and static media', { timeout: 90000 }, async t => {
   const files = new Map();
   const assetRequests = [];
   const entries = [];
-  for (const entry of fixtures) {
-    const assets = [];
-    for (const file of entry.assets) {
-      const { bytes } = file;
-      const path = `/api/publishing/content-assets/fixture/${file.name}`;
-      if (entry.kind !== 'software') files.set(path, bytes);
-      assets.push({ name: file.name, path, sha256: createHash('sha256').update(bytes).digest('hex') });
-    }
-    entries.push({ ...entry, revision: 'fixture', state: 'published', assets });
-  }
-  const staleSettings = entries.find(entry => entry.kind === 'settings').data;
-  staleSettings.description = 'Snapshot-only description';
-  staleSettings.navigation = [{ id: 'music', label: 'Music', children: [{ label: 'Releases', href: '/music-releases' }] }];
-  staleSettings.categories.software = [];
-  staleSettings.placeholders = [{ slug: 'cms-only-page', title: 'CMS page', body: 'Stale placeholder' }];
-  entries.push({ kind: 'software', slug: 'biolink', revision: 'withdrawn', state: 'unpublished' });
-  entries.push({ kind: 'software', state: 'invalid', data: { url: 'javascript:unused()' } });
-  const likeImage = fixtures[0].assets[0].bytes;
+  const likeImage = await sharp({ create: { width: 24, height: 16, channels: 3, background: '#123456' } }).png().toBuffer();
   const likePath = '/api/publishing/content-assets/likes1/retained.png';
   const likeHash = createHash('sha256').update(likeImage).digest('hex');
   files.set(likePath, likeImage);
@@ -60,8 +41,8 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
   t.after(() => { if (child.exitCode === null) child.kill(); });
   let output = ''; child.stdout.on('data', chunk => output += chunk); child.stderr.on('data', chunk => output += chunk);
   const [code] = await once(child, 'exit'); assert.equal(code, 0, output);
-  assert.deepEqual(assetRequests, [likePath], 'only Likes assets are fetched; legacy software media may be unavailable');
-  const likes = await readFile(`${dir}/likes/retained-image/index.html`, 'utf8');
+  assert.deepEqual(assetRequests, [likePath], 'all software media comes from the Git content collection');
+  const likes = await readFile(`${dir}/likes/retained-likes-image/index.html`, 'utf8');
   assert.match(likes, /Retained Likes image/);
   assert.match(likes, /\/published-content\//);
   assert.deepEqual(await readFile(`${dir}/published-content/${likeHash}.png`), likeImage);
@@ -151,13 +132,9 @@ test('Published-content build keeps presentation repo-owned despite stale CMS se
       slugs.map(slug => `/software/${slug}`));
     for (const slug of slugs) assert.ok(await readFile(`${dir}/software/${slug}/index.html`, 'utf8'));
   }
-  await assert.rejects(readFile(`${dir}/software/example-project/index.html`));
-  assert.doesNotMatch(software, /\/images\/fixture\//);
-  assert.doesNotMatch(software, /Snapshot-only description/);
   assert.match(software, /href="\/music"[^>]*>Music<\/a>/);
   assert.match(software, /href="\/software"/);
   assert.doesNotMatch(software, /id="music-menu"|<summary[^>]*>Music/);
-  await assert.rejects(readFile(`${dir}/cms-only-page/index.html`));
   assert.match(await readFile(`${dir}/video/index.html`, 'utf8'), /Coming soon/);
   const blog = await readFile(`${dir}/blog/the-animated-face/index.html`, 'utf8');
   assert.match(blog, /<h1\b[^>]*>Animating My Face<\/h1>/);

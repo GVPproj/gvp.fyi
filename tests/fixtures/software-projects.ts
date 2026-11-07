@@ -1,7 +1,7 @@
 import type { SoftwareProject } from './software-project.ts';
 
-// Historical portfolio retained only as rich rendering fixtures. Images live in
-// tests/fixtures/software, never in the production public directory.
+// Expected portfolio content for browser assertions, not publishing API fixtures.
+// Pages and images are loaded from src/content/software.
 export const softwareProjects: SoftwareProject[] = [
   {
     slug: 'tipbox',

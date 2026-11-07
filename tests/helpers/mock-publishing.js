@@ -4,7 +4,6 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import sharp from 'sharp';
 import siteSettings from '../../src/config/site-settings.json' with { type: 'json' };
-import { softwareProjects } from '../fixtures/software-projects.ts';
 import { categories, slugOf, dateOf } from './release-catalog.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -15,19 +14,7 @@ const token = 'browser-fixture-token';
 /** Exercise the real publishing adapters without a live CMS or repository fallback. */
 export async function startMockPublishing(t) {
   const assets = new Map();
-  const content = await Promise.all(softwareProjects.map(async (project, order) => {
-    const revision = `software-${project.slug}`;
-    const sources = [...new Set([project.screenshot, ...(project.gallery ?? []).map(image => image.src)])];
-    const descriptors = await Promise.all(sources.map(async source => {
-      const name = source.split('/').at(-1);
-      const bytes = await readFile(new URL(`../fixtures/software/${name}`, import.meta.url));
-      const path = `/api/publishing/content-assets/${revision}/${name}`;
-      assets.set(path, bytes);
-      return { name, path, sha256: hash(bytes) };
-    }));
-    return { revision, kind: 'software', slug: project.slug, state: 'published',
-      data: { ...project, order }, assets: descriptors };
-  }));
+  const content = [];
 
   const releases = [];
   const categoryIds = siteSettings.categories.releases.map(category => category.id);

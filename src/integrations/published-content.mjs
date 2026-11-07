@@ -26,9 +26,7 @@ export async function preparePublishedContent(env, fetcher = fetch) {
     if (!Array.isArray(snapshots)) throw new Error();
     const files = [], content = [], identities = new Set();
     for (const snapshot of snapshots) {
-      // Software and site settings live in Git; legacy snapshots and assets are unused.
-      if (snapshot?.kind === 'settings' || snapshot?.kind === 'software') continue;
-      if (!snapshot || !['software', 'like'].includes(snapshot.kind) ||
+      if (!snapshot || snapshot.kind !== 'like' ||
         typeof snapshot.slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(snapshot.slug) ||
         typeof snapshot.revision !== 'string' || !snapshot.revision ||
         !['published', 'unpublished'].includes(snapshot.state)) throw new Error();

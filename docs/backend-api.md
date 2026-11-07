@@ -10,8 +10,8 @@ No sibling checkout is required here.
 
 - `src/integrations/published-release.mjs` fetches published music releases and
   artwork; `src/integrations/published-content.mjs` fetches published Likes
-  collection items and their assets. It ignores legacy software and site-settings
-  snapshots before validating their fields or requesting their assets.
+  collection items and their assets. The content endpoint serves only Likes
+  snapshots and withdrawal tombstones; other snapshot kinds fail validation.
 - Both authenticate with a restricted `publishing_builds` identity using
   `PUBLISHING_POCKETBASE_URL`, `PUBLISHING_BUILD_EMAIL` and
   `PUBLISHING_BUILD_PASSWORD`. These are server-only variables: never use public
@@ -37,7 +37,7 @@ No sibling checkout is required here.
 | `POST /api/collections/publishing_builds/auth-with-password` | Restricted build authentication |
 | `GET /api/publishing/releases` | Published release snapshots and withdrawal tombstones |
 | `GET /api/publishing/artwork/{revision}` | Integrity-checked release artwork |
-| `GET /api/publishing/content` | Likes snapshots and withdrawals; legacy software/settings are ignored |
+| `GET /api/publishing/content` | Likes collection item snapshots and withdrawal tombstones only |
 | `GET /api/publishing/content-assets/{revision}/{file}` | Integrity-checked content assets |
 
 This is a consumer overview, not a second authoritative API specification.
@@ -46,35 +46,12 @@ with the frontend; deploy required backend support before its frontend consumer.
 Saving a published item in PocketBase does not deploy the website: deploy Netlify
 manually to publish the new static output.
 
-## Repeatable software export
+## Software authoring
 
-`scripts/export-software.mjs` exports published software snapshots using the same
-restricted build identity and endpoints as the integrations. It reads the three
-server-only `PUBLISHING_*` variables above from the environment or local `.env`;
-never supply superuser credentials. With these configured, run:
-
-```sh
-# Initial migration only, when src/content/software does not exist:
-pnpm export:software
-
-# Repeat into a NEW directory for comparison with the checked-in entries:
-pnpm export:software /tmp/software-export-review
-```
-
-The destination must not exist: rerunning cannot overwrite hand-authored MDX.
-The script ignores Likes, legacy settings and withdrawal tombstones, resolves
-CMS upload aliases, verifies each downloaded original against its SHA-256 digest,
-and stages the whole export before moving it into place. No resized variants,
-credentials or tokens are saved. Failed exports remove the staging directory.
-
-Each project lives at `src/content/software/<slug>/index.mdx` with original
-screenshots and gallery images in its adjacent `assets/` directory. Frontmatter
-is formatted as JSON (valid YAML) to preserve nested CMS values losslessly.
-Editorial fields are retained, including alt text, dimensions, ordering, tooling,
-links, role, team, gallery and tagline. Only image paths are relocated to local
-assets; the transport-only `assetNames` map and redundant CMS `slug` are omitted.
-The entry path supplies its identity. Compare a repeat export before copying
-changes, preserving any authored body content.
+Software is Git-owned, with no publishing backend source or export command. Each
+project lives at `src/content/software/<slug>/index.mdx` with original screenshots
+and gallery images in its adjacent `assets/` directory. The entry path supplies
+its identity. Commit entries and their local images together.
 
 The `software` collection in `src/content.config.ts` requires `title`,
 `description` (the index-card summary), `category`, integer `order`, `tooling`, a
@@ -94,11 +71,12 @@ configuration), and `node --test tests/software-collection.test.js` (offline).
 
 ## Software cutover sequencing
 
-Deploy and review the collection-backed software pages against the previous
-output before withdrawing software in the backend (#25 before #26). The frontend
-already ignores software snapshots and their assets, but the backend's legacy
-software contract and the one-off exporter remain available until that separate,
-backend-first cleanup. No software is unpublished by a frontend build.
+The collection-backed software pages must be deployed and verified first (#25).
+For #26, back up and rehearse the backend changes, then deploy the backend's
+software withdrawal/removal and Likes-only content endpoint before deploying this
+stricter frontend consumer. The previously deployed frontend tolerates that smaller
+response, so the backend-first rollout does not break its builds. Frontend builds
+do not unpublish software or delete backend data; those are backend operations.
 
 ## Testing boundary
 

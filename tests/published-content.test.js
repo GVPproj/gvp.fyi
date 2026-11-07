@@ -16,19 +16,19 @@ test('missing publishing credentials fail before making backend requests', async
   assert.equal(requests, 0);
 });
 
-test('ignores legacy settings payloads and assets without fetching them', async () => {
-  const requests = [];
-  const snapshots = [published, { revision: 'settings1', kind: 'settings', slug: 'site', state: 'published',
-    data: { url: 'javascript:unused()' },
-    assets: [{ name: 'missing.png', path: '/api/publishing/content-assets/settings1/missing.png', sha256: 'a'.repeat(64) }] }];
-  const respond = fixture(snapshots);
-  const result = await preparePublishedContent(env, url => {
-    requests.push(url.pathname);
-    return respond(url);
-  });
-  assert.deepEqual(result.content, [published]);
-  assert.deepEqual(result.files, []);
-  assert.deepEqual(requests, ['/api/collections/publishing_builds/auth-with-password', '/api/publishing/content']);
+test('rejects non-Likes snapshots and withdrawals before requesting their assets', async () => {
+  for (const kind of ['software', 'settings']) {
+    for (const state of ['published', 'unpublished']) {
+      const requests = [];
+      const respond = fixture([published, { ...published, kind, state,
+        assets: [{ name: 'unused.png', path: '/api/publishing/content-assets/retired/unused.png', sha256: 'a'.repeat(64) }] }]);
+      await assert.rejects(preparePublishedContent(env, url => {
+        requests.push(url.pathname);
+        return respond(url);
+      }), /Published content build failed/, `${kind} ${state} is outside the Likes-only contract`);
+      assert.deepEqual(requests, ['/api/collections/publishing_builds/auth-with-password', '/api/publishing/content']);
+    }
+  }
 });
 test('materializes only explicit snapshot projection, retaining withdrawals', async () => {
   const result = await preparePublishedContent(env, fixture([{ ...published, privateToken: 'must-not-leak' }, { revision: 'rev2', kind: 'like', slug: 'item2', state: 'unpublished', data: { secret: 'draft' } }]));

@@ -23,10 +23,8 @@ function assertStaticRows(document) {
 
 // Real Astro build: the public Likes output must not need a running backend.
 test('published content emits static Likes and ignores draft/withdrawn items', { timeout: 90000 }, async t => {
-  const settings = JSON.parse(await readFile(new URL('../src/config/site-settings.json', import.meta.url)));
   const image = await sharp({ create: { width: 320, height: 320, channels: 3, background: '#336699' } }).png().toBuffer();
   const entries = [
-    { revision: 'settings1', kind: 'settings', slug: 'site', state: 'published', data: settings, assets: [] },
     { revision: 'note1', kind: 'like', slug: 'publicnote00001', state: 'published', data: { title: 'Static publication fixture', type: 'note', body: 'Works with the backend offline.', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [] },
     { revision: 'note2', kind: 'like', slug: 'withdrawn000001', state: 'unpublished' },
     { revision: 'image1', kind: 'like', slug: 'publicimage001', state: 'published', data: { title: 'Published image fixture', type: 'image', collections: [{ id: 'group1', name: 'Reading' }] }, assets: [{ name: 'fixture.png', path: '/api/publishing/content-assets/image1/fixture.png', sha256: createHash('sha256').update(image).digest('hex') }] },
