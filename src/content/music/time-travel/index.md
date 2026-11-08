@@ -8,47 +8,38 @@
   "title": "Time Travel",
   "artist": "Graham Van Pelt",
   "release_date": "19 Oct 2018 00:00:00 GMT",
-  "about": null,
   "tracks": [
     {
       "title": "New Friends",
-      "track_num": 1,
-      "duration": 334.662
+      "track_num": 1
     },
     {
       "title": "Release Yourself",
-      "track_num": 2,
-      "duration": 371.216
+      "track_num": 2
     },
     {
       "title": "Saving Grace",
-      "track_num": 3,
-      "duration": 277.496
+      "track_num": 3
     },
     {
       "title": "Out Of This World (Minimal Dub)",
-      "track_num": 4,
-      "duration": 396.015
+      "track_num": 4
     },
     {
       "title": "Vanishing Point",
-      "track_num": 5,
-      "duration": 310.287
+      "track_num": 5
     },
     {
       "title": "Time Travel",
-      "track_num": 6,
-      "duration": 286.368
+      "track_num": 6
     },
     {
       "title": "One Thing",
-      "track_num": 7,
-      "duration": 393.357
+      "track_num": 7
     },
     {
       "title": "Mountainside",
-      "track_num": 8,
-      "duration": 290.907
+      "track_num": 8
     }
   ],
   "display_date": "2018, Arbutus Records",

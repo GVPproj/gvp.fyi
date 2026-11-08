@@ -7,12 +7,10 @@
   "title": "Raw Spectacle (Pantha du Prince Remix)",
   "artist": "Miracle Fortress & Pantha du Prince",
   "release_date": "2011",
-  "about": "Pantha du Prince's remix of Raw Spectacle. Originally released through RCRD LBL in 2011; the listening link is the Secret City Records digital edition.",
   "tracks": [
     {
       "title": "Raw Spectacle (Pantha du Prince Remix)",
-      "track_num": 1,
-      "duration": 375.147
+      "track_num": 1
     }
   ],
   "display_date": "2011, Secret City Records / RCRD LBL",
@@ -22,3 +20,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+Pantha du Prince's remix of Raw Spectacle. Originally released through RCRD LBL in 2011; the listening link is the Secret City Records digital edition.

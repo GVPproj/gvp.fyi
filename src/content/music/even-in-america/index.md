@@ -7,12 +7,10 @@
   "title": "Even In America",
   "artist": "Miracle Fortress",
   "release_date": "2014-09-16T07:00:00Z",
-  "about": null,
   "tracks": [
     {
       "title": "Even In America",
-      "track_num": 1,
-      "duration": 260.707
+      "track_num": 1
     }
   ],
   "display_date": "2014, Secret City Records",

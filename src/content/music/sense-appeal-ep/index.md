@@ -10,32 +10,26 @@
   "title": "Sense Appeal",
   "artist": "Graham Van Pelt",
   "release_date": "17 Apr 2020 00:00:00 GMT",
-  "about": "To order the physical vinyl, head over to No Bad Days: https://nobaddays.bandcamp.com/album/sense-appeal",
   "tracks": [
     {
       "title": "Sense Appeal",
-      "track_num": 1,
-      "duration": 418.078
+      "track_num": 1
     },
     {
       "title": "Always Thinkin'",
-      "track_num": 2,
-      "duration": 413.115
+      "track_num": 2
     },
     {
       "title": "Always Thinkin' (Yu Su Innerspace Vocal Dub)",
-      "track_num": 3,
-      "duration": 296.609
+      "track_num": 3
     },
     {
       "title": "Sense Appeal (Gene Tellem 00's Mix)",
-      "track_num": 4,
-      "duration": 317
+      "track_num": 4
     },
     {
       "title": "Sense Appeal (Twins Dub)",
-      "track_num": 5,
-      "duration": 420.48
+      "track_num": 5
     }
   ],
   "display_date": "2020, No Bad Days / Arbutus Records",
@@ -48,3 +42,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+To order the physical vinyl, head over to No Bad Days: https://nobaddays.bandcamp.com/album/sense-appeal

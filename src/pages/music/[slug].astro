@@ -1,6 +1,8 @@
 ---
 import type { InferGetStaticPropsType } from 'astro';
 import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import ContentBody from '../../components/ContentBody.astro';
 import Layout from '../../layouts/Layout.astro';
 import { getReleaseCategories } from '../../lib/music-releases';
 
@@ -14,6 +16,7 @@ export async function getStaticPaths() {
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { release } = Astro.props;
+const { Content } = await render(release.entry);
 const audioTracks = release.tracks.filter(track => track.audio_url);
 const streaming = [
   { label: 'Spotify', url: release.streaming?.spotify },
@@ -58,9 +61,7 @@ const streaming = [
       {release.url && <a href={release.url}>Bandcamp</a>}
       {streaming.map(link => <a href={link.url}>{link.label}</a>)}
     </nav> : audioTracks.length === 0 && <p>No listening link is currently available for this release.</p>}
-    {release.about && <div class="description">
-      {release.about.split(/\r?\n\s*\r?\n/).map(paragraph => <p>{paragraph}</p>)}
-    </div>}
+    {release.entry.body?.trim() && <ContentBody><Content /></ContentBody>}
   </article>
 </Layout>
 
@@ -80,5 +81,4 @@ const streaming = [
   a { color: var(--color-accent); }
   a:hover { color: var(--nord7); }
   a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
-  .description { display: grid; gap: 1rem; max-width: 70ch; overflow-wrap: anywhere; white-space: pre-line; }
 </style>

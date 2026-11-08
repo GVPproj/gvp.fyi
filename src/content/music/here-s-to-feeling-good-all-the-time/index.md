@@ -7,12 +7,10 @@
   "title": "Here's To Feeling Good All the Time",
   "artist": "Miracle Fortress",
   "release_date": "2014-06-03T07:00:00Z",
-  "about": null,
   "tracks": [
     {
       "title": "Here's To Feeling Good All the Time",
-      "track_num": 1,
-      "duration": 271.08
+      "track_num": 1
     }
   ],
   "display_date": "2014, Secret City Records",

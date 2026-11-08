@@ -8,27 +8,22 @@
   "title": "Black Champagne EP",
   "artist": "Think About Life",
   "release_date": "2007",
-  "about": "The band dates sales of unmarked test pressings to 2007. A planned 2008 release through What's Your Rupture? did not proceed. This artwork, player and track metadata come from the digital EP released on August 27, 2020.",
   "tracks": [
     {
       "title": "Cyanide",
-      "track_num": 1,
-      "duration": 159.84
+      "track_num": 1
     },
     {
       "title": "Devil Is King",
-      "track_num": 2,
-      "duration": 168.867
+      "track_num": 2
     },
     {
       "title": "Going Deaf In the Summer",
-      "track_num": 3,
-      "duration": 204.707
+      "track_num": 3
     },
     {
       "title": "Sea King Takeoff",
-      "track_num": 4,
-      "duration": 255.025
+      "track_num": 4
     }
   ],
   "display_date": "2007 test pressings; 2020 digital release",
@@ -36,3 +31,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+The band dates sales of unmarked test pressings to 2007. A planned 2008 release through What's Your Rupture? did not proceed. This artwork, player and track metadata come from the digital EP released on August 27, 2020.

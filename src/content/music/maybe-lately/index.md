@@ -7,7 +7,6 @@
   "title": "Maybe Lately",
   "artist": "Miracle Fortress",
   "release_date": "2008",
-  "about": "A 7-inch single released by Rough Trade, backed with Hanky Panky Nohow.",
   "tracks": [
     {
       "title": "Maybe Lately",
@@ -22,3 +21,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A 7-inch single released by Rough Trade, backed with Hanky Panky Nohow.

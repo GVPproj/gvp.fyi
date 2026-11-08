@@ -8,7 +8,6 @@
   "title": "Think About Life",
   "artist": "Think About Life",
   "release_date": "2007",
-  "about": "The Japanese two-CD edition, released by Every Conversation / Escalator Records (EVERYCD001 / XQAV-1068-9). Disc one contains the ten-track album; disc two adds Going Deaf In The Summer, Testify, The Blue Sun (alternate), and Money (GVP remix).",
   "tracks": [
     {
       "title": "Paul Cries",
@@ -71,3 +70,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+The Japanese two-CD edition, released by Every Conversation / Escalator Records (EVERYCD001 / XQAV-1068-9). Disc one contains the ten-track album; disc two adds Going Deaf In The Summer, Testify, The Blue Sun (alternate), and Money (GVP remix).

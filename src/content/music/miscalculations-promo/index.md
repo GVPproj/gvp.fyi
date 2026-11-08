@@ -8,7 +8,6 @@
   "title": "Miscalculations",
   "artist": "Miracle Fortress",
   "release_date": "2011",
-  "about": "A UK promotional CD single with radio-edit and album versions of Miscalculations. The image shows the promotional disc; no sleeve artwork was recovered.",
   "tracks": [
     {
       "title": "Miscalculations (Radio Edit)",
@@ -23,3 +22,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A UK promotional CD single with radio-edit and album versions of Miscalculations. The image shows the promotional disc; no sleeve artwork was recovered.

@@ -1,0 +1,16 @@
+<div class="content-body"><slot /></div>
+
+<style>
+  .content-body { min-inline-size: 0; color: var(--color-foreground); overflow-wrap: anywhere; }
+  .content-body :global(> * + *),
+  .content-body :global(blockquote > * + *) { margin-block-start: 1rem; }
+  .content-body :global(h2) { font-size: 1.25rem; font-weight: 400; }
+  .content-body :global(h3) { font-size: 1.125rem; font-weight: 400; }
+  .content-body :global(a) { color: var(--color-accent); }
+  .content-body :global(a:hover) { color: var(--nord7); }
+  .content-body :global(a:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+  .content-body :global(blockquote) { margin-inline: 0; padding-inline-start: 1rem; border-inline-start: 2px solid var(--nord4); }
+  .content-body :global(img) { display: block; max-width: 100%; height: auto; }
+  .content-body :global(pre) { max-width: 100%; overflow-x: auto; padding: 1rem; }
+  .content-body :global(code) { font-size: .95em; }
+</style>

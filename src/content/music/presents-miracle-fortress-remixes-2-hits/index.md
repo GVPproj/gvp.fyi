@@ -7,7 +7,6 @@
   "title": "Presents: Miracle Fortress Remixes 2 HITS!",
   "artist": "Think About Life",
   "release_date": "2007",
-  "about": "A two-track 7-inch issued by Every Conversation Records (EVERY006), with Graham Van Pelt remixes of Paul Cries and Money.",
   "tracks": [
     {
       "title": "Paul Cries (GVP Remix)",
@@ -22,3 +21,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A two-track 7-inch issued by Every Conversation Records (EVERY006), with Graham Van Pelt remixes of Paul Cries and Money.

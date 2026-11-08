@@ -24,7 +24,6 @@ const software = defineCollection({
     }, image());
     return z.object({
       title: text,
-      description: text,
       category: categorySchema('software'),
       order: z.number().int(),
       tooling: z.array(text),
@@ -32,14 +31,12 @@ const software = defineCollection({
       screenshotAlt: z.string().optional(),
       url: link.optional(),
       repo: link.optional(),
-      role: z.object({ title: text, paragraphs: z.array(text) }).optional(),
       team: z.array(z.object({ name: text, role: text, href: link.optional() })).optional(),
       gallery: z.array(z.object({
         src: localImage,
         alt: z.string(),
       })).optional(),
-      tagline: text.optional(),
-    }).refine(project => project.url || project.repo, {
+    }).strict().refine(project => project.url || project.repo, {
       message: 'Software requires a website (url) or repository (repo) link',
       path: ['url'],
     });
@@ -48,7 +45,7 @@ const software = defineCollection({
 
 // Folder IDs keep duplicate explicit slugs visible to route validation rather than
 // allowing glob's default slug-derived IDs to silently overwrite an entry.
-const entryId = ({ entry }: { entry: string }) => entry.replace(/\/index\.md$/, '');
+const entryId = ({ entry }: { entry: string }) => entry.replace(/\/index\.mdx?$/, '');
 
 // Date.parse normalizes impossible days (e.g. February 30). Check the authored
 // calendar components, without changing date precision or timezone semantics.
@@ -79,26 +76,21 @@ function entryRelativeImage(value: unknown, ctx: z.RefinementCtx) {
 }
 
 const likes = defineCollection({
-  loader: glob({ pattern: '**/index.md', base: './src/content/likes', generateId: entryId }),
+  loader: glob({ pattern: '**/index.{md,mdx}', base: './src/content/likes', generateId: entryId }),
   schema: ({ image }) => z.object({
     id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
     slug: z.string().regex(/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u),
     title: z.string().max(500).default(''),
     url: z.union([z.literal(''), webLink]).default(''),
-    description: z.string().max(10000).default(''),
-    commentary: z.string().max(10000).default(''),
     type: z.enum(['', 'quote', 'note']).default(''),
-    body: z.string().max(100000).default(''),
     attribution: z.string().max(1000).default(''),
     created: timestamp,
-    updated: timestamp.optional(),
     category: categorySchema('likes'),
     image: z.preprocess(entryRelativeImage, image()).optional(),
     download: z.string().regex(/^\.\/[a-zA-Z0-9_-][a-zA-Z0-9_.-]*\.pdf$/, 'Downloads must be adjacent PDF files').optional(),
   }).strict().superRefine((item, ctx) => {
     const issue = (message: string, path: string) => ctx.addIssue({ code: 'custom', message, path: [path] });
     if (item.type) {
-      if (!item.body.trim()) issue('Quotes and notes require literal body text', 'body');
       if (item.image || item.download) issue('Quotes and notes cannot have an image or download', 'type');
     } else {
       if (!item.title.trim()) issue('Ordinary collection items require a title', 'title');
@@ -112,7 +104,7 @@ const text = z.string().refine(value => Boolean(value.trim()), 'Text must not be
 const listeningLink = webLink.refine(value => value.startsWith('https://'), 'Listening links require HTTPS');
 
 const music = defineCollection({
-  loader: glob({ pattern: '**/index.md', base: './src/content/music', generateId: entryId }),
+  loader: glob({ pattern: '**/index.{md,mdx}', base: './src/content/music', generateId: entryId }),
   schema: ({ image }) => z.object({
     id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -122,16 +114,13 @@ const music = defineCollection({
     title: text.max(500),
     artist: text.max(500),
     release_date: text.refine(validCalendarDate, 'Invalid calendar release date'),
-    about: z.string().nullable().default(null),
     tracks: z.array(z.object({
       title: text.max(500), track_num: z.number().int().positive(),
-      duration: z.number().nonnegative().optional(),
       audio_url: z.string().regex(/^\/audio\/[a-zA-Z0-9/_-]+\.mp3$/).optional(),
     }).strict()).default([]).refine(tracks => tracks.every((track, index) => track.track_num === index + 1), 'Tracks must be ordered with consecutive track numbers'),
     credit: text.max(5000).optional(),
     display_title: text.max(5000).optional(),
     display_date: text.max(500).optional(),
-    youtube_video_id: text.max(5000).optional(),
     player_height: z.number().int().positive().optional(),
     album_id: z.number().int().positive().optional(),
     url: listeningLink.optional(),

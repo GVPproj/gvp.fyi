@@ -15,7 +15,8 @@ export async function getReleaseCategories() {
       seen.set(value, entry.id);
     }
   }
-  const releases = await Promise.all(entries.map(async ({ data }) => {
+  const releases = await Promise.all(entries.map(async entry => {
+    const { data } = entry;
     for (const track of data.tracks) {
       if (!track.audio_url) continue;
       const audio = await stat(new URL(`.${track.audio_url}`, publicDir)).catch(() => undefined);
@@ -25,6 +26,7 @@ export async function getReleaseCategories() {
     }
     return {
       ...data,
+      entry,
       title: data.display_title ?? data.title,
       // Preserve year/month precision rather than inventing an exact day.
       date: /^\d{4}(?:-\d{2})?$/.test(data.release_date)

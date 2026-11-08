@@ -1,5 +1,7 @@
 ---
 import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import ContentBody from '../../components/ContentBody.astro';
 import Layout from '../../layouts/Layout.astro';
 import { likeItemTitle, likeAssetKind, likesItemURL, webURL } from '../../lib/likes.js';
 import { likes } from '../../lib/likes-collection';
@@ -17,6 +19,7 @@ const source = webURL(item.url);
 const asset = item.media?.url;
 const pdf = asset && likeAssetKind(item) === 'pdf';
 const textItem = item?.type === 'quote' || item?.type === 'note';
+const { Content } = await render(item.entry);
 ---
 
 <Layout {title}>
@@ -26,20 +29,19 @@ const textItem = item?.type === 'quote' || item?.type === 'note';
     <>
         {textItem && (item.type === 'quote' ? (
           <figure class="quotation">
-            <blockquote>{item.body ?? ''}</blockquote>
+            <blockquote><ContentBody><Content /></ContentBody></blockquote>
             {item.attribution && <figcaption>{item.attribution}</figcaption>}
           </figure>
         ) : (
           <>
-            <p class="full-text">{item.body ?? ''}</p>
+            <ContentBody><Content /></ContentBody>
             {item.attribution && <p class="attribution">{item.attribution}</p>}
           </>
         ))}
         {item.image && <Image src={item.image} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={title} />}
         {pdf && <p><a href={asset} target="_blank" rel="noopener noreferrer">Open PDF</a></p>}
         {source && <p><a class="source" href={source} target="_blank" rel="noopener noreferrer">Source: {new URL(source).hostname}</a></p>}
-        {item.description && <p class="description">{item.description}</p>}
-        {item.commentary && <p class="commentary">{item.commentary}</p>}
+        {!textItem && item.entry.body?.trim() && <ContentBody><Content /></ContentBody>}
     </>
   </article>
 </Layout>
@@ -47,10 +49,10 @@ const textItem = item?.type === 'quote' || item?.type === 'note';
 <style>
   .like-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
   :global(main:has(.like-detail)) { justify-content: flex-start; }
-  h1, p, blockquote, figcaption { white-space: pre-wrap; }
+  h1, figcaption, .attribution { white-space: pre-wrap; }
   .quotation { display: grid; gap: 1rem; margin: 0; }
   blockquote { margin: 0; padding-inline-start: 1rem; border-inline-start: 2px solid var(--nord4); }
-  .attribution, figcaption, .description, .commentary { color: var(--nord4); }
+  .attribution, figcaption { color: var(--nord4); }
   img { display: block; width: 100%; height: auto; object-fit: contain; background: var(--nord1); }
   a { color: var(--color-accent); }
   a:hover { color: var(--nord7); }

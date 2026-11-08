@@ -8,57 +8,46 @@
   "title": "Family",
   "artist": "Think About Life",
   "release_date": "2009-10",
-  "about": "The Japanese CD edition, released by Every Conversation / Escalator Records (EVERYCD006 / XQAV-1087). Includes the Japanese bonus track Holesome, listed as Whole Sum on Discogs, in addition to the ten-track album. Issued with a wraparound obi and double paper jacket.",
   "tracks": [
     {
       "title": "Johanna",
-      "track_num": 1,
-      "duration": 235
+      "track_num": 1
     },
     {
       "title": "Havin My Baby",
-      "track_num": 2,
-      "duration": 208
+      "track_num": 2
     },
     {
       "title": "Sweet Sixteen",
-      "track_num": 3,
-      "duration": 223
+      "track_num": 3
     },
     {
       "title": "Young Hearts",
-      "track_num": 4,
-      "duration": 250
+      "track_num": 4
     },
     {
       "title": "The Wizzard",
-      "track_num": 5,
-      "duration": 231
+      "track_num": 5
     },
     {
       "title": "Set You On Fire",
-      "track_num": 6,
-      "duration": 217
+      "track_num": 6
     },
     {
       "title": "Sofa Bed",
-      "track_num": 7,
-      "duration": 190
+      "track_num": 7
     },
     {
       "title": "The Veldt",
-      "track_num": 8,
-      "duration": 283
+      "track_num": 8
     },
     {
       "title": "Nueva Nueva",
-      "track_num": 9,
-      "duration": 197
+      "track_num": 9
     },
     {
       "title": "Life of Crime",
-      "track_num": 10,
-      "duration": 345
+      "track_num": 10
     },
     {
       "title": "Holesome",
@@ -69,3 +58,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+The Japanese CD edition, released by Every Conversation / Escalator Records (EVERYCD006 / XQAV-1087). Includes the Japanese bonus track Holesome, listed as Whole Sum on Discogs, in addition to the ten-track album. Issued with a wraparound obi and double paper jacket.

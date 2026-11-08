@@ -7,12 +7,10 @@
   "title": "Let Me Be the 1",
   "artist": "Miracle Fortress",
   "release_date": "2014-09-09T07:00:00Z",
-  "about": null,
   "tracks": [
     {
       "title": "Let Me Be The 1",
-      "track_num": 1,
-      "duration": 430.253
+      "track_num": 1
     }
   ],
   "display_date": "2014, Secret City Records",

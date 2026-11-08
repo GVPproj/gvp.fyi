@@ -8,7 +8,6 @@
   "title": "Poetaster",
   "artist": "Miracle Fortress",
   "release_date": "2007",
-  "about": "A one-track UK promotional CD single released by Rough Trade.",
   "tracks": [
     {
       "title": "Poetaster",
@@ -19,3 +18,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A one-track UK promotional CD single released by Rough Trade.

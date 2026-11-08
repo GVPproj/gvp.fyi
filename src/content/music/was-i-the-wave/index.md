@@ -8,57 +8,46 @@
   "title": "Was I the Wave?",
   "artist": "Miracle Fortress",
   "release_date": "26 Apr 2011 00:00:00 GMT",
-  "about": "The second Miracle Fortress album moves toward electronic music. Graham Van Pelt wrote, arranged, performed, produced and engineered the record.",
   "tracks": [
     {
       "title": "Awe",
-      "track_num": 1,
-      "duration": 153
+      "track_num": 1
     },
     {
       "title": "Tracers",
-      "track_num": 2,
-      "duration": 288.72
+      "track_num": 2
     },
     {
       "title": "Raw Spectacle",
-      "track_num": 3,
-      "duration": 361.187
+      "track_num": 3
     },
     {
       "title": "Wave",
-      "track_num": 4,
-      "duration": 94.84
+      "track_num": 4
     },
     {
       "title": "Spectre",
-      "track_num": 5,
-      "duration": 313.093
+      "track_num": 5
     },
     {
       "title": "Everything Works",
-      "track_num": 6,
-      "duration": 241.213
+      "track_num": 6
     },
     {
       "title": "Before",
-      "track_num": 7,
-      "duration": 100.453
+      "track_num": 7
     },
     {
       "title": "Miscalculations",
-      "track_num": 8,
-      "duration": 327.547
+      "track_num": 8
     },
     {
       "title": "Immanent Domain",
-      "track_num": 9,
-      "duration": 351.067
+      "track_num": 9
     },
     {
       "title": "Until",
-      "track_num": 10,
-      "duration": 118.52
+      "track_num": 10
     }
   ],
   "display_date": "2011, Secret City Records",
@@ -69,3 +58,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+The second Miracle Fortress album moves toward electronic music. Graham Van Pelt wrote, arranged, performed, produced and engineered the record.

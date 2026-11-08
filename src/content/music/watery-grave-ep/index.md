@@ -7,7 +7,6 @@
   "title": "Watery Grave EP",
   "artist": "Miracle Fortress",
   "release_date": "2005",
-  "about": "A self-released EP from winter 2005.",
   "tracks": [
     {
       "title": "Watery Grave",
@@ -39,3 +38,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A self-released EP from winter 2005.

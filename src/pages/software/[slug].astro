@@ -1,5 +1,7 @@
 ---
 import type { InferGetStaticPropsType } from 'astro';
+import { render } from 'astro:content';
+import ContentBody from '../../components/ContentBody.astro';
 import Layout from '../../layouts/Layout.astro';
 import { getCategorizedCollection } from '../../lib/categorized-content';
 import { Image } from 'astro:assets';
@@ -8,12 +10,14 @@ import { sectionLabel } from '../../lib/site-settings';
 export async function getStaticPaths() {
   return (await getCategorizedCollection('software')).map(entry => ({
     params: { slug: entry.id },
-    props: { project: entry.data },
+    props: { entry },
   }));
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
-const { project } = Astro.props;
+const { entry } = Astro.props;
+const project = entry.data;
+const { Content } = await render(entry);
 ---
 
 <Layout title={project.title}>
@@ -21,9 +25,8 @@ const { project } = Astro.props;
     <a href="/software">← {sectionLabel('software')}</a>
     <header>
       <h1>{project.title}</h1>
-      <p>{project.description}</p>
-      {project.tagline && <p>{project.tagline}</p>}
     </header>
+    <ContentBody><Content /></ContentBody>
     <Image class="screenshot" src={project.screenshot} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />
     <section aria-labelledby="tooling-heading">
       <h2 id="tooling-heading">Built with</h2>
@@ -33,10 +36,6 @@ const { project } = Astro.props;
       {project.url && <a href={project.url}>Visit website</a>}
       {project.repo && <a href={project.repo}>GitHub repository</a>}
     </nav>}
-    {project.role && <section aria-labelledby="role-heading" class="prose">
-      <h2 id="role-heading">{project.role.title}</h2>
-      {project.role.paragraphs.map(paragraph => <p>{paragraph}</p>)}
-    </section>}
     {project.gallery && <section aria-label="Project screenshots" class="gallery">
       {project.gallery.map(image => <Image
         src={image.src}
@@ -60,10 +59,8 @@ const { project } = Astro.props;
 <style>
   .software-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
   :global(main:has(.software-detail)) { justify-content: flex-start; }
-  header, .prose, .gallery { display: grid; gap: 1rem; }
-  header p { color: var(--nord4); }
+  header, .gallery { display: grid; gap: 1rem; }
   h2 { margin: 0 0 .75rem; font-size: 1.25rem; font-weight: 400; }
-  .prose h2 { margin: 0; }
   img { display: block; width: 100%; height: auto; background: var(--nord1); }
   .tooling { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; list-style: none; margin: 0; padding: 0; color: var(--nord4); }
   nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; }

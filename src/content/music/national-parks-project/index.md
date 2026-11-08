@@ -8,9 +8,10 @@
   "title": "National Parks Project",
   "artist": "Various Artists",
   "release_date": "2011",
-  "about": "A collaborative soundtrack recorded in Canada's national parks. I sang on Kathleen Lake, alongside Ian D’Sa on guitar and Mishka Stein on bass and finger cymbals.",
   "tracks": [],
   "display_date": "2011, Last Gang Records",
   "artwork": "./artwork.jpg"
 }
 ---
+
+A collaborative soundtrack recorded in Canada's national parks. I sang on Kathleen Lake, alongside Ian D’Sa on guitar and Mishka Stein on bass and finger cymbals.

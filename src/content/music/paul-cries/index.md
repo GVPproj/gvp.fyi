@@ -7,7 +7,6 @@
   "title": "Paul Cries",
   "artist": "Think About Life",
   "release_date": "2006",
-  "about": "A 7-inch single issued by Every Conversation Records (EVERY001), backed with Going Deaf In The Summer. The artwork is a photograph of an inscribed sleeve.",
   "tracks": [
     {
       "title": "Paul Cries",
@@ -22,3 +21,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A 7-inch single issued by Every Conversation Records (EVERY001), backed with Going Deaf In The Summer. The artwork is a photograph of an inscribed sleeve.

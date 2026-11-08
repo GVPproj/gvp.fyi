@@ -9,10 +9,11 @@
   "title": "Sunglasses EP",
   "artist": "Grand Trine",
   "release_date": "2010-04-01",
-  "about": "A five-song EP issued on 12-inch by Divorce Records. Engineering by Graham Van Pelt, with recording credits shared with David Bryant.",
   "tracks": [],
   "display_date": "2010, Divorce Records",
   "url": "https://grandtrine.bandcamp.com/album/sunglasses-ep",
   "artwork": "./artwork.jpg"
 }
 ---
+
+A five-song EP issued on 12-inch by Divorce Records. Engineering by Graham Van Pelt, with recording credits shared with David Bryant.

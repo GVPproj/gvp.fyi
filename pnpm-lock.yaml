@@ -14,6 +14,9 @@ importers:
       astro:
         specifier: ^7.3.5
         version: 7.3.5(@netlify/blobs@10.7.13(supports-color@7.2.0))(@types/node@26.6.4)(jiti@2.7.0)(yaml@2.9.1)
+      linkedom:
+        specifier: ^0.18.13
+        version: 0.18.13
     devDependencies:
       '@astrojs/check':
         specifier: ^0.9.10
@@ -21,9 +24,6 @@ importers:
       fontkit:
         specifier: ^2.0.4
         version: 2.0.4
-      linkedom:
-        specifier: ^0.18.13
-        version: 0.18.13
       playwright-core:
         specifier: ^1.63.0
         version: 1.63.0

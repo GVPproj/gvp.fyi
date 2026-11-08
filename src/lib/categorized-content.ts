@@ -9,6 +9,9 @@ export async function getCategorizedCollection<C extends keyof typeof registries
   // Astro can reuse unchanged entries without rerunning their schemas when only
   // imported settings change. Check membership against the current registry.
   for (const entry of entries) {
+    if (collection === 'software' && !entry.body?.trim()) {
+      throw new Error(`Software projects require a Markdown body in entry ${entry.id}`);
+    }
     if (!category.safeParse(entry.data.category).success) {
       throw new Error(`Unknown ${collection} category "${entry.data.category}" in entry "${entry.id}"`);
     }

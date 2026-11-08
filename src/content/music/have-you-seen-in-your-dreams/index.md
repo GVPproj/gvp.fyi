@@ -7,7 +7,6 @@
   "title": "Have You Seen In Your Dreams",
   "artist": "Miracle Fortress",
   "release_date": "2007-03-13",
-  "about": "A 12-inch single released by Secret City Records, backed with Hanky Panky Nohow.",
   "tracks": [
     {
       "title": "Have You Seen In Your Dreams",
@@ -22,3 +21,5 @@
   "artwork": "./artwork.jpg"
 }
 ---
+
+A 12-inch single released by Secret City Records, backed with Hanky Panky Nohow.
