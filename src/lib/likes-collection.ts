@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { getCollection } from 'astro:content';
+import { getCategorizedCollection } from './categorized-content';
 import { contentImage } from './content-image';
 import { root } from 'astro:config/server';
+import { categorySettings } from './site-settings';
 
 // Vite publishes adjacent downloads; source-directory files are not public by default.
 const downloads = import.meta.glob<string>('/src/content/likes/**/*.pdf', {
@@ -10,10 +11,10 @@ const downloads = import.meta.glob<string>('/src/content/likes/**/*.pdf', {
 
 type Media = { url: string; thumbnail?: string; srcset?: string; width?: number; height?: number };
 
-const groups = (await getCollection('namedCollections')).map(entry => entry.data)
-  .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+const categories = [...categorySettings('likes')]
+  .sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
 
-const entries = await getCollection('likes');
+const entries = await getCategorizedCollection('likes');
 const routes = new Set<string>();
 for (const { data } of entries) {
   for (const route of [data.id, data.slug]) {
@@ -40,19 +41,11 @@ export const likes = (await Promise.all(entries.map(async entry => {
   }
   return {
     ...data,
-    collections: data.collections.map(reference => {
-      const group = groups.find(group => group.id === reference.id);
-      if (!group) throw new Error(`Unknown named collection ${reference.id} in ${entry.id}`);
-      return group;
-    }),
     media,
   };
 }))).sort((a, b) => Date.parse(b.created) - Date.parse(a.created) || b.id.localeCompare(a.id));
 
-// An item may appear in several rows; ungrouped items appear only in Misc.
-export const collectionOverview = [...groups, { id: 'misc', name: 'Misc.' }]
-  .map(group => {
-    const items = likes.filter(item => group.id === 'misc'
-      ? !item.collections.length : item.collections.some(collection => collection.id === group.id));
-    return { ...group, items, totalItems: items.length };
-  }).filter(group => group.totalItems > 0);
+export const collectionOverview = categories.map(category => {
+  const items = likes.filter(item => item.category === category.id);
+  return { id: category.id, name: category.title, items, totalItems: items.length };
+}).filter(category => category.totalItems > 0);

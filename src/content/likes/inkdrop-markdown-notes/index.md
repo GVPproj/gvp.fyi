@@ -11,9 +11,7 @@
   "attribution": "",
   "created": "2026-10-02 22:04:57.877Z",
   "updated": "2026-10-15 14:59:19.751Z",
-  "collections": [
-    "54h718z2mibmc8s"
-  ],
+  "category": "54h718z2mibmc8s",
   "image": "./image.png"
 }
 ---

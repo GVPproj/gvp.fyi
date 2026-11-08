@@ -18,7 +18,6 @@ async function musicSite(t) {
   }
   await cp(new URL('../src/content.config.ts', import.meta.url), join(root, 'src/content.config.ts'));
   await mkdir(join(root, 'src/content/music'), { recursive: true });
-  await writeFile(join(root, 'src/content/named-collections.json'), '[]\n');
   await writeFile(join(root, 'astro.config.mjs'), `import { defineConfig } from 'astro/config';
 export default defineConfig({ site: 'https://gvp.fyi' });\n`);
   return root;

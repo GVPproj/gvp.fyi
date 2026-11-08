@@ -19,13 +19,13 @@ function assertStaticRows(document) {
 
 test('repository content builds static Likes without credentials, a backend or JavaScript', { timeout: 120000 }, async t => {
   const site = await fixtureSite(t);
-  await site.collections([{ id: 'group1', name: 'Reading' }]);
+  await site.categories([{ id: 'group1', title: 'Reading' }]);
   const note = { id: 'publicnote00001', slug: 'static-publication-fixture', title: 'Static publication fixture', type: 'note',
-    body: 'Works with the backend offline.', created: '2026-01-01 12:00:00Z', collections: ['group1'] };
+    body: 'Works with the backend offline.', created: '2026-01-01 12:00:00Z', category: 'group1' };
   await site.entry('likes', 'a-note-folder', note);
   const image = await sharp({ create: { width: 320, height: 320, channels: 3, background: '#336699' } }).png().toBuffer();
   await site.entry('likes', 'an-image-folder', { id: 'publicimage001', slug: 'published-image-fixture', title: 'Published image fixture',
-    image: './fixture.png', created: note.created, collections: ['group1'] }, { 'fixture.png': image });
+    image: './fixture.png', created: note.created, category: 'group1' }, { 'fixture.png': image });
   for (let i = 0; i < 8; i++) await site.entry('likes', `extra-${i}`, { ...note, id: `extra-id-${i}`, slug: `extra-note-${i}`, title: `Extra note ${i}`, body: 'More row content' });
   const result = await site.build();
   assert.equal(result.code, 0, result.logs);

@@ -12,9 +12,9 @@ _Avoid_: Collection (as the page name), Links (as the page name), Recommendation
 An individual find saved in Likes: a link, image, quote, PDF, or personal note. An item need not have a destination link.
 _Avoid_: Bookmark (when referring to all item types)
 
-**Named collection**:
-An optional, named grouping of collection items. An item can belong to several named collections; Likes includes items regardless of grouping.
-_Avoid_: Folder, channel
+**Category**:
+A named grouping within Likes, music or software. Each entry belongs to exactly one category within its section.
+_Avoid_: Named collection, folder, channel
 
 **Published item**:
 A collection item made available to public visitors.

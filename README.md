@@ -35,7 +35,7 @@ sharing the generated Astro workspace.
 ## Publishing
 
 See [file authoring and the static boundary](docs/backend-api.md) for Likes,
-named collections, music, software and assets. Blog authoring is described below.
+categories, music, software and assets. Blog authoring is described below.
 Site settings and interactions stay in code.
 
 Commit content and assets together, run the checks above, and manually deploy the

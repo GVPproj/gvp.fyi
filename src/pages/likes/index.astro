@@ -1,9 +1,9 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import ContentRow from '../components/ContentRow.astro';
-import { collectionRows } from '../lib/likes-presentation';
-import { collectionOverview } from '../lib/likes-collection';
-import { sectionLabel } from '../lib/site-settings';
+import Layout from '../../layouts/Layout.astro';
+import ContentRow from '../../components/ContentRow.astro';
+import { collectionRows } from '../../lib/likes-presentation';
+import { collectionOverview } from '../../lib/likes-collection';
+import { sectionLabel } from '../../lib/site-settings';
 
 const rows = collectionRows(collectionOverview);
 ---

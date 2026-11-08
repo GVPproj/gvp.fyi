@@ -20,7 +20,11 @@ async function site(t, collection) {
   await mkdir(join(root, 'src/content'), { recursive: true });
   await cp(new URL('../src/content.config.ts', import.meta.url), join(root, 'src/content.config.ts'));
   await cp(new URL('../src/config/site-settings.json', import.meta.url), join(root, 'src/config/site-settings.json'));
-  await writeFile(join(root, 'src/content/named-collections.json'), JSON.stringify([{ id: 'reading', name: 'Reading' }]));
+  await cp(new URL('../src/config/category-schema.ts', import.meta.url), join(root, 'src/config/category-schema.ts'));
+  const settingsPath = join(root, 'src/config/site-settings.json');
+  const settings = JSON.parse(await readFile(settingsPath, 'utf8'));
+  settings.categories.likes = [{ id: 'reading', title: 'Reading' }];
+  await writeFile(settingsPath, JSON.stringify(settings));
   await writeFile(join(root, 'astro.config.mjs'), 'export default { site: "https://gvp.fyi" };\n');
   await writeFile(join(root, 'src/pages/index.astro'), `---
 import { getCollection } from 'astro:content';
@@ -35,7 +39,6 @@ async function likesSite(t) {
   for (const dir of ['components', 'layouts', 'styles', 'scripts', 'lib']) {
     await cp(new URL(`../src/${dir}`, import.meta.url), join(root, 'src', dir), { recursive: true });
   }
-  await cp(new URL('../src/pages/likes.astro', import.meta.url), join(root, 'src/pages/likes.astro'));
   await cp(new URL('../src/pages/likes', import.meta.url), join(root, 'src/pages/likes'), { recursive: true });
   return root;
 }
@@ -50,7 +53,7 @@ async function entry(root, collection, folder, data) {
 const note = {
   id: 'note-one', slug: 'stable-note', title: 'A personal note', type: 'note',
   body: '**Literal** <em>text</em>\n\nSecond paragraph.',
-  created: '2026-10-01 12:34:56.123Z', updated: '2026-10-02 12:34:56.123Z', collections: ['reading'],
+  created: '2026-10-01 12:34:56.123Z', updated: '2026-10-02 12:34:56.123Z', category: 'reading',
 };
 
 test('native Likes retain explicit identity, date added and literal text independently of the entry folder', async t => {
@@ -66,7 +69,22 @@ test('native Likes retain explicit identity, date added and literal text indepen
   assert.equal(entries[0].data.slug, 'stable-note');
   assert.equal(entries[0].data.body, '**Literal** <em>text</em>\n\nSecond paragraph.');
   assert.equal(entries[0].data.created, '2026-10-01 12:34:56.123Z');
-  assert.deepEqual(entries[0].data.collections, [{ collection: 'namedCollections', id: 'reading' }]);
+  assert.equal(entries[0].data.category, 'reading');
+  assert.equal(Object.hasOwn(entries[0].data, 'collections'), false);
+});
+
+test('changing only category settings revalidates unchanged entries on the next build', async t => {
+  const root = await likesSite(t);
+  await entry(root, 'likes', 'note', note);
+  const initial = await build(root);
+  assert.equal(initial.code, 0, initial.output);
+  const path = join(root, 'src/config/site-settings.json');
+  const settings = JSON.parse(await readFile(path, 'utf8'));
+  settings.categories.likes = [];
+  await writeFile(path, JSON.stringify(settings));
+  const removed = await build(root);
+  assert.notEqual(removed.code, 0, removed.output);
+  assert.match(removed.output, /category/i);
 });
 
 test('native music preserves partial dates, optional metadata and real local artwork', async t => {
@@ -113,12 +131,12 @@ test('Likes render literal repository text at stable readable and legacy routes 
 test('Likes publish adjacent images and PDF downloads through native assets', async t => {
   const root = await likesSite(t);
   const imageDir = await entry(root, 'likes', 'image', {
-    id: 'image-id', slug: 'local-image', title: 'Local image', created: note.created, image: './image.png',
+    id: 'image-id', slug: 'local-image', title: 'Local image', created: note.created, category: 'reading', image: './image.png',
   });
   await writeFile(join(imageDir, 'image.png'), await sharp({ create: { width: 320, height: 240, channels: 3, background: '#336699' } }).png().toBuffer());
   const pdf = Buffer.from('%PDF-1.4\nrepository download\n%%EOF');
   const pdfDir = await entry(root, 'likes', 'pdf', {
-    id: 'pdf-id', slug: 'local-pdf', title: 'Local PDF', created: note.created, download: './document.pdf',
+    id: 'pdf-id', slug: 'local-pdf', title: 'Local PDF', created: note.created, category: 'reading', download: './document.pdf',
   });
   await writeFile(join(pdfDir, 'document.pdf'), pdf);
   const result = await build(root);
@@ -191,22 +209,49 @@ test('Likes reject duplicate identities, readable routes and legacy-route collis
   }
 });
 
-test('the named-collection registry rejects duplicate or reserved IDs and missing source files', async t => {
-  const root = await site(t, 'namedCollections');
-  for (const [name, data] of [
-    ['duplicate ID', [{ id: 'reading', name: 'Reading' }, { id: 'reading', name: 'Other' }]],
-    ['reserved Misc. ID', [{ id: 'misc', name: 'My collection' }]],
-    ['missing ID', [{ name: 'Reading' }]],
-    ['empty name', [{ id: 'reading', name: ' ' }]],
-  ]) {
-    await t.test(name, async () => {
-      await writeFile(join(root, 'src/content/named-collections.json'), JSON.stringify(data));
-      const result = await build(root);
-      assert.notEqual(result.code, 0, result.output);
-    });
+test('all settings category registries reject duplicate IDs and missing or empty IDs and titles', async t => {
+  const root = await site(t, 'likes');
+  const path = join(root, 'src/config/site-settings.json');
+  const settings = JSON.parse(await readFile(path, 'utf8'));
+  for (const kind of ['likes', 'software', 'releases']) {
+    for (const [name, data] of [
+      ['duplicate ID', [{ id: 'reading', title: 'Reading' }, { id: 'reading', title: 'Other' }]],
+      ['missing ID', [{ title: 'Reading' }]],
+      ['empty ID', [{ id: '', title: 'Reading' }]],
+      ['blank ID', [{ id: ' ', title: 'Reading' }]],
+      ['missing title', [{ id: 'reading' }]],
+      ['empty title', [{ id: 'reading', title: '' }]],
+      ['blank title', [{ id: 'reading', title: ' ' }]],
+      ['missing registry', undefined],
+    ]) {
+      await t.test(`${kind}: ${name}`, async () => {
+        await writeFile(path, JSON.stringify({ ...settings, categories: { ...settings.categories, [kind]: data } }));
+        const result = await build(root);
+        assert.notEqual(result.code, 0, result.output);
+        assert.match(result.output, /categor|registry|\bid\b|title|array/i);
+      });
+    }
   }
-  await rm(join(root, 'src/content/named-collections.json'));
-  assert.notEqual((await build(root)).code, 0);
+  await rm(path);
+  const missing = await build(root);
+  assert.notEqual(missing.code, 0, missing.output);
+  assert.match(missing.output, /site-settings\.json/);
+});
+
+test('misc is accepted as an explicit category ID in every settings registry', async t => {
+  const root = await likesSite(t);
+  const path = join(root, 'src/config/site-settings.json');
+  const settings = JSON.parse(await readFile(path, 'utf8'));
+  for (const kind of ['likes', 'software', 'releases']) {
+    settings.categories[kind] = [{ id: 'misc', title: `Explicit ${kind}` }];
+  }
+  await writeFile(path, JSON.stringify(settings));
+  await entry(root, 'likes', 'note', { ...note, category: 'misc' });
+  const result = await build(root);
+  assert.equal(result.code, 0, result.output);
+  const { document } = parseHTML(await readFile(join(root, 'dist/likes/index.html'), 'utf8'));
+  assert.deepEqual([...document.querySelectorAll('#collection-rows h2')].map(heading => heading.textContent.trim()), ['Explicit likes']);
+  assert.equal(document.querySelector('#collection-misc-heading').closest('section').querySelectorAll('a[href="/likes/stable-note"]').length, 1);
 });
 
 test('invalid music metadata, track order and nonlocal artwork fail collection loading', async t => {
@@ -245,7 +290,7 @@ test('collection-item text limits count Unicode characters rather than UTF-16 un
   assert.equal(JSON.parse(document.querySelector('script').textContent)[0].data.title, '🎵'.repeat(500));
 });
 
-test('invalid collection-item kinds, timestamps and local assets fail collection loading', async t => {
+test('invalid collection-item categories, kinds, timestamps and local assets fail collection loading', async t => {
   const root = await site(t, 'likes');
   for (const [name, changes, diagnostic] of [
     ['empty note', { body: ' ' }, /body|text/i],
@@ -257,7 +302,17 @@ test('invalid collection-item kinds, timestamps and local assets fail collection
     ['missing local image', { type: '', image: './missing.png' }, /missing\.png/i],
     ['remote image', { type: '', image: 'https://example.test/image.png' }, /entry-relative/i],
     ['invalid readable route', { slug: '../escape' }, /slug/i],
-    ['duplicate membership', { collections: ['reading', 'reading'] }, /membership|collection/i],
+    ['unknown category', { category: 'unknown' }, /category/i],
+    ['undeclared misc category', { category: 'misc' }, /category/i],
+    ['missing category', { category: undefined }, /category/i],
+    ['empty category', { category: '' }, /category/i],
+    ['blank category', { category: ' ' }, /category/i],
+    ['category array', { category: ['reading'] }, /category/i],
+    ['multiple categories', { category: ['reading', 'other'] }, /category/i],
+    ['empty category array', { category: [] }, /category/i],
+    ['legacy collections only', { category: undefined, collections: ['reading'] }, /category|collections/i],
+    ['legacy collections alongside category', { collections: ['reading'] }, /collections/i],
+    ['legacy empty collections', { collections: [] }, /collections/i],
   ]) {
     await t.test(name, async () => {
       await entry(root, 'likes', 'item', { ...note, ...changes });

@@ -23,7 +23,7 @@ test('native images retain responsive widths, proportional sampling, original Li
   const small = await sharp({ create: { width: 80, height: 60, channels: 3, background: '#336699' } }).png().toBuffer();
   await site.entry('likes', 'small-image', {
     id: 'small-image-id', slug: 'small-image', title: 'Small image',
-    created: '2026-10-01T00:00:00Z', image: './small.png',
+    created: '2026-10-01T00:00:00Z', image: './small.png', category: 'i69nqzrzgom9c3s',
   }, { 'small.png': small });
   const built = await site.build();
   assert.equal(built.code, 0, built.logs);

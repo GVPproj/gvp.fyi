@@ -7,7 +7,7 @@ import { fixtureSite } from './helpers/fixture-site.js';
 
 test('credential-free repository build preserves software, blog, testimonials and static media', { timeout: 120000 }, async t => {
   const site = await fixtureSite(t);
-  await site.collections([]);
+  await site.categories([]);
   const { dir, code, logs } = await site.build();
   assert.equal(code, 0, logs);
   await t.test('homepage renders accessible testimonial choices and attribution', async () => {

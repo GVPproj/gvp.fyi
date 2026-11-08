@@ -11,9 +11,7 @@
   "attribution": "",
   "created": "2026-11-06 17:43:00.660Z",
   "updated": "2026-11-06 17:43:00.660Z",
-  "collections": [
-    "ykfo21a54lngam6"
-  ],
+  "category": "ykfo21a54lngam6",
   "image": "./image.png"
 }
 ---

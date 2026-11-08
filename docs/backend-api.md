@@ -8,8 +8,8 @@ this boundary.
 
 - Likes: `src/content/likes/<slug>/index.md` and adjacent source images/downloads.
 - Music: `src/content/music/<slug>/index.md` and adjacent source artwork.
-- Named collections: `src/content/named-collections.json`; collection items refer
-  to stable registry IDs, not copied names.
+- Categories: `src/config/site-settings.json` under `categories.likes`,
+  `categories.software` and `categories.releases`; entries refer to stable IDs.
 - Software: `src/content/software/<slug>/index.mdx` and adjacent assets.
 - Blog: existing MDX entries under `src/content/blog/`.
 - Site settings and interactions: repository code and `src/config/site-settings.json`.
@@ -20,7 +20,7 @@ export or an ongoing sync service.
 
 ## Authoring
 
-### Likes and named collections
+### Likes
 
 Use JSON frontmatter in each `src/content/likes/<slug>/index.md`. Keep `id` and
 explicit `slug` stable: the slug determines the readable page URL, while the ID
@@ -36,11 +36,10 @@ or download. `description`, `commentary`, `body` and attribution are literal tex
 not Markdown composition in the file body. Use credential-free HTTP(S) links.
 
 Put image originals and PDFs beside `index.md` and reference them with `./`
-paths; downloads must be adjacent `.pdf` files. Assign optional named collections
-through `collections`, using IDs from `src/content/named-collections.json`.
-Registry entries need a unique stable `id` and nonempty `name`; `misc` is reserved.
-Rename a named collection in the registry rather than changing its ID or copying
-its name into collection items.
+paths; downloads must be adjacent `.pdf` files. Each item requires one `category`,
+using an ID from `categories.likes` in `src/config/site-settings.json`. Categories
+sort alphabetically by title, omit empty rows and contain items newest first.
+There is no implicit Misc. category or uncategorized membership.
 
 ### Music
 
@@ -65,6 +64,15 @@ Category IDs come from `src/config/site-settings.json`. Role, team, gallery and
 tagline remain optional. Commit adjacent originals with the entry and use `./`
 image paths. Supply screenshot/gallery alt text; image dimensions come from the
 originals, not redundant authored width/height fields.
+
+### Categories
+
+Likes, music and software each require exactly one category per entry. Define
+categories in `src/config/site-settings.json`, using `id` and `title`. IDs must be
+unique within each section and titles must be nonempty. Rename a category by
+editing its title, keeping its ID stable. Move or remove its entries before
+removing a category; unknown category IDs fail the build. Music and software
+use the registry's category order; Likes sorts categories alphabetically.
 
 ## Build and visitor boundary
 
@@ -108,7 +116,7 @@ change its schema or APIs, delete records/storage, or revoke shared credentials.
 
 ## Testing boundary
 
-Tests cover native collection validation, stable routes, named-collection
-references, chronology, release precision/tie order, local assets and static
+Tests cover native collection validation, stable routes, category membership,
+chronology, release precision/tie order, local assets and static
 rendering/interaction behavior. Repository fixtures are test inputs, not sources
 for public content. Browser skips are unexecuted checks, not passes.

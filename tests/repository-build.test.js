@@ -15,7 +15,7 @@ const release = { id: 'release-one', slug: 'file-authored-release', order: 0, ca
 // This covers successive deployments and static serving of the real site config.
 test('file-authored music builds, serves native artwork offline, and disappears when removed', { timeout: 180000 }, async t => {
   const site = await fixtureSite(t);
-  await site.collections([]);
+  await site.categories([]);
   const artwork = await sharp({ create: { width: 300, height: 200, channels: 3, background: '#369' } }).png().toBuffer();
   await site.entry('music', 'independent-folder', release, { 'cover.png': artwork });
   const initial = await site.build();
@@ -73,7 +73,7 @@ test('file-authored music builds, serves native artwork offline, and disappears 
 
 test('missing and corrupt required artwork fail a build rather than publish a partial catalogue', { timeout: 180000 }, async t => {
   const site = await fixtureSite(t);
-  await site.collections([]);
+  await site.categories([]);
   const artwork = await sharp({ create: { width: 30, height: 20, channels: 3, background: '#369' } }).png().toBuffer();
   const directory = await site.entry('music', 'required-artwork', release, { 'cover.png': artwork });
   const successful = await site.build();

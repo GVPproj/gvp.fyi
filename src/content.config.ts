@@ -1,8 +1,7 @@
-import { defineCollection, reference } from 'astro:content';
-import { file, glob } from 'astro/loaders';
+import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import siteSettings from './config/site-settings.json';
-import namedCollectionRegistry from './content/named-collections.json';
+import { categorySchema } from './config/category-schema';
 
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
@@ -26,9 +25,7 @@ const software = defineCollection({
     return z.object({
       title: text,
       description: text,
-      category: text.refine(id => siteSettings.categories.software.some(category => category.id === id), {
-        message: 'Unknown software category in production site settings',
-      }),
+      category: categorySchema('software'),
       order: z.number().int(),
       tooling: z.array(text),
       screenshot: localImage,
@@ -47,19 +44,6 @@ const software = defineCollection({
       path: ['url'],
     });
   },
-});
-
-const namedCollectionSchema = z.object({
-  id: z.string().regex(/^[a-zA-Z0-9_-]+$/).refine(id => id !== 'misc', 'The misc ID is reserved'),
-  name: z.string().max(100).refine(name => Boolean(name.trim()), 'Named collections require a name'),
-}).strict();
-// file() otherwise logs/skips malformed input and can overwrite duplicate IDs.
-// Validate the complete registry before its entries reach the native loader.
-z.array(namedCollectionSchema).refine(groups => new Set(groups.map(group => group.id)).size === groups.length,
-  'Duplicate named-collection ID').parse(namedCollectionRegistry);
-const namedCollections = defineCollection({
-  loader: file('./src/content/named-collections.json'),
-  schema: namedCollectionSchema,
 });
 
 // Folder IDs keep duplicate explicit slugs visible to route validation rather than
@@ -108,10 +92,7 @@ const likes = defineCollection({
     attribution: z.string().max(1000).default(''),
     created: timestamp,
     updated: timestamp.optional(),
-    collections: z.array(reference('namedCollections')).default([]).refine(
-      groups => new Set(groups.map(group => group.id)).size === groups.length,
-      'Duplicate named-collection membership',
-    ),
+    category: categorySchema('likes'),
     image: z.preprocess(entryRelativeImage, image()).optional(),
     download: z.string().regex(/^\.\/[a-zA-Z0-9_-][a-zA-Z0-9_.-]*\.pdf$/, 'Downloads must be adjacent PDF files').optional(),
   }).strict().superRefine((item, ctx) => {
@@ -136,7 +117,7 @@ const music = defineCollection({
     id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     order: z.number().int().default(0),
-    category: text.refine(id => siteSettings.categories.releases.some(category => category.id === id), 'Unknown music category'),
+    category: categorySchema('releases'),
     artwork: z.preprocess(entryRelativeImage, image()),
     title: text.max(500),
     artist: text.max(500),
@@ -158,4 +139,4 @@ const music = defineCollection({
   }).strict(),
 });
 
-export const collections = { blog, software, namedCollections, likes, music };
+export const collections = { blog, software, likes, music };

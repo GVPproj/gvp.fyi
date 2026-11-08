@@ -11,10 +11,10 @@ async function collectionSite(t) {
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(join(root, 'src/pages'), { recursive: true });
   await cp(new URL('../src/content/software', import.meta.url), join(root, 'src/content/software'), { recursive: true });
-  await writeFile(join(root, 'src/content/named-collections.json'), '[]\n');
   await cp(new URL('../src/content.config.ts', import.meta.url), join(root, 'src/content.config.ts'));
   await mkdir(join(root, 'src/config'));
   await cp(new URL('../src/config/site-settings.json', import.meta.url), join(root, 'src/config/site-settings.json'));
+  await cp(new URL('../src/config/category-schema.ts', import.meta.url), join(root, 'src/config/category-schema.ts'));
   await writeFile(join(root, 'astro.config.mjs'), `import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 export default defineConfig({ integrations: [mdx()] });\n`);

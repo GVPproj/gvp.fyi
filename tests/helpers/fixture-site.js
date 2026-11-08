@@ -42,8 +42,11 @@ export async function fixtureSite(t, { empty = ['likes', 'music'], cleanup = tru
   return {
     root,
     dispose,
-    async collections(groups) {
-      await writeFile(join(root, 'src/content/named-collections.json'), JSON.stringify(groups));
+    async categories(groups) {
+      const path = join(root, 'src/config/site-settings.json');
+      const settings = JSON.parse(await readFile(path, 'utf8'));
+      settings.categories.likes = groups;
+      await writeFile(path, `${JSON.stringify(settings, null, 2)}\n`);
     },
     async entry(collection, folder, data, assets = {}) {
       const directory = join(root, 'src/content', collection, folder);

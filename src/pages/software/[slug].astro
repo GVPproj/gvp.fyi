@@ -1,12 +1,12 @@
 ---
 import type { InferGetStaticPropsType } from 'astro';
 import Layout from '../../layouts/Layout.astro';
-import { getCollection } from 'astro:content';
+import { getCategorizedCollection } from '../../lib/categorized-content';
 import { softwareImage } from '../../lib/software-image';
 import { sectionLabel } from '../../lib/site-settings';
 
 export async function getStaticPaths() {
-  return (await getCollection('software')).map(entry => ({
+  return (await getCategorizedCollection('software')).map(entry => ({
     params: { slug: entry.id },
     props: { project: entry.data },
   }));

@@ -11,9 +11,7 @@
   "attribution": "",
   "created": "2026-11-06 17:45:56.867Z",
   "updated": "2026-11-06 17:46:01.279Z",
-  "collections": [
-    "i69nqzrzgom9c3s"
-  ],
+  "category": "i69nqzrzgom9c3s",
   "image": "./image.jpg"
 }
 ---

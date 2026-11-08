@@ -11,9 +11,7 @@
   "attribution": "",
   "created": "2026-10-06 17:48:42.653Z",
   "updated": "2026-10-15 14:59:19.971Z",
-  "collections": [
-    "214mhaukq4meaua"
-  ],
+  "category": "214mhaukq4meaua",
   "image": "./image.png"
 }
 ---
