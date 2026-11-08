@@ -116,7 +116,6 @@ const music = defineCollection({
     release_date: text.refine(validCalendarDate, 'Invalid calendar release date'),
     tracks: z.array(z.object({
       title: text.max(500), track_num: z.number().int().positive(),
-      audio_url: z.string().regex(/^\/audio\/[a-zA-Z0-9/_-]+\.mp3$/).optional(),
     }).strict()).default([]).refine(tracks => tracks.every((track, index) => track.track_num === index + 1), 'Tracks must be ordered with consecutive track numbers'),
     credit: text.max(5000).optional(),
     display_title: text.max(5000).optional(),

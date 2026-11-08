@@ -1,6 +1,4 @@
-import { stat } from 'node:fs/promises';
 import { getCategorizedCollection } from './categorized-content';
-import { publicDir } from 'astro:config/server';
 
 export async function getMusicReleases() {
   const entries = await getCategorizedCollection('music');
@@ -14,15 +12,8 @@ export async function getMusicReleases() {
       seen.set(value, entry.id);
     }
   }
-  const releases = await Promise.all(entries.map(async entry => {
+  const releases = entries.map(entry => {
     const { data } = entry;
-    for (const track of data.tracks) {
-      if (!track.audio_url) continue;
-      const audio = await stat(new URL(`.${track.audio_url}`, publicDir)).catch(() => undefined);
-      if (!audio?.isFile()) {
-        throw new Error(`Music release "${data.slug}" track ${track.track_num}: missing audio file "${track.audio_url}"`);
-      }
-    }
     return {
       ...data,
       entry,
@@ -36,6 +27,6 @@ export async function getMusicReleases() {
         ? data.release_date
         : new Date(data.release_date).toISOString().slice(0, 10),
     };
-  }));
+  });
   return releases.sort((a, b) => b.date.localeCompare(a.date) || a.order - b.order || a.id.localeCompare(b.id));
 }

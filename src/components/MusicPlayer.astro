@@ -1,0 +1,148 @@
+---
+import { stat } from 'node:fs/promises';
+import { publicDir } from 'astro:config/server';
+import PixelBox from './elements/PixelBox.astro';
+
+interface Props {
+  title: string;
+  artist?: string;
+  tracks: { title: string; src: string }[];
+}
+
+const { title, artist, tracks } = Astro.props;
+for (const track of tracks) {
+  if (!track.src.startsWith('/audio/')) continue;
+  const file = await stat(new URL(`.${track.src}`, publicDir)).catch(() => undefined);
+  if (!file?.isFile()) throw new Error(`Music player "${title}": missing audio file "${track.src}"`);
+}
+---
+
+<PixelBox as="section" class="music-player" aria-label={`Listen to ${title}`}>
+  <header>
+    <h2>{title}</h2>
+    {artist && <p>{artist}</p>}
+  </header>
+  <ol>
+    {tracks.map((track, index) => (
+      <li>
+        <div class="track-heading">
+          <span class="track-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+          <h3>{track.title}</h3>
+          <a href={track.src} download aria-label={`Download ${track.title}`}>MP3 ↓</a>
+        </div>
+        <music-transport>
+          <audio controls preload="none" src={track.src} aria-label={track.title}>
+            <a href={track.src}>Listen to {track.title}</a>
+          </audio>
+          <div class="transport" hidden>
+            <button type="button" data-play aria-label={`Play ${track.title}`}>▶</button>
+            <input type="range" min="0" max="100" value="0" step="0.1" disabled aria-label={`Seek in ${track.title}`} />
+            <span class="time">0:00 / —:—</span>
+            <button type="button" data-mute aria-label={`Mute ${track.title}`} aria-pressed="false">Mute</button>
+          </div>
+          <p class="playback-error" role="status" hidden>Unable to play this track. Try the MP3 link above.</p>
+        </music-transport>
+      </li>
+    ))}
+  </ol>
+</PixelBox>
+
+<script>
+  class MusicTransport extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = 'true';
+      const audio = this.querySelector('audio')!;
+      const transport = this.querySelector<HTMLElement>('.transport')!;
+      const play = this.querySelector<HTMLButtonElement>('[data-play]')!;
+      const mute = this.querySelector<HTMLButtonElement>('[data-mute]')!;
+      const seek = this.querySelector<HTMLInputElement>('input')!;
+      const time = this.querySelector<HTMLElement>('.time')!;
+      const error = this.querySelector<HTMLElement>('.playback-error')!;
+      const title = audio.getAttribute('aria-label');
+      const format = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+      const update = () => {
+        const hasDuration = Number.isFinite(audio.duration) && audio.duration > 0;
+        seek.disabled = !hasDuration;
+        seek.max = String(hasDuration ? audio.duration : 100);
+        seek.value = String(audio.currentTime);
+        seek.setAttribute('aria-valuetext', `${format(audio.currentTime)} of ${hasDuration ? format(audio.duration) : 'unknown duration'}`);
+        time.textContent = `${format(audio.currentTime)} / ${hasDuration ? format(audio.duration) : '—:—'}`;
+        play.textContent = audio.paused ? '▶' : 'Ⅱ';
+        play.setAttribute('aria-label', `${audio.paused ? 'Play' : 'Pause'} ${title}`);
+      };
+      play.addEventListener('click', async () => {
+        if (!audio.paused) { audio.pause(); return; }
+        error.hidden = true;
+        try { await audio.play(); } catch { error.hidden = false; }
+      });
+      audio.addEventListener('play', () => {
+        document.querySelectorAll<HTMLAudioElement>('music-transport audio').forEach(other => {
+          if (other !== audio) other.pause();
+        });
+      });
+      seek.addEventListener('input', () => { audio.currentTime = Number(seek.value); update(); });
+      mute.addEventListener('click', () => { audio.muted = !audio.muted; });
+      audio.addEventListener('volumechange', () => {
+        mute.setAttribute('aria-pressed', String(audio.muted));
+        mute.textContent = audio.muted ? 'Unmute' : 'Mute';
+        mute.setAttribute('aria-label', `${audio.muted ? 'Unmute' : 'Mute'} ${title}`);
+      });
+      audio.addEventListener('error', () => { error.hidden = false; });
+      for (const event of ['timeupdate', 'loadedmetadata', 'durationchange', 'play', 'pause', 'ended', 'emptied']) {
+        audio.addEventListener(event, update);
+      }
+      update();
+      audio.controls = false;
+      audio.hidden = true;
+      transport.hidden = false;
+    }
+  }
+  if (!customElements.get('music-transport')) customElements.define('music-transport', MusicTransport);
+</script>
+
+<style>
+  .music-player {
+    color-scheme: dark;
+    text-align: left;
+  }
+  header { padding: 1.5rem; }
+  h2 { margin: 0 0 .25rem; }
+  header p { margin: 0; color: var(--nord4); font-size: .9rem; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { padding: 1rem clamp(.75rem, 4vw, 1.5rem); border-block-start: 1px solid var(--nord3); }
+  .track-heading { display: flex; align-items: baseline; gap: .75rem; margin-block-end: .75rem; }
+  .track-number { color: var(--nord4); font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .track-heading h3 { flex: 1; margin: 0; font-size: 1rem; font-weight: 400; }
+  a { color: var(--color-accent); font-size: .75rem; white-space: nowrap; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+  audio { display: block; width: 100%; min-width: 0; height: 40px; }
+  [hidden] { display: none !important; }
+  music-transport { display: block; }
+  .transport { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+  button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: .5rem .75rem;
+    border: 2px solid #171c25;
+    border-radius: 0;
+    background: var(--nord2);
+    box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0);
+    color: var(--color-accent);
+    font: inherit;
+    font-size: .8rem;
+    cursor: pointer;
+  }
+  button:hover { background: var(--nord3); }
+  button:active, button[aria-pressed='true'] { box-shadow: inset 2px 2px 0 var(--nord0); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+  input[type='range'] { flex: 1; min-width: 5rem; width: 5rem; height: 2.75rem; margin: 0; background: transparent; appearance: none; cursor: pointer; }
+  input[type='range']:disabled { opacity: .45; cursor: default; }
+  input[type='range']::-webkit-slider-runnable-track { height: .5rem; background: var(--nord0); border: 1px solid var(--nord3); }
+  input[type='range']::-moz-range-track { height: .5rem; background: var(--nord0); border: 1px solid var(--nord3); }
+  input[type='range']::-webkit-slider-thumb { appearance: none; width: .75rem; height: 1.25rem; margin-top: -.4375rem; border: 2px solid var(--nord0); border-radius: 0; background: var(--color-accent); }
+  input[type='range']::-moz-range-thumb { width: .75rem; height: 1.25rem; border: 2px solid var(--nord0); border-radius: 0; background: var(--color-accent); }
+  .time { color: var(--nord4); font-size: .75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .playback-error { color: var(--nord4); font-size: .875rem; margin-block-start: .75rem; }
+</style>

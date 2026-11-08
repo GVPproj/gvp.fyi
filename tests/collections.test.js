@@ -102,6 +102,9 @@ test('adjacent PDFs are published and music dates retain their precision', async
   const release = await page('music/watery-grave-ep');
   assert.equal(release.querySelector('time').getAttribute('datetime'), '2005');
   assert.equal(release.querySelectorAll('audio').length, 5);
+  assert.equal(release.querySelectorAll('.content-body .music-player audio').length, 5);
+  assert.equal(release.querySelectorAll('.music-player a[download]').length, 5);
+  assert.ok(!release.textContent.includes('No listening link is currently available'));
 });
 
 test('loaders still reject route conflicts, empty bodies, invalid PDFs and missing audio', async () => {
@@ -110,7 +113,7 @@ test('loaders still reject route conflicts, empty bodies, invalid PDFs and missi
     ['likes/fixture-quote/index.mdx', source => source.slice(0, source.lastIndexOf('---') + 3), /Quotes and notes require a Markdown body/],
     ['software/tipbox/index.mdx', source => source.slice(0, source.lastIndexOf('---') + 3), /Software projects require a Markdown body/],
     ['likes/fixture-pdf/document.pdf', () => 'not a PDF', /Missing or invalid PDF download/],
-    ['music/watery-grave-ep/index.md', source => source.replace('/audio/watery-grave/01-watery-grave.mp3', '/audio/missing.mp3'), /missing audio file/],
+    ['music/watery-grave-ep/index.mdx', source => source.replace('/audio/watery-grave/01-watery-grave.mp3', '/audio/missing.mp3'), /missing audio file/],
   ]) {
     const file = join(fixture, 'src/content', path);
     const original = await readFile(file, 'utf8');

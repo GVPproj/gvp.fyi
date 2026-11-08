@@ -1,8 +1,7 @@
 <div class="content-body"><slot /></div>
 
 <style>
-  .content-body { min-inline-size: 0; color: var(--color-foreground); overflow-wrap: anywhere; }
-  .content-body :global(> * + *),
+  .content-body { display: flex; flex-direction: column; gap: 2rem; margin-top: 1rem; min-inline-size: 0; color: var(--color-foreground); overflow-wrap: anywhere; }
   .content-body :global(blockquote > * + *) { margin-block-start: 1rem; }
   .content-body :global(h2) { font-size: 1.25rem; font-weight: 400; }
   .content-body :global(h3) { font-size: 1.125rem; font-weight: 400; }
