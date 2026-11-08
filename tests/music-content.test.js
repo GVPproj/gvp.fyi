@@ -62,9 +62,9 @@ test('repository music builds at its explicit slug with native responsive artwor
   assert.equal(cover.getAttribute('height'), '550');
   assert.equal(cover.getAttribute('sizes'), '(max-width: 48rem) calc(100vw - 2rem), 65ch');
   const variants = cover.getAttribute('srcset').split(', ').map(candidate => candidate.split(' '));
-  assert.deepEqual(variants.map(([, width]) => width), ['160w', '320w', '640w', '960w', '1100w']);
-  assert.equal(cover.getAttribute('src'), variants.at(-1)[0]);
-  assert.equal(links[0].querySelector('img').getAttribute('src'), variants[1][0]);
+  assert.ok(variants.length > 1, 'artwork has responsive candidates');
+  const thumbnail = links[0].querySelector('img');
+  assert.equal((await sharp(await readFile(join(root, 'dist', thumbnail.getAttribute('src')))).metadata()).width, 320);
   for (const [source, width] of variants) {
     assert.match(source, /^\/_astro\//);
     const metadata = await sharp(await readFile(join(root, 'dist', source))).metadata();
@@ -141,11 +141,12 @@ test('music retains literal descriptions, optional metadata, listening links and
   assert.equal(index.querySelector('a[href="/music/full-metadata"] .subtitle').textContent, 'Fixture artist');
   assert.equal(index.querySelector('a[href="/music/full-metadata"] .item-metadata').textContent, 'Production');
   assert.equal(index.querySelectorAll('a[href="/music/minimal"] .subtitle, a[href="/music/minimal"] .item-metadata').length, 0);
-  for (const [slug, widths] of [['full-metadata', ['160w', '240w']], ['minimal', ['80w']], ['default-player', ['160w', '320w']]]) {
+  for (const [slug, width] of [['full-metadata', 240], ['minimal', 80], ['default-player', 320]]) {
     const cover = (await page(root, `music/${slug}`)).querySelector('.release-media img');
     const variants = cover.getAttribute('srcset').split(', ').map(candidate => candidate.split(' '));
-    assert.deepEqual(variants.map(([, width]) => width), widths, 'Small originals are never upscaled');
-    assert.equal(index.querySelector(`a[href="/music/${slug}"] img`).getAttribute('src'), variants.at(-1)[0]);
+    assert.ok(variants.every(([, candidate]) => parseInt(candidate) <= width), 'Small originals are never upscaled');
+    const thumbnail = index.querySelector(`a[href="/music/${slug}"] img`);
+    assert.equal((await sharp(await readFile(join(root, 'dist', thumbnail.getAttribute('src')))).metadata()).width, width);
   }
 });
 

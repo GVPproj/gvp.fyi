@@ -1,8 +1,11 @@
 ---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
 export interface ContentRowItem {
   href: string;
   title: string;
-  image?: { src: string; srcset?: string; width: number; height: number };
+  image?: ImageMetadata;
   text?: string;
   label?: string;
   subtitle?: string;
@@ -30,7 +33,7 @@ const heading = `${id}-heading`;
         <a href={item.href}>
           <div class:list={['content-preview', { 'text-preview': item.text !== undefined }]}>
             {item.image ? (
-              <img src={item.image.src} srcset={item.image.srcset} sizes="192px" alt="" width={item.image.width} height={item.image.height} loading="lazy" />
+              <Image src={item.image} width={Math.min(320, item.image.width)} layout="constrained" sizes="192px" alt="" />
             ) : <span>{item.text ?? item.label ?? item.title}</span>}
           </div>
           <span class="content-title">{item.title}</span>

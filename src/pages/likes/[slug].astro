@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
 import { likeItemTitle, likeAssetKind, likesItemURL, webURL } from '../../lib/likes.js';
 import { likes } from '../../lib/likes-collection';
@@ -34,7 +35,7 @@ const textItem = item?.type === 'quote' || item?.type === 'note';
             {item.attribution && <p class="attribution">{item.attribution}</p>}
           </>
         ))}
-        {asset && !pdf && <img src={asset} srcset={item.media?.srcset || undefined} sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={title} width={item.media?.width} height={item.media?.height} loading="lazy" />}
+        {item.image && <Image src={item.image} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={title} />}
         {pdf && <p><a href={asset} target="_blank" rel="noopener noreferrer">Open PDF</a></p>}
         {source && <p><a class="source" href={source} target="_blank" rel="noopener noreferrer">Source: {new URL(source).hostname}</a></p>}
         {item.description && <p class="description">{item.description}</p>}

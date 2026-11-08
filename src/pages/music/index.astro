@@ -17,8 +17,7 @@ const releaseCategories = await getReleaseCategories();
       items={category.releases.map(release => ({
         href: `/music/${release.slug}`,
         title: release.title,
-        image: { src: release.artwork.thumbnail, srcset: release.artwork.srcset,
-          width: release.artwork.width, height: release.artwork.height },
+        image: release.artwork,
         subtitle: release.credit ? release.artist : undefined,
         metadata: release.credit,
       }))}

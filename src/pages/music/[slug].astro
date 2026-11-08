@@ -1,5 +1,6 @@
 ---
 import type { InferGetStaticPropsType } from 'astro';
+import { Image } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
 import { getReleaseCategories } from '../../lib/music-releases';
 
@@ -31,9 +32,8 @@ const streaming = [
       <p><time datetime={release.date}>{release.display_date ?? release.date}</time></p>
     </header>
     <div class="release-media">
-      <img src={release.artwork.src} alt={`${release.title} album cover`}
-        width={release.artwork.width} height={release.artwork.height}
-        srcset={release.artwork.srcset}
+      <Image src={release.artwork} alt={`${release.title} album cover`}
+        layout="constrained"
         sizes="(max-width: 48rem) calc(100vw - 2rem), 65ch"
         loading="eager" decoding="async" />
       {release.album_id && <iframe

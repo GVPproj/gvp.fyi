@@ -48,12 +48,8 @@ export class AmbientAudio {
       this.enabled = true;
     } catch (error) {
       if (generation === this.generation) {
-        this.enabled = false;
-        this.expectRunning = false;
         this.resumeFrom = undefined;
-        this.stop();
-        this.mediaChannel.stop();
-        this.generation++;
+        this.deactivate();
       }
       throw error;
     }

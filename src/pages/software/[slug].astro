@@ -2,7 +2,7 @@
 import type { InferGetStaticPropsType } from 'astro';
 import Layout from '../../layouts/Layout.astro';
 import { getCategorizedCollection } from '../../lib/categorized-content';
-import { softwareImage } from '../../lib/software-image';
+import { Image } from 'astro:assets';
 import { sectionLabel } from '../../lib/site-settings';
 
 export async function getStaticPaths() {
@@ -14,10 +14,6 @@ export async function getStaticPaths() {
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { project } = Astro.props;
-const screenshot = await softwareImage(project.screenshot);
-const gallery = project.gallery && await Promise.all(project.gallery.map(async image => ({
-  ...image, ...await softwareImage(image.src),
-})));
 ---
 
 <Layout title={project.title}>
@@ -28,7 +24,7 @@ const gallery = project.gallery && await Promise.all(project.gallery.map(async i
       <p>{project.description}</p>
       {project.tagline && <p>{project.tagline}</p>}
     </header>
-    <img class="screenshot" src={screenshot.src} srcset={screenshot.srcset} sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} width={screenshot.width} height={screenshot.height} />
+    <Image class="screenshot" src={project.screenshot} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />
     <section aria-labelledby="tooling-heading">
       <h2 id="tooling-heading">Built with</h2>
       <ul class="tooling">{project.tooling.map(tool => <li>{tool}</li>)}</ul>
@@ -41,15 +37,12 @@ const gallery = project.gallery && await Promise.all(project.gallery.map(async i
       <h2 id="role-heading">{project.role.title}</h2>
       {project.role.paragraphs.map(paragraph => <p>{paragraph}</p>)}
     </section>}
-    {gallery && <section aria-label="Project screenshots" class="gallery">
-      {gallery.map(image => <img
+    {project.gallery && <section aria-label="Project screenshots" class="gallery">
+      {project.gallery.map(image => <Image
         src={image.src}
-        srcset={image.srcset}
+        layout="constrained"
         sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)"
         alt={image.alt}
-        width={image.width}
-        height={image.height}
-        loading="lazy"
       />)}
     </section>}
     {project.team && <section aria-labelledby="team-heading">

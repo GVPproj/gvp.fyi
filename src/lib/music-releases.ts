@@ -1,10 +1,8 @@
 import { stat } from 'node:fs/promises';
 import { getCategorizedCollection } from './categorized-content';
-import { contentImage } from './content-image';
 import { publicDir } from 'astro:config/server';
 import { categorySettings } from './site-settings';
 
-/** Native collection data, prepared only for the existing music templates. */
 export async function getReleaseCategories() {
   const entries = await getCategorizedCollection('music');
   for (const field of ['id', 'slug'] as const) {
@@ -32,7 +30,6 @@ export async function getReleaseCategories() {
       date: /^\d{4}(?:-\d{2})?$/.test(data.release_date)
         ? data.release_date
         : new Date(data.release_date).toISOString().slice(0, 10),
-      artwork: await contentImage(data.artwork),
     };
   }));
   return categorySettings('releases').map(category => ({

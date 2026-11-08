@@ -2,12 +2,10 @@
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
 import { getCategorizedCollection } from '../../lib/categorized-content';
-import { softwareImage } from '../../lib/software-image';
 import { categorySettings, sectionLabel } from '../../lib/site-settings';
 
-const softwareProjects = await Promise.all((await getCategorizedCollection('software'))
-  .sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id))
-  .map(async entry => ({ ...entry, image: await softwareImage(entry.data.screenshot) })));
+const softwareProjects = (await getCategorizedCollection('software'))
+  .sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id));
 const categories = categorySettings('software');
 const title = sectionLabel('software');
 ---
@@ -24,7 +22,7 @@ const title = sectionLabel('software');
         items={projects.map(project => ({
           href: `/software/${project.id}`,
           title: project.data.title,
-          image: project.image,
+          image: project.data.screenshot,
           metadata: project.data.tooling.join(' · '),
         }))}
       />;
