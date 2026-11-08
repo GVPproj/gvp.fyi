@@ -1,26 +1,21 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { getReleaseCategories } from '../../lib/music-releases';
+import { getMusicReleases } from '../../lib/music-releases';
+import { getCollectionOverview } from '../../lib/categorized-content';
 import { sectionLabel } from '../../lib/site-settings';
 
-const releaseCategories = await getReleaseCategories();
+const rows = getCollectionOverview('music', await getMusicReleases());
 ---
 
 <Layout title={sectionLabel('music')}>
   <div class="music-releases">
     <h1>{sectionLabel('music')}</h1>
-    {releaseCategories.map(category => <ContentRow
-      id={`category-${category.id}`}
-      title={category.name}
-      summary={`${category.releases.length} ${category.releases.length === 1 ? 'release' : 'releases'}`}
-      items={category.releases.map(release => ({
-        href: `/music/${release.slug}`,
-        title: release.title,
-        image: release.artwork,
-        subtitle: release.credit ? release.artist : undefined,
-        metadata: release.credit,
-      }))}
+    {rows.map(row => <ContentRow
+      id={`category-${row.id}`}
+      title={row.title}
+      summary={`${row.items.length} ${row.items.length === 1 ? 'release' : 'releases'}`}
+      items={row.items}
     />)}
   </div>
 </Layout>

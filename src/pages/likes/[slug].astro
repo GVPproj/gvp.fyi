@@ -3,21 +3,22 @@ import { Image } from 'astro:assets';
 import { render } from 'astro:content';
 import ContentBody from '../../components/ContentBody.astro';
 import Layout from '../../layouts/Layout.astro';
-import { likeItemTitle, likeAssetKind, likesItemURL, webURL } from '../../lib/likes.js';
-import { likes } from '../../lib/likes-collection';
-export function getStaticPaths() {
-  return likes.flatMap(item => [
+import type { InferGetStaticPropsType } from 'astro';
+import { getLikes } from '../../lib/likes-collection';
+
+export async function getStaticPaths() {
+  return (await getLikes()).flatMap(item => [
     { params: { slug: item.slug }, props: { item, redirect: false } },
     { params: { slug: item.id }, props: { item, redirect: true } },
   ]);
 }
 
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { item, redirect } = Astro.props;
-if (redirect) return Astro.redirect(likesItemURL(item), 301);
-const title = likeItemTitle(item);
-const source = webURL(item.url);
+if (redirect) return Astro.redirect(item.href, 301);
+const { title, source } = item;
 const asset = item.media?.url;
-const pdf = asset && likeAssetKind(item) === 'pdf';
+const pdf = item.assetKind === 'pdf';
 const textItem = item?.type === 'quote' || item?.type === 'note';
 const { Content } = await render(item.entry);
 ---

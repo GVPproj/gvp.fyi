@@ -1,8 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { collectionOverview as rows } from '../../lib/likes-collection';
+import { getLikes } from '../../lib/likes-collection';
+import { getCollectionOverview } from '../../lib/categorized-content';
 import { sectionLabel } from '../../lib/site-settings';
+
+const rows = getCollectionOverview('likes', await getLikes());
 ---
 
 <Layout title={sectionLabel('likes')}>
@@ -11,7 +14,7 @@ import { sectionLabel } from '../../lib/site-settings';
     <div id="collection-rows">
       {rows.map(row => <ContentRow
         id={`collection-${row.id}`}
-        title={row.name}
+        title={row.title}
         summary={`${row.items.length} ${row.items.length === 1 ? 'item' : 'items'}`}
         items={row.items}
       />)}

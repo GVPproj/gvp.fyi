@@ -1,32 +1,23 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { getCategorizedCollection } from '../../lib/categorized-content';
-import { categorySettings, sectionLabel } from '../../lib/site-settings';
+import { getCollectionOverview } from '../../lib/categorized-content';
+import { getSoftwareProjects } from '../../lib/software-projects';
+import { sectionLabel } from '../../lib/site-settings';
 
-const softwareProjects = (await getCategorizedCollection('software'))
-  .sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id));
-const categories = categorySettings('software');
+const rows = getCollectionOverview('software', await getSoftwareProjects());
 const title = sectionLabel('software');
 ---
 
 <Layout title={title}>
   <div class="software">
     <h1>{title}</h1>
-    {categories.map(category => {
-      const projects = softwareProjects.filter(project => project.data.category === category.id);
-      return <ContentRow
-        id={category.id}
-        title={category.title}
-        summary={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`}
-        items={projects.map(project => ({
-          href: `/software/${project.id}`,
-          title: project.data.title,
-          image: project.data.screenshot,
-          metadata: project.data.tooling.join(' · '),
-        }))}
-      />;
-    })}
+    {rows.map(row => <ContentRow
+      id={row.id}
+      title={row.title}
+      summary={`${row.items.length} ${row.items.length === 1 ? 'project' : 'projects'}`}
+      items={row.items}
+    />)}
   </div>
 </Layout>
 

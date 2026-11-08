@@ -4,14 +4,13 @@ import { Image } from 'astro:assets';
 import { render } from 'astro:content';
 import ContentBody from '../../components/ContentBody.astro';
 import Layout from '../../layouts/Layout.astro';
-import { getReleaseCategories } from '../../lib/music-releases';
+import { getMusicReleases } from '../../lib/music-releases';
 
 export async function getStaticPaths() {
-  const releaseCategories = await getReleaseCategories();
-  return releaseCategories.flatMap(category => category.releases.map(release => ({
+  return (await getMusicReleases()).map(release => ({
     params: { slug: release.slug },
     props: { release },
-  })));
+  }));
 }
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
@@ -35,7 +34,7 @@ const streaming = [
       <p><time datetime={release.date}>{release.display_date ?? release.date}</time></p>
     </header>
     <div class="release-media">
-      <Image src={release.artwork} alt={`${release.title} album cover`}
+      <Image src={release.image} alt={`${release.title} album cover`}
         layout="constrained"
         sizes="(max-width: 48rem) calc(100vw - 2rem), 65ch"
         loading="eager" decoding="async" />
