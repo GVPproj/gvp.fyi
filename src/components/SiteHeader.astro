@@ -48,9 +48,8 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   </nav>
 
   <!-- Native popover: light-dismiss, Escape, top layer and the ARIA wiring
-       come free, and the menu works before JS loads — which the Radix
-       dropdown it replaces did not. Accepted tradeoff: no focus trap, which
-       is fine for this navigation drawer. -->
+       come free, and the menu works before JS loads. Accepted tradeoff: no
+       focus trap, which is fine for this navigation drawer. -->
   <button
     type="button"
     popovertarget="site-nav"
@@ -418,8 +417,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     padding: 0.875rem 1rem;
   }
 
-  /* :active gives instant press feedback, replacing the old 0.8s
-     flash-return-sleep sequence that ran before every navigation. */
+  /* :active gives immediate press feedback. */
   #site-nav a:active {
     color: var(--colour-highlight);
   }

@@ -49,8 +49,9 @@ currently live site. Failed builds leave the previous static deployment live.
 Production deployment requires separate owner approval.
 
 The [#35 migration record](docs/migrations/35/README.md) tracks imported public
-content and baseline evidence. Final native verification/parity is pending; use
-the [cutover checklist](docs/migrations/35/cutover.md) before any deployment.
+content and baseline evidence. Native verification is recorded; software-thumbnail
+disposition and deployment approval remain pending. Use the
+[cutover checklist](docs/migrations/35/cutover.md) before any deployment.
 Preserve existing `public/published-content/` and `public/published-releases/`
 compatibility files: new Astro image output is not a replacement for old URLs.
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).

@@ -82,7 +82,7 @@ test('All software detail pages preserve portfolio information and work without 
       for (const member of project.team) assert.ok((await main.textContent()).includes(member.name));
     }
     const images = main.getByRole('img');
-    assert.equal(await images.count(), 1 + (project.gallery?.length ?? 0));
+    assert.equal(await images.count(), 1 + (project.galleryCount ?? 0));
     for (const image of await images.all()) await image.evaluate(element => element.decode());
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await main.getByRole('link', { name: '← Software', exact: true }).click();

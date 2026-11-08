@@ -3,8 +3,8 @@
 This site uses repository-managed Astro content, not a backend publishing API.
 The historical filename is retained for existing documentation links. The
 [architecture decision](adr/0001-repository-managed-astro-content.md) records the
-boundary; [#35 evidence](migrations/35/README.md) records the migration and its
-still-pending native verification.
+boundary; [#35 evidence](migrations/35/README.md) records verification results
+and remaining acceptance gates.
 
 ## Ownership
 
@@ -76,6 +76,5 @@ references, chronology, release precision/tie order, local assets and static
 rendering/interaction behavior. Repository fixtures are test inputs, not sources
 for the migrated public content. No backend mocks, authentication fixtures or
 backend migration suite are required for this site's final boundary. Browser
-skips are unexecuted checks, not passes. Final clean credential-free development,
-build, browser and same-capture parity checks remain pending in the migration
-record until the parent verification run supplies results.
+skips are unexecuted checks, not passes. Verification results and remaining
+acceptance gates are recorded in the [migration record](migrations/35/README.md).

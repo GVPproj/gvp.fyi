@@ -7,7 +7,6 @@ export function webURL(value) {
 }
 
 export function likeAssetKind(item) {
-  // Materialized extensions reflect verified bytes, not the source filename.
   const asset = item.media?.url ?? item.asset;
   return asset ? (/\.pdf$/i.test(asset) ? 'pdf' : 'image') : null;
 }

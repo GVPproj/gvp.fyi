@@ -45,7 +45,6 @@ export const likes = (await Promise.all(entries.map(async entry => {
       if (!group) throw new Error(`Unknown named collection ${reference.id} in ${entry.id}`);
       return group;
     }),
-    asset: media?.url ?? '',
     media,
   };
 }))).sort((a, b) => Date.parse(b.created) - Date.parse(a.created) || b.id.localeCompare(a.id));

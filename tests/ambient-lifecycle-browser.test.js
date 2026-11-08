@@ -76,7 +76,7 @@ const pad = (page, number) => instrument(page).getByRole('button', { name: new R
 const blogLink = page => page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Blog', exact: true });
 
 async function openHome(page, base) {
-  // The shared helper warms an editor route. Compile both instrument navigation
+  // The shared helper warms /software. Compile both instrument navigation
   // destinations too, then let Vite's initial module-loading/reload settle before
   // observing lifetime. Subsequent navigation must preserve the document ID.
   for (const path of ['/', '/blog']) assert.equal((await fetch(`${base}${path}`)).ok, true);
