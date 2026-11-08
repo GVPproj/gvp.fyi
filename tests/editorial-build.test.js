@@ -136,6 +136,11 @@ test('credential-free repository build preserves software, blog, testimonials an
   const icon = await readFile(`${dir}/favicon.svg`, 'utf8');
   assert.match(icon, /<path\b/);
   assert.doesNotMatch(icon, /animation|stroke-dashoffset/);
+  const redirects = await readFile(`${dir}/_redirects`, 'utf8');
+  assert.match(redirects, /^\/blog\/drawing-my-face\/\s+\/blog\/the-animated-face\/\s+301$/m);
+  assert.match(redirects, /^\/blog\/drawing-my-face\s+\/blog\/the-animated-face\/\s+301$/m);
+  const oldBlog = await readFile(`${dir}/blog/drawing-my-face/index.html`, 'utf8');
+  assert.match(oldBlog, /http-equiv="refresh"[^>]*url=\/blog\/the-animated-face\//);
   assert.match(blog, /data-language="astro"/);
   const blogIndex = await readFile(`${dir}/blog/index.html`, 'utf8');
   assert.match(blogIndex, /href="\/blog\/the-animated-face\/?"/);

@@ -19,7 +19,6 @@
     }
   ],
   "display_date": "2006, Every Conversation Records",
-  "artwork": "./artwork.jpg",
-  "artworkVariants": ["./artwork-320.webp"]
+  "artwork": "./artwork.jpg"
 }
 ---

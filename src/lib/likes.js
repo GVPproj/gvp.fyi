@@ -7,7 +7,7 @@ export function webURL(value) {
 }
 
 export function likeAssetKind(item) {
-  const asset = item.media?.url ?? item.asset;
+  const asset = item.media?.url;
   return asset ? (/\.pdf$/i.test(asset) ? 'pdf' : 'image') : null;
 }
 
@@ -20,5 +20,5 @@ export function likeItemTitle(item) {
 }
 
 export function likesItemURL(item) {
-  return `/likes/${encodeURIComponent(item.slug ?? item.id)}`;
+  return `/likes/${encodeURIComponent(item.slug)}`;
 }

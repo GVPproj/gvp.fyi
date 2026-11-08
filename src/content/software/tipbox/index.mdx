@@ -50,25 +50,17 @@
   "gallery": [
     {
       "alt": "Tipbox.io laptop and mobile mockup",
-      "height": 1698,
-      "src": "./assets/laptop.png",
-      "width": 2012
+      "src": "./assets/laptop.png"
     },
     {
       "alt": "No looking back",
-      "height": 1302,
-      "src": "./assets/no-looking-back.png",
-      "width": 1538
+      "src": "./assets/no-looking-back.png"
     },
     {
-      "width": 1920,
       "alt": "A Tipbox.io project board with attached media",
-      "height": 1080,
       "src": "./assets/project-board.jpg"
     }
   ],
-  "screenshotHeight": 1299,
-  "screenshotWidth": 2548,
   "url": "https://www.tipbox.io",
   "category": "portfolio",
   "screenshot": "./assets/tipboxThumb.webp",
@@ -84,11 +76,3 @@
   "screenshotAlt": "Screenshot of Tipbox.io"
 }
 ---
-
-import { Image } from 'astro:assets';
-import projectBoard from './assets/project-board.jpg';
-
-<figure>
-  <Image src={projectBoard} alt="A Tipbox.io project board with attached media" />
-  <figcaption>A Tipbox.io project board with attached media.</figcaption>
-</figure>

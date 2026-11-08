@@ -3,7 +3,6 @@ dist/
 .astro/
 .env
 .env.*
-!.env.example
 .DS_Store
 
 # Local Netlify folder

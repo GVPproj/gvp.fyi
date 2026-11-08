@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
-import { createHash } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -234,27 +233,6 @@ test('invalid music metadata, track order and nonlocal artwork fail collection l
       assert.notEqual(result.code, 0, result.output);
       assert.match(result.output, diagnostic);
     });
-  }
-});
-
-test('native responsive images preserve proportional sampling rather than cropping to a rounded aspect ratio', async t => {
-  const root = await likesSite(t);
-  await cp(new URL('../src/pages/music', import.meta.url), join(root, 'src/pages/music'), { recursive: true });
-  const likesDir = await entry(root, 'likes', 'sample', { id: 'sample-like', slug: 'sample-like-image', title: 'Image', created: note.created, image: './image.jpg' });
-  await cp(new URL('../src/content/likes/john-heward/image.jpg', import.meta.url), join(likesDir, 'image.jpg'));
-  const musicDir = await entry(root, 'music', 'sample', { id: 'sample-release', slug: 'sample-cover', category: 'other-credits', title: 'Release', artist: 'Artist', release_date: '2007', artwork: './cover.jpg' });
-  await cp(new URL('../src/content/music/fallen-empires-japanese-edition/artwork.jpg', import.meta.url), join(musicDir, 'cover.jpg'));
-  const result = await build(root);
-  assert.equal(result.code, 0, result.output);
-  // Independently captured deployed variants, not a recomputation of the image transform.
-  for (const [route, selector, expected] of [
-    ['likes/sample-like-image', '#like-detail img', '07f1a0a1b48457e4191c1c70a9c890b19cf2952cbd3ef40d670fc944903b9bda'],
-    ['music/sample-cover', '.release-media img', '602bab6d4fdee98249610220128abc24bb20dddfb80bb9e994666d472caf61f7'],
-  ]) {
-    const { document } = parseHTML(await readFile(join(root, 'dist', route, 'index.html'), 'utf8'));
-    const path = document.querySelector(selector).getAttribute('srcset').split(',').map(part => part.trim().split(/\s+/)).find(([, width]) => width === '320w')[0];
-    const bytes = await readFile(join(root, 'dist', path));
-    assert.equal(createHash('sha256').update(bytes).digest('hex'), expected, route);
   }
 });
 

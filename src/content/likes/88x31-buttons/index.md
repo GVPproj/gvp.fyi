@@ -14,7 +14,6 @@
   "collections": [
     "214mhaukq4meaua"
   ],
-  "image": "./image.png",
-  "imageVariants": ["./image-320.webp", "./image-640.webp"]
+  "image": "./image.png"
 }
 ---

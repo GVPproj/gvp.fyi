@@ -33,8 +33,6 @@ const software = defineCollection({
       tooling: z.array(text),
       screenshot: localImage,
       screenshotAlt: z.string().optional(),
-      screenshotWidth: z.number().int().positive().optional(),
-      screenshotHeight: z.number().int().positive().optional(),
       url: link.optional(),
       repo: link.optional(),
       role: z.object({ title: text, paragraphs: z.array(text) }).optional(),
@@ -42,8 +40,6 @@ const software = defineCollection({
       gallery: z.array(z.object({
         src: localImage,
         alt: z.string(),
-        width: z.number().int().positive().optional(),
-        height: z.number().int().positive().optional(),
       })).optional(),
       tagline: text.optional(),
     }).refine(project => project.url || project.repo, {
@@ -117,7 +113,6 @@ const likes = defineCollection({
       'Duplicate named-collection membership',
     ),
     image: z.preprocess(entryRelativeImage, image()).optional(),
-    imageVariants: z.array(z.preprocess(entryRelativeImage, image())).default([]),
     download: z.string().regex(/^\.\/[a-zA-Z0-9_-][a-zA-Z0-9_.-]*\.pdf$/, 'Downloads must be adjacent PDF files').optional(),
   }).strict().superRefine((item, ctx) => {
     const issue = (message: string, path: string) => ctx.addIssue({ code: 'custom', message, path: [path] });
@@ -129,7 +124,6 @@ const likes = defineCollection({
       if (!(item.url || item.image || item.download)) issue('Ordinary collection items require a URL or asset', 'url');
     }
     if (item.image && item.download) issue('Choose one image or PDF download', 'download');
-    if (item.imageVariants.length && !item.image) issue('Image variants require a primary image', 'imageVariants');
   }),
 });
 
@@ -144,7 +138,6 @@ const music = defineCollection({
     order: z.number().int().default(0),
     category: text.refine(id => siteSettings.categories.releases.some(category => category.id === id), 'Unknown music category'),
     artwork: z.preprocess(entryRelativeImage, image()),
-    artworkVariants: z.array(z.preprocess(entryRelativeImage, image())).default([]),
     title: text.max(500),
     artist: text.max(500),
     release_date: text.refine(validCalendarDate, 'Invalid calendar release date'),

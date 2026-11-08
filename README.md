@@ -30,30 +30,25 @@ Tests exercise repository content, static output and browser behavior without a
 backend checkout or server. Browser tests require `PLAYWRIGHT_CHROMIUM_EXECUTABLE`
 pointing to a working Chromium executable; missing browser prerequisites skip
 tests, not pass them. Run browser/build suites serially, without a dev server
-sharing the generated Astro/Netlify workspace.
+sharing the generated Astro workspace.
 
 ## Publishing
 
-See [file authoring](docs/migrations/35/authoring.md) for Likes, named collections,
-music and assets, and [the static boundary](docs/backend-api.md) for ownership.
-Likes and music each use `<slug>/index.md` with JSON frontmatter and adjacent
-originals. Keep explicit slugs stable when titles change and preserve each
-collection item's date added. Software remains in `src/content/software/` with
-its existing MDX entries and local images; blog authoring is described below.
+See [file authoring and the static boundary](docs/backend-api.md) for Likes,
+named collections, music, software and assets. Blog authoring is described below.
 Site settings and interactions stay in code.
 
 Commit content and assets together, run the checks above, and manually deploy the
-successful static build in Netlify. Saving or committing is not deployment.
-Removing an entry removes it from the next successful deployment, not from the
-currently live site. Failed builds leave the previous static deployment live.
-Production deployment requires separate owner approval.
+successful plain static `dist/` output in Netlify; no Netlify adapter is required.
+Saving or committing is not deployment. Removing an entry removes it from the
+next successful deployment, not from the currently live site. Failed builds leave
+the previous static deployment live. Production deployment requires separate
+owner approval and the [deployment safeguards](docs/backend-api.md#publication).
 
-The [#35 migration record](docs/migrations/35/README.md) tracks imported public
-content and baseline evidence. Native verification is recorded; software-thumbnail
-disposition and deployment approval remain pending. Use the
-[cutover checklist](docs/migrations/35/cutover.md) before any deployment.
-Preserve existing `public/published-content/` and `public/published-releases/`
-compatibility files: new Astro image output is not a replacement for old URLs.
+Current pages use native Astro images generated from adjacent originals, not
+preserved responsive variants; historical image byte parity is not required.
+Legacy `/published-content/` and `/published-releases/` media URLs are no longer
+supported. Existing blog redirects and Likes ID redirect pages remain supported.
 Issues/specs live in [GitHub Issues](https://github.com/GVPproj/gvp.fyi/issues).
 
 ### Blog
@@ -72,8 +67,7 @@ import Face from '@src/components/elements/Face.astro';
 <Face />
 ```
 
-Use fenced `astro` code blocks for source examples; there is no CMS demo marker
-or global Face injection.
+Use fenced `astro` code blocks for source examples.
 
 ## Ambient instrument
 

@@ -1,5 +1,4 @@
 import { defineConfig } from 'astro/config';
-import netlify from '@astrojs/netlify';
 import mdx from '@astrojs/mdx';
 export default defineConfig({
   site: 'https://gvp.fyi',
@@ -7,8 +6,6 @@ export default defineConfig({
   redirects: {
     '/blog/drawing-my-face/': '/blog/the-animated-face/',
   },
-  // Local Astro handles SSR directly; this site needs no Netlify dev emulation.
-  adapter: netlify({ devFeatures: false, imageCDN: false }),
   server: {
     host: '127.0.0.1',
     port: 4324,

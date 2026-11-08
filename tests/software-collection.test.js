@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parseHTML } from 'linkedom';
 import { buildSite as build } from './helpers/fixture-site.js';
 
 async function collectionSite(t) {
@@ -20,23 +19,19 @@ async function collectionSite(t) {
 import mdx from '@astrojs/mdx';
 export default defineConfig({ integrations: [mdx()] });\n`);
   await writeFile(join(root, 'src/pages/index.astro'), `---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 const projects = await getCollection('software');
-const entries = await Promise.all(projects.map(async entry => ({ entry, ...await render(entry) })));
 ---
-{entries.map(({ entry, Content }) => <article data-project={entry.id}>
-  <script type="application/json" set:html={JSON.stringify(entry.data)} />
-  <Content />
-</article>)}\n`);
+{projects.map(entry => <script type="application/json" set:html={JSON.stringify(entry.data)} />)}\n`);
   return root;
 }
 
-test('software collection content and MDX rendering', { timeout: 90000 }, async t => {
+test('software collection content and image metadata', { timeout: 90000 }, async t => {
   const root = await collectionSite(t);
   const result = await build(root);
   assert.equal(result.code, 0, result.output);
   const html = await readFile(join(root, 'dist/index.html'), 'utf8');
-  await t.test('software collection loads all seven exported projects with local original images and structured credits', () => {
+  await t.test('software collection loads all seven projects with local original images and structured credits', () => {
     const data = [...html.matchAll(/<script type="application\/json">(.*?)<\/script>/gs)].map(match => JSON.parse(match[1]));
     assert.equal(data.length, 7);
     assert.deepEqual(data.map(project => project.title).sort(), [
@@ -51,17 +46,6 @@ test('software collection content and MDX rendering', { timeout: 90000 }, async 
     assert.equal(tipbox.team.length, 8);
     assert.match(tipbox.role.paragraphs[0], /Full-Stack Engineer/);
     assert.equal(tipbox.url, 'https://www.tipbox.io');
-  });
-
-  await t.test('a software entry composes its MDX body with an Astro image component', () => {
-    const { document } = parseHTML(html);
-    const figure = document.querySelector('article[data-project="tipbox"] figure');
-    assert.ok(figure, 'Tipbox composes a figure in its entry body');
-    const image = figure.querySelector('img');
-    assert.equal(image.getAttribute('width'), '1920');
-    assert.equal(image.getAttribute('height'), '1080');
-    assert.match(image.getAttribute('src'), /^\/_astro\//);
-    assert.ok(figure.querySelector('figcaption').textContent.trim());
   });
 });
 

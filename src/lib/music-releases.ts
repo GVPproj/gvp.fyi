@@ -32,7 +32,7 @@ export async function getReleaseCategories() {
       date: /^\d{4}(?:-\d{2})?$/.test(data.release_date)
         ? data.release_date
         : new Date(data.release_date).toISOString().slice(0, 10),
-      artwork: await contentImage(data.artwork, data.artworkVariants),
+      artwork: await contentImage(data.artwork),
     };
   }));
   return categorySettings('releases').map(category => ({

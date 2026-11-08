@@ -32,7 +32,6 @@ test('repository content builds static Likes without credentials, a backend or J
   const overview = await result.html('likes');
   const detail = await result.html('likes/static-publication-fixture');
   assert.match(await result.html('likes/publicnote00001'), /url=\/likes\/static-publication-fixture/i);
-  assert.match(await result.html('links'), /url=\/likes/i);
   const imageDetail = await result.html('likes/published-image-fixture');
   assert.doesNotMatch(imageDetail, /Open original image/);
   assert.match(overview, /Static publication fixture/);

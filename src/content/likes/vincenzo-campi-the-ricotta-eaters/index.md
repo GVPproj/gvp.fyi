@@ -14,7 +14,6 @@
   "collections": [
     "i69nqzrzgom9c3s"
   ],
-  "image": "./image.jpg",
-  "imageVariants": ["./image-320.webp", "./image-640.webp"]
+  "image": "./image.jpg"
 }
 ---

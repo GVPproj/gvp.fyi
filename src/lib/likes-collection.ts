@@ -26,7 +26,7 @@ export const likes = (await Promise.all(entries.map(async entry => {
   const data = entry.data;
   let media: Media | null = null;
   if (data.image) {
-    const image = await contentImage(data.image, data.imageVariants);
+    const image = await contentImage(data.image);
     media = { url: data.image.src, thumbnail: data.image.width < 320 ? data.image.src : image.thumbnail,
       srcset: image.srcset, width: image.width, height: image.height };
   } else if (data.download) {
