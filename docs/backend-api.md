@@ -15,8 +15,7 @@ this boundary.
 - Site settings and interactions: repository code and `src/config/site-settings.json`.
 
 The public repository contains publication-ready content only, with no draft
-workflow. Content is authoritative in these files; this is not a cached backend
-export or an ongoing sync service.
+workflow. These files are the authoritative content source.
 
 ## Authoring
 
@@ -39,7 +38,6 @@ Put image originals and PDFs beside `index.md` and reference them with `./`
 paths; downloads must be adjacent `.pdf` files. Each item requires one `category`,
 using an ID from `categories.likes` in `src/config/site-settings.json`. Categories
 sort alphabetically by title, omit empty rows and contain items newest first.
-There is no implicit Misc. category or uncategorized membership.
 
 ### Music
 
@@ -79,13 +77,11 @@ use the registry's category order; Likes sorts categories alphabetically.
 Development and builds need no publishing credentials, external CMS, database or
 backend checkout. Native Astro collections validate structured content and resolve
 local images; native asset processing generates responsive images from adjacent
-originals. Required PDFs under `src/` need explicit publication by the Likes download
-path; co-location
-alone does not expose a file. Existing `/audio/...mp3` files stay under
+originals. PDFs under `src/` are published through the Likes download path;
+co-location alone does not expose a file. Existing `/audio/...mp3` files stay under
 `public/audio/`.
 
-Legacy `/published-content/` and `/published-releases/` media URLs are no longer
-supported. Existing `/audio/` files and legacy page redirects remain supported.
+Existing `/audio/` files and legacy page redirects remain supported.
 Netlify receives plain static `dist/` output. Blog redirect rules live in `public/_redirects`,
 which is copied into `dist/`; existing Likes ID redirects remain static pages.
 
@@ -105,14 +101,12 @@ publish an incomplete catalogue.
 4. After separate owner approval, publish the successful static build in Netlify.
 
 Edits and removals take effect only in the next successful deployment. Failed
-builds leave the previous static site live. Content edits do not reset a
-collection item's date added; title edits do not alter explicit slugs.
+builds leave the previous static site live.
 
 Before production publication, verify content, page URLs and redirects, ordering,
 interactions and desktop/mobile appearance. Retain the previous successful static
-deployment for rollback; rollback restores that deployment, not a shared database.
-Removing this site's dependency grants no permission to stop the shared service,
-change its schema or APIs, delete records/storage, or revoke shared credentials.
+deployment for rollback. Shared backend services and data are outside this
+repository's operational scope.
 
 ## Testing boundary
 
