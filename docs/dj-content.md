@@ -3,7 +3,9 @@
 The DJ catalogue is manually maintained in `src/content/dj/<folder>/index.md`,
 with adjacent original artwork. Build with `pnpm build`; validate with
 `pnpm check` and `pnpm test`. There is no feed or build-time Mixcloud request.
-The launch publishes one recording; the wider research/catalogue is #41.
+The initial research pass publishes 132 verified recordings; see the
+[research audit](dj-catalogue-research.md) for coverage, evidence, exclusions and
+unresolved dates. This is a point-in-time catalogue, not a completeness guarantee.
 Browser tests use Playwright's Chromium; on a fresh machine, provision it with
 `pnpm exec playwright-core install chromium`.
 
@@ -50,6 +52,10 @@ broadcast:
 
 Only frontmatter is published on episode pages. Listening is a plain Mixcloud
 link; the template intentionally has no body renderer, player or download.
+`tests/dj-catalogue.test.js` checks every published card/detail journey, programme
+counts, date ordering and representative evidence decisions. Update the researched
+expectations when intentionally adding or reclassifying recordings; keep the
+isolated validation scenarios in `tests/dj.test.js` independent of catalogue size.
 
 ## Launch recording verification
 

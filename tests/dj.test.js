@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
@@ -21,6 +21,11 @@ async function page(path) {
 before(async () => {
   workspace = await createBuildFixture('dj');
   fixture = workspace.directory;
+  // Keep mutation/keyboard scenarios independent of the growing real catalogue.
+  // dj-catalogue.test.js builds and checks every published recording.
+  for (const name of await readdir(join(fixture, 'src/content/dj'))) {
+    if (name !== 'afw-2026-10-20') await rm(join(fixture, 'src/content/dj', name), { recursive: true });
+  }
   await build();
 });
 
