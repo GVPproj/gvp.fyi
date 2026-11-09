@@ -15,7 +15,7 @@ const rows = getCollectionOverview('dj', await getDjEpisodes());
       id={`programme-${row.id}`}
       title={row.title}
       summary={`${row.items.length} ${row.items.length === 1 ? 'recording' : 'recordings'}`}
-      items={row.items}
+      items={row.items.map(({ href, title, image }) => ({ href, title, image }))}
     />)}
   </div>
 </Layout>
