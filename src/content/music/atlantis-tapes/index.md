@@ -2,10 +2,12 @@
 {
   "id": "fepg6a7mrw1pfe0",
   "order": 1,
+  "publishedAt": "2026-10-07",
   "category": "graham-van-pelt",
   "album_id": 2547459725,
   "slug": "atlantis-tapes",
   "title": "Atlantis Tapes",
+  "summary": "Graham Van Pelt explores the Atlantis synth module through early-morning improvisations with out-of-sync tape loops. A quietly evolving suite for reflection and focused listening, with visuals by Eli Horn.",
   "artist": "Graham Van Pelt",
   "release_date": "23 Feb 2023 00:00:00 GMT",
   "tracks": [

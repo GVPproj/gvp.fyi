@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "island-city-afw-weekend-2-day-2"
 slug: "island-city-afw-weekend-2-day-2"
 category: "island-city"

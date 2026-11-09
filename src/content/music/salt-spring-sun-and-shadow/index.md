@@ -2,10 +2,12 @@
 {
   "id": "p33cyy2l94nsxku",
   "order": 3,
+  "publishedAt": "2026-10-07",
   "category": "graham-van-pelt",
   "album_id": 2354237612,
   "slug": "salt-spring-sun-and-shadow",
   "title": "Salt Spring: Sun and Shadow",
+  "summary": "Quiet keyboard and guitar loop pieces recorded by Graham Van Pelt on Salt Spring Island in early 2017, then shaped with tape and atmospheric effects at The Pines in Montreal. A collection intended to accompany reading, unwinding and unplugging.",
   "artist": "Graham Van Pelt",
   "release_date": "28 May 2021 00:00:00 GMT",
   "tracks": [

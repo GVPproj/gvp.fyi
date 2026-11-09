@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "afw-2026-06-30"
 slug: "afw-2026-06-30"
 category: "a-friendly-wave"

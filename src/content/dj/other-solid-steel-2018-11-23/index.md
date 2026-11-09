@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "other-solid-steel-2018-11-23"
 slug: "other-solid-steel-2018-11-23"
 category: "other-appearances"

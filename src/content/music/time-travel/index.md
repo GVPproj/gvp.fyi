@@ -2,10 +2,12 @@
 {
   "id": "kj0nne2kdjr5oy5",
   "order": 5,
+  "publishedAt": "2026-10-07",
   "category": "graham-van-pelt",
   "album_id": 1538922128,
   "slug": "time-travel",
   "title": "Time Travel",
+  "summary": "Time Travel, an eight-track album by Graham Van Pelt released through Arbutus Records.",
   "artist": "Graham Van Pelt",
   "release_date": "19 Oct 2018 00:00:00 GMT",
   "tracks": [

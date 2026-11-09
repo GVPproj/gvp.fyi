@@ -2,10 +2,12 @@
 {
   "id": "hb1yjjck7zp06y3",
   "order": 14,
+  "publishedAt": "2026-10-07",
   "category": "miracle-fortress",
   "album_id": 3809650388,
   "slug": "five-roses",
   "title": "Five Roses",
+  "summary": "The debut Miracle Fortress album, written, performed, recorded and mixed by Graham Van Pelt at Montreal's Friendship Cove. Its title refers to the Five Roses flour factory sign overlooking the neighbourhood.",
   "artist": "Miracle Fortress",
   "release_date": "22 May 2007 00:00:00 GMT",
   "tracks": [

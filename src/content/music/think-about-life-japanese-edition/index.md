@@ -2,10 +2,12 @@
 {
   "id": "axp1k985pvm983z",
   "order": 24,
+  "publishedAt": "2026-10-07",
   "category": "think-about-life",
   "display_title": "Think About Life (Japanese Edition)",
   "slug": "think-about-life-japanese-edition",
   "title": "Think About Life",
+  "summary": "The Japanese two-CD edition of Think About Life's debut pairs the ten-track album with a second disc containing Going Deaf In The Summer, Testify, an alternate The Blue Sun and Money remixed by GVP.",
   "artist": "Think About Life",
   "release_date": "2007",
   "tracks": [

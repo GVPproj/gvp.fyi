@@ -2,11 +2,13 @@
 {
   "id": "unmohot6tg8tkdy",
   "order": 27,
+  "publishedAt": "2026-10-07",
   "category": "other-credits",
   "credit": "Songwriting — Everything Works",
   "album_id": 2092748882,
   "slug": "new-found-land",
   "title": "New Found Land",
+  "summary": "New Found Land's self-titled album includes Everything Works, written by Graham Van Pelt / Miracle Fortress. His contribution is songwriting, not performance on this recording.",
   "artist": "New Found Land",
   "release_date": "2013-03-01",
   "tracks": [],

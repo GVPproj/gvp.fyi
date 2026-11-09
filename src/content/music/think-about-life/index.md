@@ -2,10 +2,12 @@
 {
   "id": "3ojrtlnk77j1fwr",
   "order": 25,
+  "publishedAt": "2026-10-07",
   "category": "think-about-life",
   "album_id": 1148942334,
   "slug": "think-about-life",
   "title": "Think About Life",
+  "summary": "Think About Life's debut album, originally released by Alien8 Recordings in 2006 with ten tracks. The 2020 Passovah/Bandcamp edition presented here adds four tracks identified as Japanese-edition bonuses.",
   "artist": "Think About Life",
   "release_date": "2006-05-02",
   "tracks": [

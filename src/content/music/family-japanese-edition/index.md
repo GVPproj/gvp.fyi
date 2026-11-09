@@ -2,10 +2,12 @@
 {
   "id": "sxd31uw318uwdju",
   "order": 19,
+  "publishedAt": "2026-10-07",
   "category": "think-about-life",
   "display_title": "Family (Japanese Edition)",
   "slug": "family-japanese-edition",
   "title": "Family",
+  "summary": "The Japanese CD edition of Think About Life's Family adds the bonus track Holesome, listed as Whole Sum on Discogs. Issued by Every Conversation / Escalator Records with a wraparound obi and double paper jacket.",
   "artist": "Think About Life",
   "release_date": "2009-10",
   "tracks": [

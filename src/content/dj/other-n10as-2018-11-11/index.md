@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "other-n10as-2018-11-11"
 slug: "other-n10as-2018-11-11"
 category: "other-appearances"

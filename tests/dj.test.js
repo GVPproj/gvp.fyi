@@ -38,7 +38,7 @@ async function addEpisode(slug, data = {}) {
   await mkdir(directory, { recursive: true });
   await cp(join(fixture, 'src/content/dj/afw-2026-10-20/artwork.jpg'), join(directory, 'artwork.jpg'));
   await writeFile(join(directory, 'index.md'), `---\n${JSON.stringify({
-    id: slug, slug, category: 'a-friendly-wave', title: slug,
+    id: slug, slug, publishedAt: '2026-11-09', category: 'a-friendly-wave', title: slug,
     credit: 'Hosted by Graham Van Pelt', artwork: './artwork.jpg',
     broadcast: { status: 'verified', date: '2024-06-01', source: 'https://example.com/broadcast' },
     duration_seconds: 3600, mixcloud: `https://www.mixcloud.com/afriendlywave/${slug}/`,
