@@ -2,9 +2,11 @@
 {
   "id": "paigwk3d2984ddr",
   "order": 7,
+  "publishedAt": "2026-10-07",
   "category": "miracle-fortress",
   "slug": "let-me-be-the-1",
   "title": "Let Me Be the 1",
+  "summary": "Let Me Be the 1, a single by Miracle Fortress.",
   "artist": "Miracle Fortress",
   "release_date": "2014-09-09T07:00:00Z",
   "tracks": [

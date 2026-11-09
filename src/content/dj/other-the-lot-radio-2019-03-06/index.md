@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "other-the-lot-radio-2019-03-06"
 slug: "other-the-lot-radio-2019-03-06"
 category: "other-appearances"

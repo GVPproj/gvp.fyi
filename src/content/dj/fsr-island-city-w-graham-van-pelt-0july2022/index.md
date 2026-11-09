@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "fsr-island-city-w-graham-van-pelt-0july2022"
 slug: "fsr-island-city-w-graham-van-pelt-0july2022"
 category: "island-city"

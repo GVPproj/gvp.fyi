@@ -4,20 +4,13 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import mdxRenderer from '@astrojs/mdx/server.js';
 import { parseHTML } from 'linkedom';
 import { getCategorizedCollection } from './categorized-content';
-import { root } from 'astro:config/server';
+import { root, site } from 'astro:config/server';
+import { resolveWebURL } from './web-url';
 
 // Vite publishes adjacent downloads; source-directory files are not public by default.
 const downloads = import.meta.glob<string>('/src/content/likes/**/*.pdf', {
   eager: true, query: '?url&no-inline', import: 'default',
 });
-
-// Only web destinations are navigable, even if stored records are malformed.
-function webURL(value: string) {
-  try {
-    const url = new URL(value);
-    return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : null;
-  } catch { return null; }
-}
 
 export async function getLikes() {
   const entries = await getCategorizedCollection('likes');
@@ -47,18 +40,25 @@ export async function getLikes() {
       media = { url };
     }
     let text: string | undefined;
-    if (data.type) {
-      // Render first so previews contain readable text, never Markdown or MDX source.
+    let summary: string | undefined;
+    const links: { label: string; url: string }[] = [];
+    if (entry.body?.trim()) {
+      // Reuse rendered text for previews and RSS, never Markdown or MDX source.
       const container = await AstroContainer.create();
       container.addServerRenderer({ name: 'astro:jsx', renderer: mdxRenderer });
       const { Content } = await render(entry);
       const html = await container.renderToString(Content);
       const { document } = parseHTML(`<html><body>${html}</body></html>`);
-      document.querySelectorAll('script, style, template').forEach(node => node.remove());
-      text = document.body.innerText.replace(/\s+/g, ' ').trim().slice(0, 400);
+      document.querySelectorAll('script, style, template, iframe, audio, video, button, input, select, textarea, svg, noscript').forEach(node => node.remove());
+      summary = document.body.innerText.replace(/\s+/g, ' ').trim();
+      if (data.type) text = summary.slice(0, 400);
+      for (const anchor of document.querySelectorAll('a[href]')) {
+        const url = resolveWebURL(anchor.getAttribute('href')!, new URL(`/likes/${encodeURIComponent(data.slug)}/`, site));
+        if (url) links.push({ label: anchor.textContent?.trim() || url, url });
+      }
     }
     const assetKind = data.download ? 'pdf' as const : data.image ? 'image' as const : null;
-    const source = webURL(data.url);
+    const source = resolveWebURL(data.url);
     return {
       ...data,
       entry,
@@ -69,6 +69,8 @@ export async function getLikes() {
       assetKind,
       source,
       text,
+      summary,
+      links,
       label: assetKind === 'pdf' ? 'PDF document' : source ? new URL(source).hostname : 'Link unavailable',
       metadata: data.type ? data.attribution : undefined,
     };

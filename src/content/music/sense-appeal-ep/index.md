@@ -2,12 +2,14 @@
 {
   "id": "rh6y6fd4cxkm9fn",
   "order": 4,
+  "publishedAt": "2026-10-07",
   "category": "graham-van-pelt",
   "display_title": "Sense Appeal EP",
   "album_id": 2329153476,
   "player_height": 307,
   "slug": "sense-appeal-ep",
   "title": "Sense Appeal",
+  "summary": "Graham Van Pelt's Sense Appeal EP includes Always Thinkin' and remixes by Yu Su, Gene Tellem and Twins. Physical vinyl is available through No Bad Days.",
   "artist": "Graham Van Pelt",
   "release_date": "17 Apr 2020 00:00:00 GMT",
   "tracks": [

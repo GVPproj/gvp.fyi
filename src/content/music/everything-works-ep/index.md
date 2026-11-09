@@ -2,10 +2,12 @@
 {
   "id": "tzmupxvegktyzvt",
   "order": 9,
+  "publishedAt": "2026-10-07",
   "category": "miracle-fortress",
   "display_title": "Everything Works EP",
   "slug": "everything-works-ep",
   "title": "Everything Works - EP",
+  "summary": "Miracle Fortress's Everything Works EP pairs the original track and radio edit with two Time & Space Machine remixes.",
   "artist": "Miracle Fortress",
   "release_date": "2011-12-11T08:00:00Z",
   "tracks": [

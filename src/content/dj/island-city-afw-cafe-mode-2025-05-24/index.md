@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "island-city-afw-cafe-mode-2025-05-24"
 slug: "island-city-afw-cafe-mode-2025-05-24"
 category: "island-city"

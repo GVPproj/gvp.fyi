@@ -2,10 +2,12 @@
 {
   "id": "sdmh3647ttzvah1",
   "order": 20,
+  "publishedAt": "2026-10-07",
   "category": "think-about-life",
   "album_id": 3671252794,
   "slug": "family",
   "title": "Family",
+  "summary": "Think About Life's second album, originally released by Alien8 Recordings in 2009. The artwork and track metadata presented here represent the 2020 Bandcamp edition.",
   "artist": "Think About Life",
   "release_date": "2009-05-26",
   "tracks": [

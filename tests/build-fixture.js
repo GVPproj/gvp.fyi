@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const exec = promisify(execFile);
 
-export async function createBuildFixture(prefix) {
+export async function createBuildFixture(prefix, environment = {}) {
   // Stay on the repository filesystem so package files can be copy-on-write clones.
   const directory = await mkdtemp(join(repository, `.test-fixture-${prefix}-`));
   const cleanup = () => rm(directory, { recursive: true, force: true });
@@ -32,6 +32,7 @@ export async function createBuildFixture(prefix) {
       directory,
       build: () => exec(process.execPath, [join(directory, 'node_modules/astro/bin/astro.mjs'), 'build'], {
         cwd: directory,
+        env: { ...process.env, ...environment },
         maxBuffer: 4 * 1024 * 1024,
       }),
       cleanup,

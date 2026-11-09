@@ -2,10 +2,12 @@
 {
   "id": "6ucflsmej02s0q7",
   "order": 23,
+  "publishedAt": "2026-10-07",
   "category": "think-about-life",
   "album_id": 3597637347,
   "slug": "black-champagne-ep",
   "title": "Black Champagne EP",
+  "summary": "Think About Life dates sales of unmarked Black Champagne EP test pressings to 2007; a planned 2008 release did not proceed. The artwork and tracks presented here come from the 2020 digital EP.",
   "artist": "Think About Life",
   "release_date": "2007",
   "tracks": [

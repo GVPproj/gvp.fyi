@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "island-city-2023-10-13"
 slug: "island-city-2023-10-13"
 category: "island-city"

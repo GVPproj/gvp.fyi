@@ -1,4 +1,5 @@
 ---
+publishedAt: '2026-11-09'
 id: "fsr-island-city-episode-3"
 slug: "fsr-island-city-episode-3"
 category: "island-city"

@@ -2,9 +2,11 @@
 {
   "id": "cb0mgcihqu7dh8y",
   "order": 18,
+  "publishedAt": "2026-10-07",
   "category": "think-about-life",
   "slug": "hbo",
   "title": "HBO",
+  "summary": "A standalone Think About Life track recorded in 2010 and released by Passovah Records in 2017.",
   "artist": "Think About Life",
   "release_date": "2017-09-08",
   "tracks": [

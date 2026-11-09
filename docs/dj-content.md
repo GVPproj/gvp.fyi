@@ -2,7 +2,8 @@
 
 The DJ catalogue is manually maintained in `src/content/dj/<folder>/index.md`,
 with adjacent original artwork. Build with `pnpm build`; validate with
-`pnpm check` and `pnpm test`. There is no feed or build-time Mixcloud request.
+`pnpm check` and `pnpm test`. There are no build-time Mixcloud requests.
+Recordings also appear in the site's [combined RSS feed](rss.md).
 The initial research pass publishes 132 verified recordings; see the
 [research audit](dj-catalogue-research.md) for coverage, evidence, exclusions and
 unresolved dates. This is a point-in-time catalogue, not a completeness guarantee.
@@ -16,6 +17,9 @@ Browser tests use Playwright's Chromium; on a fresh machine, provision it with
   reuploads manually and retain the same ID rather than publishing another entry.
   `slug` is the unique local route. The build rejects duplicate IDs, routes and
   canonical Mixcloud URLs.
+- Set `publishedAt: YYYY-MM-DD` to the site-publication day, separately from the
+  broadcast date. Keep it and the persistent ID on ordinary edits or slug changes.
+  See the [RSS publication policy and initial backfill evidence](rss.md).
 - `category` is the programme: `a-friendly-wave`, `island-city`, or
   `other-appearances`. It does not follow the uploading account. Programme row
   labels/order live in `src/config/site-settings.json`.

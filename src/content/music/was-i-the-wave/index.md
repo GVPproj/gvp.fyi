@@ -2,10 +2,12 @@
 {
   "id": "8hok86mmkplkzn0",
   "order": 10,
+  "publishedAt": "2026-10-07",
   "category": "miracle-fortress",
   "album_id": 2176362726,
   "slug": "was-i-the-wave",
   "title": "Was I the Wave?",
+  "summary": "The second Miracle Fortress album moves toward electronic music, written, arranged, performed, produced and engineered by Graham Van Pelt.",
   "artist": "Miracle Fortress",
   "release_date": "26 Apr 2011 00:00:00 GMT",
   "tracks": [

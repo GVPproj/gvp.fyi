@@ -3,11 +3,18 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { categorySchema } from './config/category-schema';
 
+const persistentId = z.string().regex(/^[a-zA-Z0-9_-]+$/);
+const publicationDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(validCalendarDate, 'Invalid calendar publication date');
+const summary = z.string().trim().min(1);
+
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
   schema: z.object({
+    id: persistentId,
     title: z.string().min(1),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    summary,
+    date: publicationDate,
   }),
 });
 
@@ -23,6 +30,9 @@ const software = defineCollection({
       return value;
     }, image());
     return z.object({
+      id: persistentId,
+      publishedAt: publicationDate,
+      summary,
       title: text,
       category: categorySchema('software'),
       order: z.number().int(),
@@ -110,6 +120,8 @@ const music = defineCollection({
     id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     order: z.number().int().default(0),
+    publishedAt: publicationDate,
+    summary,
     category: categorySchema('releases'),
     artwork: z.preprocess(entryRelativeImage, image()),
     title: text.max(500),
@@ -144,6 +156,7 @@ const dj = defineCollection({
   schema: ({ image }) => z.object({
     id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    publishedAt: publicationDate,
     category: categorySchema('dj'),
     title: text.max(500),
     credit: text.max(1000),

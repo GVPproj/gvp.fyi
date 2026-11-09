@@ -2,10 +2,12 @@
 {
   "id": "wm0xeamop2lbmm1",
   "order": 2,
+  "publishedAt": "2026-10-07",
   "category": "graham-van-pelt",
   "album_id": 4102581361,
   "slug": "under-the-heat-dome",
   "title": "Under The Heat Dome",
+  "summary": "Graham Van Pelt's minimalist ambient compositions reflect on the 2021 Western North American heat dome, environmental trauma and community resilience. Eli Horn's evolving particle-based visuals mirror the music's gradual erosion.",
   "artist": "Graham Van Pelt",
   "release_date": "18 Aug 2022 00:00:00 GMT",
   "tracks": [

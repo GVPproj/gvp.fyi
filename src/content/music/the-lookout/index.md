@@ -2,10 +2,12 @@
 {
   "id": "e6glbho0yxe4jdi",
   "order": 0,
+  "publishedAt": "2026-10-07",
   "category": "graham-van-pelt",
   "album_id": 1133752224,
   "slug": "the-lookout",
   "title": "The Lookout",
+  "summary": "Two side-long ambient pieces by Graham Van Pelt, inspired by the peak of Salt Spring Island's Channel Ridge trail. Improvised next to an orchard, the album evokes a restful midsummer mood.",
   "artist": "Graham Van Pelt",
   "release_date": "20 Jul 2023 00:00:00 GMT",
   "tracks": [
