@@ -7,7 +7,8 @@
     "software": "Software",
     "blog": "Blog",
     "likes": "Likes",
-    "music": "Music"
+    "music": "Music",
+    "dj": "DJ"
   },
   "navigation": [
     {
@@ -21,6 +22,11 @@
       "href": "/music"
     },
     {
+      "id": "dj",
+      "label": "DJ",
+      "href": "/dj/"
+    },
+    {
       "id": "likes",
       "label": "Likes",
       "href": "/likes"
@@ -29,9 +35,19 @@
       "id": "blog",
       "label": "Blog",
       "href": "/blog"
+    },
+    {
+      "id": "now",
+      "label": "Now",
+      "disabled": true
     }
   ],
   "categories": {
+    "dj": [
+      { "id": "a-friendly-wave", "title": "A Friendly Wave" },
+      { "id": "island-city", "title": "Island City" },
+      { "id": "other-appearances", "title": "Other Appearances" }
+    ],
     "likes": [
       {
         "id": "i69nqzrzgom9c3s",

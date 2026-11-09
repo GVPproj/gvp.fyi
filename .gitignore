@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .astro/
+.test-fixture-*/
 .env
 .env.*
 .DS_Store

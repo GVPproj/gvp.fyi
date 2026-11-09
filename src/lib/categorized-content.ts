@@ -3,7 +3,7 @@ import { categorySchema } from '../config/category-schema';
 import { categorySettings } from './site-settings';
 import type { ContentRowItem } from '../components/ContentRow.astro';
 
-const registries = { likes: 'likes', music: 'releases', software: 'software' } as const;
+const registries = { likes: 'likes', music: 'releases', software: 'software', dj: 'dj' } as const;
 
 export async function getCategorizedCollection<C extends keyof typeof registries>(collection: C) {
   const entries = await getCollection(collection);
