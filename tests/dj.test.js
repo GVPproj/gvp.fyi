@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
@@ -21,6 +21,11 @@ async function page(path) {
 before(async () => {
   workspace = await createBuildFixture('dj');
   fixture = workspace.directory;
+  // Keep mutation/keyboard scenarios independent of the growing real catalogue.
+  // dj-catalogue.test.js builds and checks every published recording.
+  for (const name of await readdir(join(fixture, 'src/content/dj'))) {
+    if (name !== 'afw-2026-10-20') await rm(join(fixture, 'src/content/dj', name), { recursive: true });
+  }
   await build();
 });
 
@@ -62,7 +67,7 @@ test('navigation exposes DJ directly and leaves Now disabled in both menus', asy
   assert.equal(document.querySelectorAll('nav a[href="/dj/"]').length, 2);
 });
 
-test('verified broadcasts sort newest first while uncertain dates stay explicit', async () => {
+test('verified broadcasts sort newest first with uncertain and unknown dates last', async () => {
   const directories = [];
   try {
     directories.push(await addEpisode('older-uploaded-2099', {
@@ -79,15 +84,6 @@ test('verified broadcasts sort newest first while uncertain dates stay explicit'
     const overview = await page('dj');
     assert.deepEqual([...overview.querySelectorAll('.content-row a')].map(link => link.getAttribute('href')),
       ['/dj/newer-uploaded-2000', '/dj/afw-2026-10-20', '/dj/older-uploaded-2099', '/dj/uncertain-date', '/dj/unknown-date']);
-    for (const [slug, message] of [
-      ['uncertain-date', /Broadcast date uncertain.*October 2026; exact day unverified/],
-      ['unknown-date', /Broadcast date unknown/],
-    ]) {
-      const detail = await page(`dj/${slug}`);
-      assert.match(detail.querySelector('.broadcast-date').textContent, message);
-      assert.equal(detail.querySelector('.broadcast-date time'), null);
-      assert.match(overview.querySelector(`a[href="/dj/${slug}"]`).textContent, message);
-    }
   } finally {
     for (const directory of directories) await rm(directory, { recursive: true, force: true });
     await build();
@@ -108,8 +104,6 @@ test('a shared Island City recording stays in its programme regardless of upload
     assert.equal(cards.length, 1);
     assert.equal(cards[0].closest('section').getAttribute('aria-labelledby'), 'programme-island-city-heading');
     const detail = await page('dj/shared-island-city');
-    assert.match(detail.querySelector('main').textContent, /Shared broadcast — Graham Van Pelt and Guest Presenter/);
-    assert.equal(detail.querySelector('.recording-duration time').textContent, '2:00:05');
     assert.equal(detail.querySelector('main img').getAttribute('width'), '640');
     assert.equal(detail.querySelector('main img').getAttribute('height'), '320');
     assert.equal(detail.querySelectorAll('main iframe, main audio, main video').length, 0);
@@ -129,14 +123,11 @@ test('DJ rows lead to a verified local episode and external listening, never a p
   assert.ok(card.querySelector('img'));
   const detail = await page(card.getAttribute('href'));
   assert.equal(detail.querySelector('main h1').textContent, 'Graham Van Pelt - AFW Live on CHIR FM - 10/20/26');
-  assert.match(detail.querySelector('main').textContent, /Hosted by Graham Van Pelt/);
-  assert.equal(detail.querySelector('.broadcast-date time').getAttribute('datetime'), '2026-10-20');
-  assert.equal(detail.querySelector('.recording-duration time').textContent, '59:45');
-  assert.equal(detail.querySelector('.recording-duration time').getAttribute('datetime'), 'PT3585S');
+  assert.equal(detail.querySelectorAll('main header p').length, 1);
+  assert.equal(detail.querySelectorAll('main dl, main time, main details').length, 0);
   const listen = [...detail.querySelectorAll('main a')].find(link => link.textContent === 'Listen on Mixcloud');
   assert.equal(listen.getAttribute('href'), listeningUrl);
-  assert.ok(detail.querySelector(`a[href="https://api.mixcloud.com/afriendlywave/graham-van-pelt-afw-live-on-chir-fm-101326/"]`));
-  assert.ok(detail.querySelector('a[href="https://afriendlywave.com/"]'));
+  assert.equal(detail.querySelectorAll('main a').length, 2);
   assert.equal(detail.querySelectorAll('main iframe, main audio, main video, main [download]').length, 0);
   const artwork = detail.querySelector('main img');
   assert.equal(artwork.getAttribute('width'), '1728');
@@ -255,8 +246,7 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     const image = tab.locator('main img');
     await image.evaluate(element => element.decode());
     assert.equal(await image.evaluate(element => Math.abs(element.clientWidth / element.clientHeight - element.naturalWidth / element.naturalHeight) < .01), true);
-    await tab.getByText('Sources', { exact: true }).click();
-    assert.equal(await tab.locator('details').evaluate(element => element.open), true);
+    assert.equal(await tab.getByText('Sources', { exact: true }).count(), 0);
     assert.equal(await tab.getByRole('link', { name: 'Listen on Mixcloud', exact: true }).getAttribute('href'), listeningUrl);
 
     await tab.setViewportSize({ width: 390, height: 844 });

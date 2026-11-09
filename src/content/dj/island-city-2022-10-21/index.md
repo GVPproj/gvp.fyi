@@ -1,0 +1,19 @@
+---
+id: "island-city-2022-10-21"
+slug: "island-city-2022-10-21"
+category: "island-city"
+title: "ISLAND CITY with Graham Van Pelt 21OCT2022"
+credit: "Hosted by Graham Van Pelt"
+artwork: "./artwork.png"
+broadcast:
+  status: "verified"
+  date: "2022-10-21"
+  source: "https://api.mixcloud.com/fsrlive/island-city-with-graham-van-pelt-21oct2022/"
+duration_seconds: 3600
+mixcloud: "https://www.mixcloud.com/fsrlive/island-city-with-graham-van-pelt-21oct2022/"
+sources:
+  - label: "Mixcloud recording metadata"
+    url: https://api.mixcloud.com/fsrlive/island-city-with-graham-van-pelt-21oct2022/
+  - label: "Original recording artwork"
+    url: https://thumbnailer.mixcloud.com/unsafe/0x0/extaudio/d/c/0/2/5a95-c28e-45c4-9c55-b7bef09d5e98
+---

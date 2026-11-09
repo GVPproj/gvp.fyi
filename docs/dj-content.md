@@ -3,7 +3,9 @@
 The DJ catalogue is manually maintained in `src/content/dj/<folder>/index.md`,
 with adjacent original artwork. Build with `pnpm build`; validate with
 `pnpm check` and `pnpm test`. There is no feed or build-time Mixcloud request.
-The launch publishes one recording; the wider research/catalogue is #41.
+The initial research pass publishes 132 verified recordings; see the
+[research audit](dj-catalogue-research.md) for coverage, evidence, exclusions and
+unresolved dates. This is a point-in-time catalogue, not a completeness guarantee.
 Browser tests use Playwright's Chromium; on a fresh machine, provision it with
 `pnpm exec playwright-core install chromium`.
 
@@ -48,8 +50,16 @@ broadcast:
   note: October 2026; exact day unverified
 ```
 
-Only frontmatter is published on episode pages. Listening is a plain Mixcloud
-link; the template intentionally has no body renderer, player or download.
+Cards show artwork and the original title only. Detail pages show the programme,
+title, original artwork and a plain Mixcloud listening link. Credits, broadcast
+dates, full durations and evidence links remain required repository metadata for
+manual verification, but are not rendered as separate fields or a Sources section.
+The template intentionally has no body renderer, player or download.
+`tests/dj-catalogue.test.js` checks every published card/detail journey, programme
+counts, representative canonical-link decisions and the minimal presentation.
+Update the researched expectations when intentionally adding or reclassifying
+recordings; keep the
+isolated validation scenarios in `tests/dj.test.js` independent of catalogue size.
 
 ## Launch recording verification
 
@@ -69,7 +79,7 @@ link; the template intentionally has no body renderer, player or download.
   which lists “October 20, 2026” (`2026-10-20_WAVE.mp3`).
 
 The Mixcloud slug's `101326` disagrees with the dated artwork, current title,
-programme website and station archive. The published broadcast date is therefore
+programme website and station archive. The catalogued broadcast date is therefore
 **2026-10-20**, not October 13 or the October 21 upload date. No co-presenter is
 credited in the examined metadata. The duration describes the Mixcloud recording;
 no audio comparison with the station archive was performed.

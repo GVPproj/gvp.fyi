@@ -14,6 +14,8 @@ mixcloud: https://www.mixcloud.com/afriendlywave/graham-van-pelt-afw-live-on-chi
 sources:
   - label: Mixcloud recording metadata
     url: https://api.mixcloud.com/afriendlywave/graham-van-pelt-afw-live-on-chir-fm-101326/
+  - label: Original recording artwork
+    url: https://thumbnailer.mixcloud.com/unsafe/0x0/extaudio/4/5/5/5/8fb4-5e7d-4c36-8b7e-e02ff2507fdc
   - label: A Friendly Wave
     url: https://afriendlywave.com/
   - label: CHIR FM programme archive
