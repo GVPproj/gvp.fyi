@@ -128,4 +128,39 @@ const music = defineCollection({
   }).strict(),
 });
 
-export const collections = { blog, software, likes, music };
+const mixcloudRecording = listeningLink.refine(value => {
+  const url = new URL(value);
+  const parts = url.pathname.split('/').filter(Boolean);
+  return ['www.mixcloud.com', 'mixcloud.com'].includes(url.hostname) && !url.port
+    && /^\/[a-z0-9_-]+\/[a-z0-9_-]+\/?$/i.test(url.pathname)
+    && !['widget', 'discover', 'live', 'upload', 'search'].includes(parts[0].toLowerCase())
+    && !['playlists', 'favorites', 'followers', 'following', 'uploads', 'cloudcasts', 'listen-later'].includes(parts[1].toLowerCase())
+    && !/[?#]/.test(value);
+}, 'Expected a canonical Mixcloud recording URL').transform(value =>
+  `https://www.mixcloud.com${new URL(value).pathname.toLowerCase().replace(/\/$/, '')}/`);
+
+const dj = defineCollection({
+  loader: glob({ pattern: '**/index.md', base: './src/content/dj', generateId: entryId }),
+  schema: ({ image }) => z.object({
+    id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    category: categorySchema('dj'),
+    title: text.max(500),
+    credit: text.max(1000),
+    artwork: z.preprocess(entryRelativeImage, image()),
+    broadcast: z.discriminatedUnion('status', [
+      z.object({
+        status: z.literal('verified'),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(validCalendarDate, 'Invalid calendar broadcast date'),
+        source: webLink,
+      }).strict(),
+      z.object({ status: z.literal('uncertain'), note: text.max(500) }).strict(),
+      z.object({ status: z.literal('unknown') }).strict(),
+    ]),
+    duration_seconds: z.number().int().positive(),
+    mixcloud: mixcloudRecording,
+    sources: z.array(z.object({ label: text, url: webLink }).strict()).min(1),
+  }).strict(),
+});
+
+export const collections = { blog, software, likes, music, dj };

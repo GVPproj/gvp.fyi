@@ -14,7 +14,7 @@ const registry = z.array(z.object({
   }
 });
 
-const categories = z.object({ likes: registry, software: registry, releases: registry })
+const categories = z.object({ likes: registry, software: registry, releases: registry, dj: registry })
   .parse(siteSettings.categories);
 
 export function categorySchema(kind: keyof typeof categories) {

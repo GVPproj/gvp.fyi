@@ -46,6 +46,7 @@
   --colour-highlight: var(--nord7);
   --ink-700: var(--nord2);
   --ink-500: var(--nord3);
+  --site-header-width: 36rem;
 
   background: var(--color-background);
   color: var(--color-foreground);

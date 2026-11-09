@@ -1,0 +1,63 @@
+---
+import type { InferGetStaticPropsType } from 'astro';
+import { Image } from 'astro:assets';
+import Layout from '../../layouts/Layout.astro';
+import { getDjEpisodes } from '../../lib/dj-episodes';
+import { categorySettings } from '../../lib/site-settings';
+
+export async function getStaticPaths() {
+  return (await getDjEpisodes()).map(episode => ({
+    params: { slug: episode.slug }, props: { episode },
+  }));
+}
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { episode } = Astro.props;
+const programme = categorySettings('dj').find(category => category.id === episode.category)!;
+---
+
+<Layout title={episode.title} type="article">
+  <article class="episode-detail">
+    <a href="/dj/">← DJ</a>
+    <header>
+      <p>{programme.title}</p>
+      <h1>{episode.title}</h1>
+      <p>{episode.credit}</p>
+    </header>
+    <dl>
+      <div class="broadcast-date">
+        <dt>Broadcast date</dt>
+        <dd>{episode.date ? <time datetime={episode.date}>{episode.date}</time> : episode.metadata}</dd>
+      </div>
+      <div class="recording-duration">
+        <dt>Full recording</dt>
+        <dd><time datetime={`PT${episode.duration_seconds}S`}>{episode.duration}</time></dd>
+      </div>
+    </dl>
+    <Image src={episode.image} alt={`${programme.title} — ${episode.title} artwork`}
+      layout="constrained" sizes="(max-width: 48rem) calc(100vw - 3rem), 65ch"
+      loading="eager" decoding="async" />
+    <a href={episode.mixcloud}>Listen on Mixcloud</a>
+    <details>
+      <summary>Sources</summary>
+      <ul>
+        {episode.broadcast.status === 'verified' && <li><a href={episode.broadcast.source}>Broadcast date source</a></li>}
+        {episode.sources.map(source => <li><a href={source.url}>{source.label}</a></li>)}
+      </ul>
+    </details>
+  </article>
+</Layout>
+
+<style>
+  .episode-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; overflow-wrap: anywhere; }
+  :global(main:has(.episode-detail)) { justify-content: flex-start; }
+  header { display: grid; gap: .5rem; }
+  header p, dt { color: var(--nord4); }
+  dl { display: flex; flex-wrap: wrap; gap: .75rem 2rem; margin: 0; }
+  dd { margin: 0; color: var(--color-foreground); }
+  img { display: block; width: 100%; height: auto; background: var(--nord1); }
+  summary { cursor: pointer; }
+  ul { margin-bottom: 0; padding-inline-start: 1.25rem; }
+  a { color: var(--color-accent); }
+  a:hover { color: var(--nord7); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+</style>

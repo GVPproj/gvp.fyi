@@ -1,38 +1,21 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
-import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 import { parseHTML } from 'linkedom';
+import { createBuildFixture } from './build-fixture.js';
 
-const repository = fileURLToPath(new URL('../', import.meta.url));
-const exec = promisify(execFile);
 let fixture;
+let build;
+let cleanup;
 let settings;
-
-async function build() {
-  return exec(process.execPath, [join(repository, 'node_modules/astro/bin/astro.mjs'), 'build'], {
-    cwd: fixture,
-    maxBuffer: 4 * 1024 * 1024,
-  });
-}
 
 async function page(path) {
   return parseHTML(await readFile(join(fixture, 'dist', path, 'index.html'), 'utf8')).document;
 }
 
 before(async () => {
-  fixture = await mkdtemp(join(tmpdir(), 'gvp-collections-'));
-  await cp(join(repository, 'src'), join(fixture, 'src'), { recursive: true });
-  for (const file of ['package.json', 'astro.config.mjs', 'tsconfig.json']) {
-    await cp(join(repository, file), join(fixture, file));
-  }
-  for (const directory of ['node_modules', 'public']) {
-    await symlink(join(repository, directory), join(fixture, directory), 'dir');
-  }
+  ({ directory: fixture, build, cleanup } = await createBuildFixture('collections'));
   const settingsFile = join(fixture, 'src/config/site-settings.json');
   settings = JSON.parse(await readFile(settingsFile, 'utf8'));
   for (const categories of Object.values(settings.categories)) {
@@ -58,7 +41,7 @@ before(async () => {
 });
 
 after(async () => {
-  if (fixture) await rm(fixture, { recursive: true, force: true });
+  await cleanup?.();
 });
 
 test('overviews preserve category policies and normalized links', async () => {
@@ -104,7 +87,7 @@ test('adjacent PDFs are published and music dates retain their precision', async
   assert.equal(release.querySelectorAll('audio').length, 5);
   assert.equal(release.querySelectorAll('.content-body .music-player audio').length, 5);
   assert.equal(release.querySelectorAll('.music-player a[download]').length, 5);
-  assert.ok(!release.textContent.includes('No listening link is currently available'));
+  assert.ok(!release.body.textContent.includes('No listening link is currently available'));
 });
 
 test('loaders still reject route conflicts, empty bodies, invalid PDFs and missing audio', async () => {
@@ -126,6 +109,21 @@ test('loaders still reject route conflicts, empty bodies, invalid PDFs and missi
     } finally {
       await writeFile(file, original);
     }
+  }
+});
+
+test('content edits are rendered on subsequent builds', async () => {
+  const file = join(fixture, 'src/content/likes/fixture-note/index.mdx');
+  const original = await readFile(file, 'utf8');
+  try {
+    await writeFile(file, original.replace('Readable MDX note', 'Updated MDX note'));
+    await build();
+    const overview = await page('likes');
+    assert.equal(overview.querySelector('a[href="/likes/fixture-note"] .content-preview').textContent, 'Updated MDX note');
+    const detail = await page('likes/fixture-note');
+    assert.match(detail.querySelector('main').textContent, /Updated MDX note/);
+  } finally {
+    await writeFile(file, original);
   }
 });
 
