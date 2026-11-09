@@ -1,0 +1,135 @@
+---
+const colours = ['#1111DD', '#EE61E5', '#FF4444', '#00FFFF', '#45E255'];
+const modes = ['monochrome', 'monochrome-dark', 'monochrome-light', 'analogic', 'complement', 'analogic-complement', 'triad'];
+---
+
+<colour-scheme-app aria-label="Colour scheme generator">
+  <form>
+    <fieldset disabled>
+      <legend class="sr-only">Choose a colour scheme</legend>
+      <div class="controls">
+        <label><span class="sr-only">Colour</span><input name="colour" type="color" value="#1111dd" /></label>
+        <label><span class="sr-only">Hex</span><input name="hex" type="text" value="#1111DD" pattern="#?[0-9a-fA-F]{6}" required maxlength="7" spellcheck="false" /></label>
+        <label class="mode"><span class="sr-only">Scheme</span><select name="mode">{modes.map(mode => <option value={mode}>{mode.charAt(0).toUpperCase() + mode.slice(1)}</option>)}</select></label>
+        <button type="submit">Get Scheme</button>
+      </div>
+    </fieldset>
+  </form>
+  <div class="palette">
+    {colours.map(colour => <div class="swatch">
+      <div class="colour" style={{ backgroundColor: colour }}></div>
+      <button type="button" class="copy" aria-label={`Copy ${colour}`} disabled>{colour}</button>
+    </div>)}
+  </div>
+  <p role="status" aria-live="polite">Copy hex codes with a click.</p>
+</colour-scheme-app>
+
+<script>
+  class ColourSchemeApp extends HTMLElement {
+    private lifecycle?: AbortController;
+    private request?: AbortController;
+
+    connectedCallback() {
+      this.lifecycle?.abort();
+      const lifecycle = this.lifecycle = new AbortController();
+      const { signal } = lifecycle;
+      const form = this.querySelector('form')!;
+      const fieldset = this.querySelector('fieldset')!;
+      const colour = this.querySelector<HTMLInputElement>('[name="colour"]')!;
+      const hex = this.querySelector<HTMLInputElement>('[name="hex"]')!;
+      const mode = this.querySelector<HTMLSelectElement>('[name="mode"]')!;
+      const submit = this.querySelector<HTMLButtonElement>('[type="submit"]')!;
+      const status = this.querySelector<HTMLElement>('[role="status"]')!;
+      const buttons = [...this.querySelectorAll<HTMLButtonElement>('.copy')];
+      fieldset.disabled = false;
+      buttons.forEach(button => { button.disabled = false; });
+      colour.addEventListener('input', () => { hex.value = colour.value.toUpperCase(); }, { signal });
+      hex.addEventListener('input', () => {
+        if (hex.validity.valid) colour.value = `#${hex.value.replace('#', '')}`;
+      }, { signal });
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (submit.getAttribute('aria-disabled') === 'true' || !form.reportValidity()) return;
+        this.request?.abort();
+        const request = this.request = new AbortController();
+        const timeout = window.setTimeout(() => request.abort(), 15000);
+        submit.setAttribute('aria-disabled', 'true');
+        this.setAttribute('aria-busy', 'true');
+        status.textContent = '';
+        try {
+          const response = await fetch(`https://www.thecolorapi.com/scheme?hex=${hex.value.replace('#', '')}&mode=${mode.value}&count=5`, { signal: request.signal });
+          if (!response.ok) throw new Error('Palette request failed');
+          const data = await response.json();
+          if (!Array.isArray(data.colors) || data.colors.length !== 5 || !data.colors.every((item: { hex?: { value?: unknown } }) => typeof item?.hex?.value === 'string' && /^#[0-9a-f]{6}$/i.test(item.hex.value))) throw new Error('Invalid palette');
+          if (signal.aborted) return;
+          data.colors.forEach((item: { hex: { value: string } }, index: number) => {
+            const value = item.hex.value.toUpperCase();
+            (this.querySelectorAll<HTMLElement>('.colour')[index]).style.backgroundColor = value;
+            buttons[index].textContent = value;
+            buttons[index].setAttribute('aria-label', `Copy ${value}`);
+          });
+          status.textContent = 'Copy hex codes with a click.';
+        } catch {
+          if (!signal.aborted) status.textContent = 'Could not load a scheme. Try again.';
+        } finally {
+          window.clearTimeout(timeout);
+          if (!signal.aborted) {
+            submit.removeAttribute('aria-disabled');
+            this.removeAttribute('aria-busy');
+          }
+        }
+      }, { signal });
+      buttons.forEach(button => button.addEventListener('click', async () => {
+        const value = button.textContent!.trim();
+        try {
+          await navigator.clipboard.writeText(value);
+          if (!signal.aborted) status.textContent = `Copied ${value} to clipboard!`;
+        } catch {
+          if (signal.aborted) return;
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(button);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          status.textContent = 'Copy unavailable. The hex code is selected for manual copying.';
+        }
+      }, { signal }));
+    }
+
+    disconnectedCallback() {
+      this.lifecycle?.abort();
+      this.request?.abort();
+    }
+  }
+  if (!customElements.get('colour-scheme-app')) customElements.define('colour-scheme-app', ColourSchemeApp);
+</script>
+
+<style>
+  colour-scheme-app { display: block; container-type: inline-size; width: 100%; border-radius: 5px; background: #1f2937; color: #fff; color-scheme: dark; font-family: Inter, system-ui, sans-serif; line-height: 1.5; }
+  fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .controls { display: grid; grid-template-columns: 3.8rem 6rem minmax(0, 1fr) auto; gap: .3rem; align-items: center; padding: 24px 12px; }
+  label { min-width: 0; }
+  input, select, button { font: inherit; border: 2px solid #d1d5db; border-radius: 6px; color: inherit; background: transparent; min-height: 2.75rem; box-shadow: 0 1px 2px #0001; }
+  input { width: 100%; }
+  input[type='color'] { padding: .15rem; border-radius: 4px; background: #e5e7eb; }
+  input[type='text'] { padding: .35rem; text-align: center; text-transform: uppercase; }
+  select { width: 100%; padding: .5rem; }
+  button { padding: .5rem .75rem; cursor: pointer; font-size: .75rem; font-weight: 500; border-color: #3d4b60; border-radius: 4px; }
+  button[type='submit'] { background: #3d4b60; }
+  button:hover { background: #3d4b60; border-color: #d1d5db; }
+  button:disabled, button[aria-disabled='true'] { cursor: default; opacity: .6; }
+  :is(input, select, button):focus-visible { outline: 3px solid #88c0d0; outline-offset: 3px; }
+  .palette { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .swatch { display: grid; justify-items: center; min-width: 0; }
+  .colour { width: 100%; height: 414px; }
+  .copy { margin-block: .25rem; padding: .35rem .5rem; user-select: text; }
+  p { color: #d5d4d8; padding: .75rem; font-size: .875rem; min-height: 3.5em; text-align: center; }
+  @container (width < 30rem) {
+    .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: 1.5rem; }
+    .palette { grid-template-columns: 1fr; }
+    .swatch { grid-template-columns: 2fr 1fr; align-items: center; }
+    .colour { height: 82px; }
+    .copy { max-width: calc(100% - .5rem); }
+  }
+</style>
