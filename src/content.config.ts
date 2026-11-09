@@ -29,6 +29,7 @@ const software = defineCollection({
       tooling: z.array(text),
       screenshot: localImage,
       screenshotAlt: z.string().optional(),
+      showScreenshot: z.boolean().default(true),
       url: link.optional(),
       repo: link.optional(),
       team: z.array(z.object({ name: text, role: text, href: link.optional() })).optional(),

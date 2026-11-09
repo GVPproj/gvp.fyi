@@ -1,0 +1,299 @@
+<quizzical-app>
+  <header>
+    <h2>Quizzical</h2>
+  </header>
+
+  <section data-start>
+    <button type="button" data-start-button disabled>Start quiz</button>
+  </section>
+
+  <p class="status" data-status role="status" aria-live="polite" aria-atomic="true"></p>
+
+  <section data-error hidden>
+    <button type="button" data-retry>Try again</button>
+  </section>
+
+  <form data-quiz hidden>
+    <div data-questions></div>
+    <div class="finish">
+      <button type="submit" data-check>Check Answers</button>
+      <section data-results hidden>
+        <h3 tabindex="-1" data-score></h3>
+        <button type="button" data-replay>Play Again</button>
+      </section>
+    </div>
+  </form>
+
+  <template data-question-template>
+    <fieldset>
+      <legend></legend>
+      <div class="choices"></div>
+      <p class="feedback sr-only" hidden></p>
+    </fieldset>
+  </template>
+  <template data-choice-template>
+    <label class="choice">
+      <input type="radio" required />
+      <span></span>
+    </label>
+  </template>
+
+</quizzical-app>
+
+<script>
+  type Question = { question: string; answers: string[]; correct: string };
+
+  // Decode entities in an inert textarea, escaping literal markup first.
+  // Decoded API strings only enter the visible document through textContent.
+  function decode(text: string): string {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return textarea.value;
+  }
+
+  function shuffle<T>(items: T[]): T[] {
+    const result = [...items];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+
+  function parseQuestions(data: unknown): Question[] {
+    if (!data || typeof data !== 'object' || !('response_code' in data) ||
+        data.response_code !== 0 || !('results' in data) ||
+        !Array.isArray(data.results) || data.results.length !== 5) {
+      throw new Error('Invalid trivia response');
+    }
+    const isText = (value: unknown): value is string =>
+      typeof value === 'string' && value.trim().length > 0 && value.length <= 5000;
+
+    return data.results.map((item: unknown) => {
+      if (!item || typeof item !== 'object' || !('type' in item) || item.type !== 'multiple' ||
+          !('question' in item) || !isText(item.question) ||
+          !('correct_answer' in item) || !isText(item.correct_answer) ||
+          !('incorrect_answers' in item) || !Array.isArray(item.incorrect_answers) ||
+          item.incorrect_answers.length !== 3 || !item.incorrect_answers.every(isText)) {
+        throw new Error('Invalid trivia question');
+      }
+      const question = decode(item.question);
+      const correct = decode(item.correct_answer);
+      const answers = [correct, ...item.incorrect_answers.map(decode)];
+      if (!question.trim() || answers.some(answer => !answer.trim()) || new Set(answers).size !== 4) {
+        throw new Error('Invalid trivia answers');
+      }
+      return { question, correct, answers: shuffle(answers) };
+    });
+  }
+
+  class QuizzicalApp extends HTMLElement {
+    private events?: AbortController;
+    private request?: AbortController;
+    private timer?: number;
+    private questions: Question[] = [];
+    private checked = false;
+
+    private getElement<T extends HTMLElement>(selector: string): T {
+      return this.querySelector<T>(selector)!;
+    }
+
+    connectedCallback() {
+      // Reconnecting after a ClientRouter swap starts idle, never a new request.
+      this.events?.abort();
+      this.events = new AbortController();
+      const options = { signal: this.events.signal };
+      this.getElement('[data-start]').hidden = false;
+      this.getElement('[data-error]').hidden = true;
+      this.getElement('[data-quiz]').hidden = true;
+      this.getElement('[data-status]').textContent = '';
+      this.getElement<HTMLButtonElement>('[data-start-button]').disabled = false;
+      for (const selector of ['[data-start-button]', '[data-retry]', '[data-replay]']) {
+        this.getElement(selector).addEventListener('click', () => void this.load(), options);
+      }
+      this.getElement('[data-quiz]').addEventListener('submit', event => {
+        event.preventDefault();
+        this.check();
+      }, options);
+    }
+
+    disconnectedCallback() {
+      this.events?.abort();
+      this.request?.abort();
+      this.request = undefined;
+      window.clearTimeout(this.timer);
+    }
+
+    private async load() {
+      this.request?.abort();
+      window.clearTimeout(this.timer);
+      const request = new AbortController();
+      this.request = request;
+      let timedOut = false;
+      this.timer = window.setTimeout(() => {
+        timedOut = true;
+        request.abort();
+      }, 15000);
+      this.getElement('[data-start]').hidden = true;
+      this.getElement('[data-error]').hidden = true;
+      this.getElement('[data-quiz]').hidden = true;
+      this.getElement('[data-status]').textContent = '';
+      this.getElement('[data-quiz]').setAttribute('aria-busy', 'true');
+      this.setAttribute('aria-busy', 'true');
+      try {
+        const response = await fetch('https://opentdb.com/api.php?amount=5&type=multiple', {
+          signal: request.signal,
+        });
+        if (!response.ok) throw new Error('Trivia service unavailable');
+        const questions = parseQuestions(await response.json());
+        if (!this.isConnected || this.request !== request) return;
+        this.questions = questions;
+        this.renderQuestions();
+        this.getElement('[data-quiz]').hidden = false;
+        this.getElement('[data-status]').textContent = '';
+        this.getElement('[data-quiz]').removeAttribute('aria-busy');
+        this.getElement<HTMLElement>('legend').focus();
+      } catch {
+        if (!this.isConnected || this.request !== request) return;
+        this.getElement('[data-status]').textContent = timedOut
+          ? 'The trivia service took too long to respond. Please try again.'
+          : 'Could not load a quiz. The trivia service may be busy or your connection may be offline. Please try again.';
+        this.getElement('[data-error]').hidden = false;
+        this.getElement('[data-quiz]').removeAttribute('aria-busy');
+        this.getElement('[data-retry]').focus();
+      } finally {
+        if (this.request === request) {
+          window.clearTimeout(this.timer);
+          this.request = undefined;
+          this.removeAttribute('aria-busy');
+          this.getElement('[data-quiz]').removeAttribute('aria-busy');
+        }
+      }
+    }
+
+    private renderQuestions() {
+      this.checked = false;
+      this.getElement('[data-results]').hidden = true;
+      this.getElement('[data-check]').hidden = false;
+      const container = this.getElement('[data-questions]');
+      container.replaceChildren();
+      const questionTemplate = this.getElement<HTMLTemplateElement>('[data-question-template]');
+      const choiceTemplate = this.getElement<HTMLTemplateElement>('[data-choice-template]');
+      this.questions.forEach((question, index) => {
+        const fragment = questionTemplate.content.cloneNode(true) as DocumentFragment;
+        const legend = fragment.querySelector('legend')!;
+        legend.textContent = `${index + 1}. ${question.question}`;
+        legend.tabIndex = -1;
+        question.answers.forEach((answer, answerIndex) => {
+          const choice = choiceTemplate.content.cloneNode(true) as DocumentFragment;
+          const input = choice.querySelector('input')!;
+          input.name = `question-${index}`;
+          input.value = String(answerIndex);
+          choice.querySelector('span')!.textContent = answer;
+          fragment.querySelector('.choices')!.append(choice);
+        });
+        container.append(fragment);
+      });
+    }
+
+    private check() {
+      const form = this.getElement<HTMLFormElement>('[data-quiz]');
+      if (this.checked || !form.reportValidity()) return;
+      this.checked = true;
+      let score = 0;
+      const fieldsets = form.querySelectorAll('fieldset');
+      this.questions.forEach((question, index) => {
+        const fieldset = fieldsets[index];
+        const selected = fieldset.querySelector<HTMLInputElement>('input:checked')!;
+        const isCorrect = question.answers[Number(selected.value)] === question.correct;
+        if (isCorrect) score++;
+        fieldset.querySelectorAll<HTMLInputElement>('input').forEach(input => {
+          const correct = question.answers[Number(input.value)] === question.correct;
+          input.closest('label')!.classList.toggle('correct', correct);
+          input.closest('label')!.classList.toggle('wrong', input.checked && !correct);
+        });
+        const feedback = fieldset.querySelector<HTMLElement>('.feedback')!;
+        feedback.textContent = isCorrect ? 'Correct!' : `Incorrect. Correct answer: ${question.correct}`;
+        feedback.hidden = false;
+        fieldset.disabled = true;
+      });
+      this.getElement('[data-check]').hidden = true;
+      this.getElement('[data-results]').hidden = false;
+      this.getElement('[data-score]').textContent = `You scored ${score}/5 correct answers.`;
+      this.getElement('[data-status]').textContent = '';
+      this.getElement('[data-score]').focus();
+    }
+  }
+
+  if (!customElements.get('quizzical-app')) customElements.define('quizzical-app', QuizzicalApp);
+</script>
+
+<style>
+  quizzical-app {
+    display: block;
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    border-radius: 1.25rem;
+    border: 2px solid #d6dcef;
+    background: radial-gradient(ellipse at top right, #fff3ca 0, transparent 45%), #f5f7fb;
+    color: #293264;
+    color-scheme: light;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  quizzical-app [hidden] { display: none !important; }
+  quizzical-app h2 { margin: 0; font-size: 2rem; font-weight: 750; color: #293264; }
+  quizzical-app h3 { margin: 0 0 .5rem; font-size: 1.25rem; font-weight: 700; color: #293264; }
+  quizzical-app p { color: #293264; font-weight: 400; }
+  header, [data-start], [data-error], .finish { text-align: center; }
+  header { margin-bottom: 1.5rem; }
+  .status { margin-block: 1rem; text-align: center; }
+  .status:empty { margin: 0; }
+  quizzical-app[aria-busy='true'] .status::after { content: ''; display: inline-block; width: 2rem; height: 2rem; border: 3px solid #bbc3dc; border-top-color: #293264; border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { quizzical-app[aria-busy='true'] .status::after { animation: none; } }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  button {
+    margin-top: 1rem;
+    border: 2px solid transparent;
+    border-radius: .75rem;
+    padding: .75rem 1.5rem;
+    min-height: 2.75rem;
+    background: #4d5b9e;
+    color: white;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  button:hover { background: #38477f; }
+  button:disabled { opacity: .65; cursor: default; }
+  :is(button, input, legend, h3):focus-visible { outline: 3px solid #293264; outline-offset: 4px; }
+  fieldset { min-inline-size: 0; margin: 0 0 1.5rem; padding: 0 0 1.5rem; border: 0; border-bottom: 1px solid #bbc3dc; }
+  legend { max-width: 100%; padding: 0; margin-bottom: .75rem; font-weight: 700; font-size: 1.05rem; }
+  .choices { display: flex; flex-wrap: wrap; gap: .6rem; }
+  .choice {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    max-width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid #65709b;
+    border-radius: .65rem;
+    padding: .5rem .75rem;
+    cursor: pointer;
+    background: #fffdf6;
+  }
+  input { margin: 0; flex: none; accent-color: #4d5b9e; width: 1rem; height: 1rem; }
+  .choice:has(input:checked) { background: #d6dbf5; border-color: #4d5b9e; }
+  .choice:has(input:focus-visible) { outline: 3px solid #293264; outline-offset: 3px; }
+  .choice.correct { background: #c0e4cf; border-color: #39754f; }
+  .choice.wrong { background: #f6d3d4; border-color: #a13f45; }
+  fieldset:disabled .choice { cursor: default; }
+  input:disabled { opacity: 1; }
+  .feedback { margin-top: .75rem; font-size: .95rem; }
+</style>

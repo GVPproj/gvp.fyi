@@ -26,9 +26,9 @@ const { Content } = await render(project.entry);
       <h1>{project.title}</h1>
     </header>
     <ContentBody><Content /></ContentBody>
-    <Image class="screenshot" src={project.image} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />
+    {project.showScreenshot && <Image class="screenshot" src={project.image} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />}
     <section aria-labelledby="tooling-heading">
-      <h2 id="tooling-heading">Built with</h2>
+      <h2 id="tooling-heading">Originally Built With</h2>
       <ul class="tooling">{project.tooling.map(tool => <li>{tool}</li>)}</ul>
     </section>
     {(project.url || project.repo) && <nav aria-label="Project links">

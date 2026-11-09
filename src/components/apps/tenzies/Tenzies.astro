@@ -1,0 +1,205 @@
+---
+const dice = Array.from({ length: 10 }, () => Math.floor(Math.random() * 6) + 1);
+---
+
+<tenzies-game>
+  <section class="panel" aria-label="Tenzies game">
+    <h2>Tenzies</h2>
+    <p class="instructions">Make all 10 dice match.<br />Click dice between rolls to freeze.</p>
+    <div class="dice" role="group" aria-label="Ten dice">
+      {dice.map((value, index) => (
+        <button type="button" class="die" data-die={index} data-value={value} aria-label={`Die ${index + 1}: ${value}`} aria-pressed="false" disabled>{value}</button>
+      ))}
+    </div>
+    <dl class="stats">
+      <div><dt>Rolls</dt><dd data-rolls>0</dd></div>
+      <div><dt>Seconds</dt><dd data-seconds>0</dd></div>
+      <div><dt>Score</dt><dd data-score>0</dd></div>
+      <div><dt>Best</dt><dd data-best>—</dd></div>
+    </dl>
+    <p class="scoring">Score = rolls + time (lower is better).</p>
+    <div class="controls">
+      <button type="button" class="primary" data-action="play" disabled>Start</button>
+      <button type="button" data-action="reset" disabled>Reset game</button>
+      <button type="button" data-action="clear-best" disabled>Reset best score</button>
+    </div>
+    <p class="status" role="status" aria-live="polite" aria-atomic="true" data-status></p>
+  </section>
+</tenzies-game>
+
+<script>
+  const BEST_KEY = 'gvp.fyi:tenzies:best-score:v1';
+
+  class TenziesGame extends HTMLElement {
+    private values: number[] = [];
+    private held: boolean[] = [];
+    private phase: 'idle' | 'playing' | 'won' = 'idle';
+    private rolls = 0;
+    private seconds = 0;
+    private startedAt = 0;
+    private best: number | null = null;
+    private timer: ReturnType<typeof setInterval> | undefined;
+    private dice: HTMLButtonElement[] = [];
+    private play!: HTMLButtonElement;
+    private reset!: HTMLButtonElement;
+    private clearBest!: HTMLButtonElement;
+    private status!: HTMLParagraphElement;
+
+    connectedCallback() {
+      this.dice = Array.from(this.querySelectorAll<HTMLButtonElement>('[data-die]'));
+      this.play = this.querySelector<HTMLButtonElement>('[data-action="play"]')!;
+      this.reset = this.querySelector<HTMLButtonElement>('[data-action="reset"]')!;
+      this.clearBest = this.querySelector<HTMLButtonElement>('[data-action="clear-best"]')!;
+      this.status = this.querySelector<HTMLParagraphElement>('[data-status]')!;
+      try {
+        const stored = localStorage.getItem(BEST_KEY);
+        const value = Number(stored);
+        this.best = stored !== null && Number.isSafeInteger(value) && value >= 1 ? value : null;
+      } catch {
+        this.best = null;
+      }
+      this.fresh();
+      this.addEventListener('click', this.onClick);
+    }
+
+    disconnectedCallback() {
+      this.stopTimer();
+      this.removeEventListener('click', this.onClick);
+    }
+
+    private stopTimer() {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
+
+    private randomDie() {
+      return Math.floor(Math.random() * 6) + 1;
+    }
+
+    private fresh() {
+      this.stopTimer();
+      this.phase = 'idle';
+      this.rolls = this.seconds = 0;
+      this.values = Array.from({ length: 10 }, () => this.randomDie());
+      this.held = Array(10).fill(false);
+      this.status.textContent = '';
+      this.render();
+    }
+
+    private updateClock() {
+      if (this.phase === 'playing') {
+        this.seconds = Math.max(0, Math.floor((Date.now() - this.startedAt) / 1000));
+      }
+      this.querySelector('[data-seconds]')!.textContent = String(this.seconds);
+      this.querySelector('[data-score]')!.textContent = String(this.rolls + this.seconds);
+    }
+
+    private onClick = (event: MouseEvent) => {
+      const button = event.target instanceof Element ? event.target.closest('button') : null;
+      if (!button || !this.contains(button) || button.disabled) return;
+      const action = button.dataset.action;
+      if (action === 'clear-best') {
+        this.best = null;
+        try { localStorage.removeItem(BEST_KEY); } catch { /* Storage is optional. */ }
+        this.status.textContent = '';
+        this.play.focus();
+      } else if (action === 'reset') {
+        this.fresh();
+        this.play.focus();
+        return;
+      } else if (action === 'play') {
+        if (this.phase !== 'playing') {
+          this.fresh();
+          this.phase = 'playing';
+          this.startedAt = Date.now();
+          this.timer = setInterval(() => this.updateClock(), 250);
+          this.status.textContent = '';
+        }
+        this.values = this.values.map((value, index) => this.held[index] ? value : this.randomDie());
+        this.rolls += 1;
+        const firstRoll = this.rolls === 1;
+        this.render();
+        if (firstRoll) this.dice[0].focus();
+        return;
+      } else if (button.dataset.die !== undefined && this.phase === 'playing') {
+        const index = Number(button.dataset.die);
+        this.held[index] = !this.held[index];
+        if (this.held.every(Boolean) && this.values.every(value => value === this.values[0])) {
+          this.updateClock();
+          this.phase = 'won';
+          this.stopTimer();
+          const score = this.rolls + this.seconds;
+          const improved = this.best === null || score < this.best;
+          if (improved) {
+            this.best = score;
+            try { localStorage.setItem(BEST_KEY, String(score)); } catch { /* Keep a session best. */ }
+          }
+          this.status.textContent = `${improved ? 'NEW LOW SCORE!!! Just terrific.' : 'Winner! Nice one, you.'} You scored ${score} (${this.seconds} seconds + ${this.rolls} rolls)`;
+          this.play.focus();
+        }
+      }
+      this.render();
+    };
+
+    private render() {
+      this.dice.forEach((die, index) => {
+        die.textContent = String(this.values[index]);
+        die.dataset.value = String(this.values[index]);
+        die.setAttribute('aria-label', `Die ${index + 1}: ${this.values[index]}`);
+        die.setAttribute('aria-pressed', String(this.held[index]));
+        die.disabled = this.phase !== 'playing';
+      });
+      this.play.disabled = false;
+      this.play.textContent = this.phase === 'playing' ? 'Roll' : this.phase === 'won' ? 'New Game?' : 'Start';
+      this.reset.disabled = this.phase !== 'playing';
+      this.clearBest.disabled = this.best === null;
+      this.querySelector('[data-rolls]')!.textContent = String(this.rolls);
+      this.querySelector('[data-best]')!.textContent = this.best === null ? '—' : String(this.best);
+      this.updateClock();
+      this.classList.toggle('won', this.phase === 'won');
+    }
+  }
+
+  if (!customElements.get('tenzies-game')) customElements.define('tenzies-game', TenziesGame);
+</script>
+
+<style>
+  tenzies-game { display: block; inline-size: 100%; max-inline-size: 40rem; margin-inline: auto; padding: clamp(.75rem, 3vw, 1.5rem); border-radius: 10px; background: #0c0f0a; color-scheme: light; font-family: 'Roboto Mono', ui-monospace, monospace; }
+  .panel { padding: clamp(1rem, 4vw, 3rem); border-radius: 10px; background: #f5f5f5; color: #0c0f0a; text-align: center; }
+  .panel h2 { margin: 0 0 1rem; color: inherit; font-size: 40px; font-weight: 700; }
+  .panel p { color: inherit; }
+  .instructions { line-height: 1.5; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin: 1.5rem 0 .5rem; }
+  dt { font-size: .75rem; }
+  dd { margin: 0; font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+  .scoring { font-size: .75rem; }
+  .dice { display: grid; grid-template-columns: repeat(5, minmax(0, 70px)); justify-content: center; gap: clamp(.5rem, 2.5vw, 2rem); margin-block: 2rem; }
+  button { min-block-size: 2.75rem; border: 1px solid #697078; border-radius: 6px; padding: .5rem .75rem; background: #fff; color: #0c0f0a; font: inherit; line-height: 1.25; cursor: pointer; }
+  button:focus-visible { outline: 3px solid #c50046; outline-offset: 4px; }
+  button:disabled { cursor: default; }
+  .die { min-inline-size: 0; min-block-size: 0; inline-size: 100%; padding: 0; aspect-ratio: 1; border: 0; border-radius: 10px; background-size: 100% 100%; font-size: 0; box-shadow: 1px 3px 5px 3px #0004; }
+  .die[data-value='1'] { background-image: url('./assets/1.png'); }
+  .die[data-value='2'] { background-image: url('./assets/2.png'); }
+  .die[data-value='3'] { background-image: url('./assets/3.png'); }
+  .die[data-value='4'] { background-image: url('./assets/4.png'); }
+  .die[data-value='5'] { background-image: url('./assets/5.png'); }
+  .die[data-value='6'] { background-image: url('./assets/6.png'); }
+  .die[aria-pressed='true'][data-value='1'] { background-image: url('./assets/inverted-dice-1.png'); }
+  .die[aria-pressed='true'][data-value='2'] { background-image: url('./assets/inverted-dice-2.png'); }
+  .die[aria-pressed='true'][data-value='3'] { background-image: url('./assets/inverted-dice-3.png'); }
+  .die[aria-pressed='true'][data-value='4'] { background-image: url('./assets/inverted-dice-4.png'); }
+  .die[aria-pressed='true'][data-value='5'] { background-image: url('./assets/inverted-dice-5.png'); }
+  .die[aria-pressed='true'][data-value='6'] { background-image: url('./assets/inverted-dice-6.png'); }
+  .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-items: center; gap: .75rem; margin-top: 1.5rem; }
+  .primary { grid-column: 1 / -1; inline-size: min(100%, 13rem); padding: .5em 1em; background: #ff206e; border: none; border-radius: 10px; color: #fff; font-size: 2rem; box-shadow: 1px 3px 5px 3px #0004; }
+  .primary:active { box-shadow: inset 5px 5px 10px -3px #000b; }
+  .controls button:not(.primary) { font-size: .75rem; }
+  .controls button:disabled { opacity: .55; }
+  .status { margin-block-start: 1rem; min-block-size: 3em; line-height: 1.5; font-size: .875rem; }
+  .won .status { color: #185a35; font-weight: 700; }
+  .status:empty { margin: 0; min-block-size: 0; }
+  @media (forced-colors: active) {
+    .die { background-image: none !important; font-size: 1.5rem; border: 1px solid ButtonText; }
+    .die[aria-pressed='true'] { border: 3px solid Highlight; }
+  }
+</style>
