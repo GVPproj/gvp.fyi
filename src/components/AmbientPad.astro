@@ -144,7 +144,7 @@ const padKeys = "qwerasdfzxcv";
 
 <style>
     #ambient-pad {
-        width: min(100%, 29rem);
+        width: 100%;
         text-align: left;
         color: var(--nord4);
     }
@@ -279,6 +279,27 @@ const padKeys = "qwerasdfzxcv";
         touch-action: none;
         user-select: none;
         -webkit-user-select: none;
+    }
+    @media (width >= 48rem) {
+        .controller {
+            grid-template-columns: minmax(0, 1fr) 64px 44px;
+        }
+        .brand-mark {
+            width: 2rem;
+            height: 2rem;
+        }
+        .brand-name {
+            font-size: 2rem;
+        }
+        .product-name {
+            font-size: 1.5rem;
+        }
+        .product-description {
+            font-size: 0.75rem;
+        }
+        .pads button {
+            aspect-ratio: 3 / 2;
+        }
     }
     .pads button:nth-child(n + 5) {
         --rubber: var(--nord7);

@@ -4,10 +4,12 @@ const year = new Date().getFullYear();
 
 <footer class="site-footer">
   <div class="footer-content">
-    <p>&copy; {year} · <a href="/rss.xml" data-astro-reload>RSS</a></p>
+    <p>&copy; {year}</p>
     <div class="footer-badges">
-      <img src="/images/website-copy-1.gif" alt="Website" width="88" height="31" loading="lazy" />
       <img src="/images/button471.png" alt="Under construction" width="88" height="31" loading="lazy" />
+      <a href="/rss.xml" data-astro-reload>
+        <img src="/images/rss-button.gif" alt="RSS Feed" width="88" height="31" loading="lazy" />
+      </a>
     </div>
   </div>
 </footer>
@@ -32,18 +34,15 @@ const year = new Date().getFullYear();
 
   @media (width >= 48rem) {
     .site-footer {
-      display: grid;
-      grid-template-columns: subgrid;
+      grid-column: 2;
+      max-width: calc(100% - 3rem);
       padding-inline: 0;
     }
 
     .footer-content {
-      grid-column: 2;
       max-width: none;
       margin: 0;
-      /* Match the header's width, border and inline padding. */
-      width: var(--site-header-width);
-      padding-inline: calc(1.625rem + 1px) calc(2rem + 1px);
+      width: 100%;
     }
   }
 
@@ -53,6 +52,15 @@ const year = new Date().getFullYear();
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
+  }
+
+  .footer-badges a {
+    --link-lift: 0px;
+    display: flex;
+  }
+
+  .footer-badges a::before {
+    display: none;
   }
 
   img {

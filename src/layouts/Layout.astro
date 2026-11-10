@@ -9,9 +9,10 @@ interface Props {
   title?: string;
   description?: string;
   type?: 'website' | 'article';
+  alignWithHeader?: boolean;
 }
 
-const { title, description = siteSettings.description, type = 'website' } = Astro.props;
+const { title, description = siteSettings.description, type = 'website', alignWithHeader = false } = Astro.props;
 const pageTitle = title ? `${title}${siteSettings.title ? ` · ${siteSettings.title}` : ''}` : siteSettings.title;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const imageURL = new URL('/social/og-image.png', Astro.site);
@@ -52,12 +53,25 @@ const imageAlt = 'A fully drawn one-line portrait of Graham Van Pelt beside gvp.
   <body>
     <div id="navigation-status" role="status" aria-atomic="true"><span></span></div>
     <SiteHeader />
-    <main aria-label={title ?? (siteSettings.identity || undefined)}>
+    <main class:list={{ 'header-aligned': alignWithHeader }} aria-label={title ?? (siteSettings.identity || undefined)}>
       <slot />
     </main>
     <SiteFooter />
   </body>
 </html>
+
+<style>
+  @media (width >= 48rem) {
+    main.header-aligned {
+      grid-column: 2;
+      min-width: 0;
+      max-width: calc(100% - 3rem);
+      padding-inline: 0;
+      /* Let the header, not the content's intrinsic width, size this column. */
+      contain: inline-size;
+    }
+  }
+</style>
 
 <script>
   import '../scripts/navigation-loading';

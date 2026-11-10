@@ -13,7 +13,7 @@ const excerpt = firstParagraph.length > 160
   : firstParagraph;
 ---
 
-<Layout>
+<Layout alignWithHeader>
   <div class="home-playground">
     <h1 class="home-intro">
       I enjoy making <a href="/music">music</a> and <a href="/software">programming</a> the computer.
@@ -43,11 +43,11 @@ const excerpt = firstParagraph.length > 160
     align-items: center;
     justify-content: center;
     gap: 6rem;
-    width: 100%;
+    width: min(100%, 29rem);
   }
 
   .home-intro {
-    width: min(100%, 29rem);
+    width: 100%;
     padding-block-start: clamp(2rem, 4vw, 3rem);
     font-size: clamp(1.75rem, 2.5vw, 3.5rem);
     line-height: 1.2;
@@ -68,7 +68,7 @@ const excerpt = firstParagraph.length > 160
   }
 
   .latest-post {
-    width: min(100%, 29rem);
+    width: 100%;
     text-align: left;
   }
 
@@ -97,6 +97,10 @@ const excerpt = firstParagraph.length > 160
   .latest-post-card:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
   .latest-post time { color: var(--nord4); font-size: 0.875rem; }
   .latest-post p { margin: 0; color: var(--nord4); line-height: 1.5; }
+
+  @media (width >= 48rem) {
+    .home-playground { width: 100%; }
+  }
 
   @media (max-width: 400px) {
     .home-playground { width: calc(100% + clamp(0px, calc(7.5rem - 30vw), 1.5rem)); }

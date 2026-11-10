@@ -32,7 +32,7 @@ const jeff = {
   ],
 };
 
-const testimonials = [milton, ben, jeff];
+const testimonials = [jeff, ben, milton];
 ---
 
 <section id="testimonials" aria-labelledby="testimonials-heading">
@@ -65,7 +65,7 @@ const testimonials = [milton, ben, jeff];
 <style>
   #testimonials {
     display: block;
-    width: min(100%, 29rem);
+    width: 100%;
     padding-block: 0.5rem 2rem;
     text-align: left;
   }
@@ -120,7 +120,6 @@ const testimonials = [milton, ben, jeff];
     order: 1;
     flex-basis: 100%;
     width: 100%;
-    max-width: 29rem;
     min-height: 32rem;
     flex-direction: column;
   }
