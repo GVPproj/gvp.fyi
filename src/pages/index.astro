@@ -1,10 +1,13 @@
 ---
 import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+import { getMusicReleases } from '../lib/music-releases';
 import AmbientPad from '../components/AmbientPad.astro';
 import PixelBox from '../components/elements/PixelBox.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Layout from '../layouts/Layout.astro';
 
+const latestAlbum = (await getMusicReleases())[0];
 const latestPost = (await getCollection('blog'))
   .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
 const firstParagraph = latestPost?.body?.trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ') ?? '';
@@ -20,6 +23,16 @@ const excerpt = firstParagraph.length > 160
 
     </h1>
     <AmbientPad />
+    {latestAlbum && (
+      <section class="latest-album" aria-labelledby="latest-album-heading">
+        <h2 id="latest-album-heading">Latest Album:</h2>
+        <PixelBox>
+          <a class="latest-album-cover" href={latestAlbum.href} aria-label={`View ${latestAlbum.title} by ${latestAlbum.artist}`}>
+            <Image src={latestAlbum.image} alt={`${latestAlbum.title} album cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 416px, calc(100vw - 6rem)" />
+          </a>
+        </PixelBox>
+      </section>
+    )}
     {latestPost && (
       <section class="latest-post" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post:</h2>
@@ -67,15 +80,43 @@ const excerpt = firstParagraph.length > 160
     text-decoration-color: currentColor;
   }
 
+  .latest-album,
   .latest-post {
     width: 100%;
     text-align: left;
   }
 
+  .latest-album h2,
   .latest-post h2 {
     margin: 0 0 0.75rem;
     font-size: 1.5rem;
   }
+
+  .latest-album {
+    max-width: 29rem;
+  }
+
+  .latest-album-cover {
+    display: block;
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 1.5rem;
+    border: 4px solid transparent;
+    box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0);
+  }
+
+  .latest-album-cover img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    box-sizing: border-box;
+    border: 3px solid var(--nord0);
+    box-shadow: 2px 2px 0 var(--nord3), -2px -2px 0 #171c25;
+  }
+
+  .latest-album-cover:hover { background: var(--nord2); }
+  .latest-album-cover:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
 
   .latest-post h3 {
     margin: 0;

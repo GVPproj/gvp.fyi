@@ -6,13 +6,22 @@ const year = new Date().getFullYear();
   <div class="footer-content">
     <p>&copy; {year}</p>
     <div class="footer-badges">
-      <img src="/images/button471.png" alt="Under construction" width="88" height="31" loading="lazy" />
+      <button class="construction-toggle" type="button" popovertarget="construction-worker" aria-label="Under construction: toggle construction worker">
+        <img src="/images/button471.png" alt="Under construction" width="88" height="31" loading="lazy" />
+      </button>
       <a href="/rss.xml" data-astro-reload>
         <img src="/images/rss-button.gif" alt="RSS Feed" width="88" height="31" loading="lazy" />
       </a>
     </div>
   </div>
 </footer>
+
+<div id="construction-worker" class="construction-worker" popover="manual">
+  <picture aria-hidden="true">
+    <source srcset="/images/construction-worker.png" media="(prefers-reduced-motion: reduce)" />
+    <img src="/images/construction-worker.gif" alt="" width="200" height="226" loading="lazy" />
+  </picture>
+</div>
 
 <style>
   .site-footer {
@@ -54,6 +63,37 @@ const year = new Date().getFullYear();
     gap: 0.5rem;
   }
 
+  .construction-toggle {
+    display: flex;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .construction-toggle:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  .construction-worker {
+    position: fixed;
+    inset: auto max(0px, env(safe-area-inset-right)) max(0px, env(safe-area-inset-bottom)) auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .construction-worker img {
+    display: block;
+    width: 200px;
+    height: auto;
+    image-rendering: pixelated;
+  }
+
   .footer-badges a {
     --link-lift: 0px;
     display: flex;
@@ -61,6 +101,12 @@ const year = new Date().getFullYear();
 
   .footer-badges a::before {
     display: none;
+  }
+
+  .footer-badges img {
+    display: block;
+    width: 88px;
+    height: 31px;
   }
 
   img {
