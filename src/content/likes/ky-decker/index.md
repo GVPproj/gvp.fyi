@@ -10,6 +10,4 @@
 }
 ---
 
-Ky is a designer and web developer based in New York City.
-
-Nice keyboard instrument on the home route!
+Ky Decker’s personal site: interface design, playful web projects and writing from NYC. The playable synth on the homepage is a lovely touch.
