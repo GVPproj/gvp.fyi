@@ -2,12 +2,16 @@
 import { getCollection } from 'astro:content';
 import { Image } from 'astro:assets';
 import { getMusicReleases } from '../lib/music-releases';
+import { getLikes } from '../lib/likes-collection';
+import { getDjEpisodes } from '../lib/dj-episodes';
 import AmbientPad from '../components/AmbientPad.astro';
 import PixelBox from '../components/elements/PixelBox.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Layout from '../layouts/Layout.astro';
 
 const latestAlbum = (await getMusicReleases())[0];
+const latestLike = (await getLikes())[0];
+const latestMix = (await getDjEpisodes())[0];
 const latestPost = (await getCollection('blog'))
   .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
 const firstParagraph = latestPost?.body?.trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ') ?? '';
@@ -24,23 +28,52 @@ const excerpt = firstParagraph.length > 160
     </h1>
     <AmbientPad />
     {latestAlbum && (
-      <section class="latest-album" aria-labelledby="latest-album-heading">
+      <section class="latest-album latest-panel" aria-labelledby="latest-album-heading">
         <h2 id="latest-album-heading">Latest Album:</h2>
         <PixelBox>
-          <a class="latest-album-cover" href={latestAlbum.href} aria-label={`View ${latestAlbum.title} by ${latestAlbum.artist}`}>
-            <Image src={latestAlbum.image} alt={`${latestAlbum.title} album cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 416px, calc(100vw - 6rem)" />
+          <a class="latest-album-cover framed-cover" href={latestAlbum.href} aria-label={`View ${latestAlbum.title} by ${latestAlbum.artist}`}>
+            <Image src={latestAlbum.image} alt={`${latestAlbum.title} album cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
           </a>
         </PixelBox>
       </section>
     )}
     {latestPost && (
-      <section class="latest-post" aria-labelledby="latest-post-heading">
+      <section class="latest-post latest-panel" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post:</h2>
         <PixelBox>
           <a class="latest-post-card" href={`/blog/${latestPost.id}/`} aria-labelledby="latest-post-title">
             <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
             <h3 id="latest-post-title">{latestPost.data.title}</h3>
             {excerpt && <p>{excerpt}</p>}
+          </a>
+        </PixelBox>
+      </section>
+    )}
+    {latestLike && (
+      <section class="latest-like latest-panel" aria-labelledby="latest-like-heading">
+        <h2 id="latest-like-heading">Latest Like:</h2>
+        <PixelBox>
+          <a class="framed-cover" href={latestLike.href} aria-label={`View ${latestLike.title}`}>
+            {latestLike.image ? (
+              <Image src={latestLike.image} alt={latestLike.title} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
+            ) : (
+              <div class="like-preview">
+                <h3>{latestLike.title}</h3>
+                {(latestLike.text || latestLike.summary) && <p>{latestLike.text || latestLike.summary}</p>}
+                {latestLike.metadata && <p>{latestLike.metadata}</p>}
+                {!latestLike.type && <p>{latestLike.label}</p>}
+              </div>
+            )}
+          </a>
+        </PixelBox>
+      </section>
+    )}
+    {latestMix && (
+      <section class="latest-mix latest-panel" aria-labelledby="latest-mix-heading">
+        <h2 id="latest-mix-heading">Latest DJ Mix:</h2>
+        <PixelBox>
+          <a class="framed-cover" href={latestMix.href} aria-label={`View ${latestMix.title}`}>
+            <Image src={latestMix.image} alt={`${latestMix.title} cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
           </a>
         </PixelBox>
       </section>
@@ -80,32 +113,31 @@ const excerpt = firstParagraph.length > 160
     text-decoration-color: currentColor;
   }
 
-  .latest-album,
-  .latest-post {
+  .latest-panel {
     width: 100%;
     text-align: left;
   }
 
-  .latest-album h2,
-  .latest-post h2 {
+  .latest-panel h2 {
     margin: 0 0 0.75rem;
     font-size: 1.5rem;
   }
 
-  .latest-album {
-    max-width: 29rem;
-  }
-
-  .latest-album-cover {
+  .framed-cover {
+    --link-lift: 0px;
     display: block;
     box-sizing: border-box;
     min-width: 0;
     padding: 1.5rem;
+    color: var(--color-accent);
+    text-decoration: none;
     border: 4px solid transparent;
     box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0);
   }
 
-  .latest-album-cover img {
+  .framed-cover::before { display: none; }
+
+  .framed-cover img {
     display: block;
     width: 100%;
     max-width: 100%;
@@ -115,8 +147,12 @@ const excerpt = firstParagraph.length > 160
     box-shadow: 2px 2px 0 var(--nord3), -2px -2px 0 #171c25;
   }
 
-  .latest-album-cover:hover { background: var(--nord2); }
-  .latest-album-cover:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
+  .framed-cover:hover { background: var(--nord2); }
+  .framed-cover:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
+
+  .like-preview { display: grid; gap: 0.75rem; overflow-wrap: anywhere; }
+  .like-preview h3 { margin: 0; font-size: 1.5rem; }
+  .like-preview p { margin: 0; color: var(--nord4); line-height: 1.5; }
 
   .latest-post h3 {
     margin: 0;
