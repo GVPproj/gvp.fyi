@@ -52,6 +52,67 @@
   color: var(--color-foreground);
 }
 
+/* Random dissolve (page-transitions.style): reveal scattered pixels.
+   Keep Astro's router so persisted elements and navigation lifecycle stay intact. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  z-index: 1;
+}
+
+@property --dissolve-progress {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (mask-composite: intersect) {
+    ::view-transition-new(root) {
+      animation: random-dissolve 250ms linear both;
+      --p: var(--dissolve-progress);
+      /* Intersect two repeating grids (4×4 and 3×3) to disguise the pattern.
+         Each 4px pixel switches on at a fixed, shuffled progress threshold. */
+      mask:
+        conic-gradient(at 4px clamp(0px, (0.21 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 0 / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.96 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 0 / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.49 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 0 / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.01 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 12px 0 / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.12 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 4px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.05 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 4px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.74 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 4px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.29 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 12px 4px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.88 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 8px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.03 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 8px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.44 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 8px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.09 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 12px 8px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.14 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 12px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.67 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 12px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.25 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 12px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.55 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 12px 12px / 16px 16px,
+        conic-gradient(at 4px clamp(0px, (0.29 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 0 / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.02 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 0 / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.77 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 0 / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.09 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 4px / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.54 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 4px / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.01 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 4px / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.63 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 0 8px / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.16 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 4px 8px / 12px 12px,
+        conic-gradient(at 4px clamp(0px, (0.43 - var(--p)) * 99999px, 4px), #000 270deg, transparent 0) 8px 8px / 12px 12px;
+      mask-composite: intersect;
+    }
+  }
+}
+
+@keyframes random-dissolve {
+  from { --dissolve-progress: 0; }
+  to { --dissolve-progress: 1; }
+}
+
 /* Keep desktop navigation aligned on both short and scrolling pages. */
 @media (width >= 48rem) {
   :root {

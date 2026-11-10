@@ -23,7 +23,7 @@ const streaming = [
 ].filter(link => link.url);
 ---
 
-<Layout title={release.title}>
+<Layout title={release.title} alignWithHeader>
   <article class="release-detail">
     <a href="/music">← Music</a>
     <header>
@@ -35,7 +35,7 @@ const streaming = [
     <div class="release-media">
       <Image src={release.image} alt={`${release.title} album cover`}
         layout="constrained"
-        sizes="(max-width: 48rem) calc(100vw - 2rem), 65ch"
+        sizes="calc(100vw - 3rem)"
         loading="eager" decoding="async" />
       {release.album_id && <iframe
         title={`Bandcamp player — ${release.title} by ${release.artist}`}
@@ -53,7 +53,7 @@ const streaming = [
 </Layout>
 
 <style>
-  .release-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; overflow-wrap: anywhere; }
+  .release-detail { width: 100%; display: grid; gap: 1.5rem; text-align: left; overflow-wrap: anywhere; }
   :global(main:has(.release-detail)) { justify-content: flex-start; }
   header { display: grid; gap: .5rem; }
   header p { color: var(--nord4); }

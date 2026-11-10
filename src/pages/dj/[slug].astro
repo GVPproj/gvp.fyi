@@ -15,7 +15,7 @@ const { episode } = Astro.props;
 const programme = categorySettings('dj').find(category => category.id === episode.category)!;
 ---
 
-<Layout title={episode.title} type="article">
+<Layout title={episode.title} type="article" alignWithHeader>
   <article class="episode-detail">
     <a href="/dj/">← DJ</a>
     <header>
@@ -23,14 +23,14 @@ const programme = categorySettings('dj').find(category => category.id === episod
       <h1>{episode.title}</h1>
     </header>
     <Image src={episode.image} alt={`${programme.title} — ${episode.title} artwork`}
-      layout="constrained" sizes="(max-width: 48rem) calc(100vw - 3rem), 65ch"
+      layout="constrained" sizes="calc(100vw - 3rem)"
       loading="eager" decoding="async" />
     <a href={episode.mixcloud}>Listen on Mixcloud</a>
   </article>
 </Layout>
 
 <style>
-  .episode-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; overflow-wrap: anywhere; }
+  .episode-detail { width: 100%; display: grid; gap: 1.5rem; text-align: left; overflow-wrap: anywhere; }
   :global(main:has(.episode-detail)) { justify-content: flex-start; }
   header { display: grid; gap: .5rem; }
   header p { color: var(--nord4); }

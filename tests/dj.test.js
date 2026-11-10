@@ -209,6 +209,13 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     const errors = [];
     tab.on('pageerror', error => errors.push(error.message));
     await tab.goto(`${origin}/`);
+    // The root must retain its explicit name for the global wipe selectors.
+    assert.equal(await tab.evaluate(() => getComputedStyle(document.documentElement).viewTransitionName), 'root');
+    assert.equal(await tab.evaluate(() => getComputedStyle(document.documentElement, '::view-transition-new(root)').animationName), 'none');
+    await tab.emulateMedia({ reducedMotion: 'no-preference' });
+    assert.equal(await tab.evaluate(() => getComputedStyle(document.documentElement, '::view-transition-new(root)').animationName), 'random-dissolve');
+    await tab.emulateMedia({ reducedMotion: 'reduce' });
+    assert.equal(await tab.locator('meta[name="astro-view-transitions-fallback"]').getAttribute('content'), 'swap');
     await tab.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'DJ', exact: true }).click();
     await tab.waitForURL('**/dj/');
     const items = tab.locator('.desktop > ul > li');

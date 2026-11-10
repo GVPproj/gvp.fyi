@@ -16,7 +16,7 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 ---
 
-<Layout title={post.data.title} type="article">
+<Layout title={post.data.title} type="article" alignWithHeader>
   <article>
     <header>
       <a href="/blog/">← {sectionLabel('blog')}</a>
@@ -28,7 +28,7 @@ const { Content } = await render(post);
 
 <style>
   article {
-    width: min(100%, 65ch);
+    width: 100%;
     text-align: left;
     overflow-wrap: anywhere;
   }

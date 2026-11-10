@@ -19,14 +19,14 @@ const { project } = Astro.props;
 const { Content } = await render(project.entry);
 ---
 
-<Layout title={project.title}>
+<Layout title={project.title} alignWithHeader>
   <article class="software-detail">
     <a href="/software">← {sectionLabel('software')}</a>
     <header>
       <h1>{project.title}</h1>
     </header>
     <ContentBody><Content /></ContentBody>
-    {project.showScreenshot && <Image class="screenshot" src={project.image} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />}
+    {project.showScreenshot && <Image class="screenshot" src={project.image} layout="constrained" sizes="calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />}
     <section aria-labelledby="tooling-heading">
       <h2 id="tooling-heading">Originally Built With</h2>
       <ul class="tooling">{project.tooling.map(tool => <li>{tool}</li>)}</ul>
@@ -39,7 +39,7 @@ const { Content } = await render(project.entry);
       {project.gallery.map(image => <Image
         src={image.src}
         layout="constrained"
-        sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)"
+        sizes="calc(100vw - 3rem)"
         alt={image.alt}
       />)}
     </section>}
@@ -56,7 +56,7 @@ const { Content } = await render(project.entry);
 </Layout>
 
 <style>
-  .software-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
+  .software-detail { width: 100%; display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
   :global(main:has(.software-detail)) { justify-content: flex-start; }
   header, .gallery { display: grid; gap: 1rem; }
   h2 { margin: 0 0 .75rem; font-size: 1.25rem; font-weight: 400; }

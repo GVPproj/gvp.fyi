@@ -23,7 +23,7 @@ const textItem = item?.type === 'quote' || item?.type === 'note';
 const { Content } = await render(item.entry);
 ---
 
-<Layout {title}>
+<Layout {title} alignWithHeader>
   <article id="like-detail" class="like-detail">
     <a href="/likes">← Likes</a>
     <header><h1>{title}</h1></header>
@@ -39,7 +39,7 @@ const { Content } = await render(item.entry);
             {item.attribution && <p class="attribution">{item.attribution}</p>}
           </>
         ))}
-        {item.image && <Image src={item.image} layout="constrained" sizes="(min-width: 45rem) 65ch, calc(100vw - 3rem)" alt={title} />}
+        {item.image && <Image src={item.image} layout="constrained" sizes="calc(100vw - 3rem)" alt={title} />}
         {pdf && <p><a href={asset} target="_blank" rel="noopener noreferrer">Open PDF</a></p>}
         {source && <p><a class="source" href={source} target="_blank" rel="noopener noreferrer">Source: {new URL(source).hostname}</a></p>}
         {!textItem && item.entry.body?.trim() && <ContentBody><Content /></ContentBody>}
@@ -48,7 +48,7 @@ const { Content } = await render(item.entry);
 </Layout>
 
 <style>
-  .like-detail { width: min(100%, 65ch); display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
+  .like-detail { width: 100%; display: grid; gap: 1.5rem; text-align: left; color: var(--color-foreground); overflow-wrap: anywhere; }
   :global(main:has(.like-detail)) { justify-content: flex-start; }
   h1, figcaption, .attribution { white-space: pre-wrap; }
   .quotation { display: grid; gap: 1rem; margin: 0; }
