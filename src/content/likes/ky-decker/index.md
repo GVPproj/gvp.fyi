@@ -10,4 +10,4 @@
 }
 ---
 
-Ky Decker’s personal site: interface design, playful web projects and writing from NYC. The playable synth on the homepage is a lovely touch.
+Love the playable synth!  Big inspo for my home page obviously :)

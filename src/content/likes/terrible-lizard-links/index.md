@@ -9,3 +9,5 @@
   "image": "./image.webp"
 }
 ---
+
+Great collection of links and resources for the indie web!
