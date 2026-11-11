@@ -73,7 +73,7 @@
 @media (prefers-reduced-motion: no-preference) {
   @supports (mask-composite: intersect) {
     ::view-transition-new(root) {
-      animation: random-dissolve 250ms linear both;
+      animation: random-dissolve 350ms linear both;
       --p: var(--dissolve-progress);
       /* Intersect two repeating grids (4×4 and 3×3) to disguise the pattern.
          Each 4px pixel switches on at a fixed, shuffled progress threshold. */
