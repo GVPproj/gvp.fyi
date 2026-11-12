@@ -19,7 +19,7 @@ const navigation = siteSettings.navigation.map((item: NavigationItem, index) => 
 if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw new Error('Navigation IDs must be unique')
 ---
 
-<header class="site-header">
+<header class="site-header" transition:name="site-header" transition:animate="none">
   <a
     href="/"
     aria-label="Go back to the homepage"
@@ -144,6 +144,15 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
 </script>
 
 <style>
+  /* Keep navigation stationary, including when links are replaced on navigation. */
+  header :is(a, .group-toggle, summary) {
+    --link-lift: 0px;
+  }
+
+  header :is(a, .group-toggle, summary)::before {
+    content: none;
+  }
+
   header {
     display: flex;
     width: 100%;
