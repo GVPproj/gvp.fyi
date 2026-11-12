@@ -68,3 +68,45 @@ test('detail articles fill the header/footer column without overflowing mobile',
     await page.close();
   }
 });
+
+test('content rows reveal batches of 14 and preserve keyboard access', async () => {
+  const page = await browser.newPage();
+  try {
+    for (const width of [1280, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${origin}/dj/`);
+      const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'Island City', exact: true }) });
+      const button = row.getByRole('button', { name: 'Load more Island City items' });
+      await button.waitFor({ state: 'visible' });
+      const total = await row.locator('li').count();
+      assert.ok(total > 14);
+      assert.equal(await row.locator('li:visible').count(), 14);
+      let visible = 14;
+      while (visible < total) {
+        await button.focus();
+        await page.keyboard.press('Enter');
+        assert.equal(await row.locator('li').nth(visible).locator('a').evaluate(link => link === document.activeElement), true);
+        visible = Math.min(visible + 14, total);
+        assert.equal(await row.locator('li:visible').count(), visible);
+      }
+      assert.equal(await button.isVisible(), false);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      assert.equal(await page.locator('.content-row').first().getByRole('button').count(), 0);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
+test('content rows keep every card accessible without JavaScript', async () => {
+  const page = await browser.newPage({ javaScriptEnabled: false });
+  try {
+    await page.goto(`${origin}/dj/`);
+    const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'Island City', exact: true }) });
+    assert.ok(await row.locator('li').count() > 14);
+    assert.equal(await row.locator('li:visible').count(), await row.locator('li').count());
+    assert.equal(await row.getByRole('button', { includeHidden: true }).isVisible(), false);
+  } finally {
+    await page.close();
+  }
+});
