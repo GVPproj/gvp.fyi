@@ -27,16 +27,6 @@ const excerpt = firstParagraph.length > 160
 
     </h1>
     <AmbientPad />
-    {latestAlbum && (
-      <section class="latest-album latest-panel" aria-labelledby="latest-album-heading">
-        <h2 id="latest-album-heading">Latest Album:</h2>
-        <PixelBox>
-          <a class="latest-album-cover framed-cover" href={latestAlbum.href} aria-label={`View ${latestAlbum.title} by ${latestAlbum.artist}`}>
-            <Image src={latestAlbum.image} alt={`${latestAlbum.title} album cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
-          </a>
-        </PixelBox>
-      </section>
-    )}
     {latestPost && (
       <section class="latest-post latest-panel" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post:</h2>
@@ -45,6 +35,16 @@ const excerpt = firstParagraph.length > 160
             <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
             <h3 id="latest-post-title">{latestPost.data.title}</h3>
             {excerpt && <p>{excerpt}</p>}
+          </a>
+        </PixelBox>
+      </section>
+    )}
+    {latestAlbum && (
+      <section class="latest-album latest-panel" aria-labelledby="latest-album-heading">
+        <h2 id="latest-album-heading">Latest Album:</h2>
+        <PixelBox>
+          <a class="latest-album-cover framed-cover" href={latestAlbum.href} aria-label={`View ${latestAlbum.title} by ${latestAlbum.artist}`}>
+            <Image src={latestAlbum.image} alt={`${latestAlbum.title} album cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
           </a>
         </PixelBox>
       </section>
