@@ -1,0 +1,24 @@
+---
+{
+  "id": "a-friendly-wave",
+  "title": "A Friendly Wave",
+  "summary": "Radio archive and community website for A Friendly Wave on Salt Spring Island.",
+  "category": "small-websites",
+  "order": 7,
+  "publishedAt": "2026-11-12",
+  "tooling": [
+    "Astro",
+    "TypeScript",
+    "Tailwind CSS",
+    "Mixcloud API",
+    "Cloudflare Workers",
+    "Cloudflare KV",
+    "GitHub Actions"
+  ],
+  "screenshot": "./assets/afriendlywave.webp",
+  "screenshotAlt": "A Friendly Wave homepage with colourful radio show artwork, play buttons and a community introduction.",
+  "url": "https://afriendlywave.com/"
+}
+---
+
+Built with Astro, with embedded Mixcloud playback. A Cloudflare Worker polls for new shows every 30 minutes, tracks changes in KV, and triggers GitHub Actions to rebuild and deploy.
