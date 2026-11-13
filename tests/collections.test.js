@@ -58,6 +58,47 @@ test('overviews preserve category policies and normalized links', async () => {
   }
 });
 
+test('Inside Touch has its own music row and a verified release player', async () => {
+  const overview = await page('music');
+  const row = [...overview.querySelectorAll('.content-row')]
+    .find(row => row.querySelector('h2')?.textContent === 'as Inside Touch');
+  assert.ok(row);
+  assert.deepEqual([...row.querySelectorAll('li a')].map(link => link.getAttribute('href')), [
+    '/music/ep2', '/music/different-sense', '/music/kawhi', '/music/mr-clutch',
+    '/music/the-answer', '/music/trey-5', '/music/the-truth',
+  ]);
+  for (const slug of ['kawhi', 'mr-clutch', 'the-answer', 'trey-5', 'the-truth']) {
+    const track = await page(`music/${slug}`);
+    const url = `https://soundcloud.com/inside-touch/${slug}`;
+    assert.ok(track.querySelector(`nav[aria-label="Listen to this release"] a[href="${url}"]`));
+    const player = track.querySelector('iframe');
+    const embed = new URL(player.getAttribute('src'));
+    assert.equal(embed.origin, 'https://w.soundcloud.com');
+    assert.equal(embed.searchParams.get('url'), url);
+    assert.equal(embed.searchParams.get('auto_play'), 'false');
+    assert.match(player.getAttribute('title'), /SoundCloud player/);
+    assert.equal(track.querySelector('time').getAttribute('datetime'), '2014');
+    assert.match(track.querySelector('time').textContent, /SoundCloud upload/);
+    assert.equal(track.querySelector('.content-body'), null);
+  }
+
+  const ep = await page('music/ep2');
+  assert.equal(ep.querySelector('h1').textContent, 'EP2');
+  assert.equal(ep.querySelector('time').getAttribute('datetime'), '2016-10-07');
+  assert.match(ep.querySelector('time').textContent, /House of Commons/);
+  const epPlayer = ep.querySelector('iframe');
+  assert.equal(new URL(epPlayer.getAttribute('src')).searchParams.get('url'),
+    'https://soundcloud.com/house_of_commons/sets/inside-touch-ep2');
+  assert.equal(epPlayer.getAttribute('height'), '350');
+  assert.equal(ep.querySelector('.content-body'), null);
+
+  const release = await page('music/different-sense');
+  assert.equal(release.querySelector('h1').textContent, 'Different Sense');
+  assert.equal(release.querySelector('time').getAttribute('datetime'), '2016-02-11');
+  assert.match(release.querySelector('iframe').getAttribute('src'), /album=2722254768\//);
+  assert.ok(release.querySelector('a[href="https://insidetouch.bandcamp.com/album/different-sense"]'));
+});
+
 test('Likes previews are rendered text, with fallback titles and ID redirects', async () => {
   const overview = await page('likes');
   const fixtureLinks = [...overview.querySelectorAll('.content-row li a')]

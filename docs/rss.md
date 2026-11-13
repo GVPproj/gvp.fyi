@@ -59,5 +59,25 @@ use the day it is first added to the feed as `publishedAt`, and record that deci
 here with its ID. That is a site announcement date, never an original release or
 broadcast date. Ordinary subsequent edits must retain it.
 
+### Later archive additions
+
+- `inside-touch-ep2`: `publishedAt: 2026-11-13`, the day it was added to the
+  site/feed. The [House of Commons release description](https://soundcloud.com/house_of_commons/sets/inside-touch-ep2)
+  explicitly states October 7, 2016 (HOC002). We use that original release date
+  rather than SoundCloud's conflicting structured dates (October 5 on the set,
+  October 5–6 on tracks), upload timestamps or public-sharing timestamps.
+
+- `inside-touch-different-sense`: `publishedAt: 2026-11-13`, the day it was added
+  to the site/feed. Its original release date is February 11, 2016, verified on
+  [Inside Touch's Bandcamp](https://insidetouch.bandcamp.com/album/different-sense).
+- `inside-touch-kawhi`, `inside-touch-mr-clutch`, `inside-touch-the-answer`,
+  `inside-touch-trey-5` and `inside-touch-the-truth`: `publishedAt: 2026-11-13`,
+  the day they were added to the site/feed. [Inside Touch's SoundCloud](https://soundcloud.com/inside-touch)
+  lists nine tracks: these five and the four tracks already represented by
+  *Different Sense*. The individual track pages supply 2014 upload timestamps,
+  not separate release dates; entries display the year as “SoundCloud upload”.
+  The upload dates are December 9 for Kawhi, May 22 for Mr Clutch and The Answer,
+  and May 10 for Trey 5 and The Truth.
+
 Run `pnpm check`, `node --test tests/rss.test.js` and `pnpm test` when updating the
 feed contract. Tests inspect generated XML and rebuild isolated content fixtures.

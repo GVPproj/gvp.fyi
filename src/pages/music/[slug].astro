@@ -20,6 +20,7 @@ const streaming = [
   { label: 'Spotify', url: release.streaming?.spotify },
   { label: 'Apple Music', url: release.streaming?.apple },
   { label: 'Tidal', url: release.streaming?.tidal },
+  { label: 'SoundCloud', url: release.streaming?.soundcloud },
 ].filter(link => link.url);
 ---
 
@@ -41,6 +42,12 @@ const streaming = [
         title={`Bandcamp player — ${release.title} by ${release.artist}`}
         src={`https://bandcamp.com/EmbeddedPlayer/album=${release.album_id}/size=large/bgcol=2e3440/linkcol=88c0d0/artwork=none/transparent=true/`}
         height={release.player_height ?? 406}
+        loading="lazy"
+      ></iframe>}
+      {release.streaming?.soundcloud && <iframe
+        title={`SoundCloud player — ${release.title} by ${release.artist}`}
+        src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(release.streaming.soundcloud)}&auto_play=false&hide_related=true&show_comments=false`}
+        height={release.player_height ?? 166}
         loading="lazy"
       ></iframe>}
     </div>

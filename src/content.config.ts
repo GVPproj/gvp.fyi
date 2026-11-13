@@ -136,7 +136,7 @@ const music = defineCollection({
     player_height: z.number().int().positive().optional(),
     album_id: z.number().int().positive().optional(),
     url: listeningLink.optional(),
-    streaming: z.object({ spotify: listeningLink.optional(), apple: listeningLink.optional(), tidal: listeningLink.optional() }).strict().optional(),
+    streaming: z.object({ spotify: listeningLink.optional(), apple: listeningLink.optional(), tidal: listeningLink.optional(), soundcloud: listeningLink.optional() }).strict().optional(),
   }).strict(),
 });
 
