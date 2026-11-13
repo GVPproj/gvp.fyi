@@ -4,12 +4,12 @@ import { getCollection } from 'astro:content';
 import { getLikes } from '../lib/likes-collection';
 import { getSoftwareProjects } from '../lib/software-projects';
 import { getMusicReleases } from '../lib/music-releases';
-import { getDjEpisodes } from '../lib/dj-episodes';
+import { getRadioEpisodes } from '../lib/radio-episodes';
 import { categorySettings, siteSettings } from '../lib/site-settings';
 import { resolveWebURL } from '../lib/web-url';
 
 type FeedEntry = {
-  kind: 'Blog' | 'Likes' | 'Software' | 'Music' | 'DJ';
+  kind: 'Blog' | 'Likes' | 'Software' | 'Music' | 'Radio';
   id: string;
   title: string;
   date: string;
@@ -72,13 +72,13 @@ export const GET: APIRoute = async ({ site }) => {
         + Object.entries(release.streaming ?? {}).map(([service, url]) => link(service, url)).join(''),
     });
   }
-  for (const recording of await getDjEpisodes()) {
-    const programme = categorySettings('dj').find(category => category.id === recording.category)!.title;
+  for (const recording of await getRadioEpisodes()) {
+    const programme = categorySettings('radio').find(category => category.id === recording.category)!.title;
     const broadcast = recording.broadcast.status === 'verified' ? recording.broadcast.date
       : recording.broadcast.status === 'uncertain' ? `Uncertain — ${recording.broadcast.note}` : 'Unknown';
     const seconds = recording.duration_seconds;
     const duration = `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds % 3600 / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-    add({ kind: 'DJ', id: recording.id, title: recording.title, date: recording.publishedAt, href: recording.href,
+    add({ kind: 'Radio', id: recording.id, title: recording.title, date: recording.publishedAt, href: recording.href,
       description: [`Programme: ${programme}`, recording.credit, `Broadcast date: ${broadcast}`,
         `Full linked recording duration: ${duration}`].map(paragraph).join('') + link('Listen on Mixcloud', recording.mixcloud),
     });

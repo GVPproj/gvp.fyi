@@ -8,7 +8,7 @@
     "blog": "Blog",
     "likes": "Likes",
     "music": "Music",
-    "dj": "DJ"
+    "radio": "Radio"
   },
   "navigation": [
     {
@@ -22,9 +22,9 @@
       "href": "/music"
     },
     {
-      "id": "dj",
-      "label": "DJ",
-      "href": "/dj/"
+      "id": "radio",
+      "label": "Radio",
+      "href": "/radio/"
     },
     {
       "id": "likes",
@@ -35,15 +35,10 @@
       "id": "blog",
       "label": "Blog",
       "href": "/blog"
-    },
-    {
-      "id": "now",
-      "label": "Now",
-      "disabled": true
     }
   ],
   "categories": {
-    "dj": [
+    "radio": [
       { "id": "a-friendly-wave", "title": "A Friendly Wave" },
       { "id": "island-city", "title": "on FSR.live" },
       { "id": "other-appearances", "title": "Other Appearances" }

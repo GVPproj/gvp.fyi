@@ -27,6 +27,7 @@ before(async () => {
     ['fixture-quote', { type: 'quote', attribution: 'A quoted author' }, '**Readable quote**'],
     ['fixture-note', { type: 'note' }, '<strong>Readable MDX note</strong><script>hiddenPreviewText</script>'],
     ['fixture-pdf', { title: 'Adjacent PDF', download: './document.pdf' }, 'PDF description'],
+    ['equal-route', { id: 'equal-route', type: 'note' }, 'An entry whose ID matches its slug'],
   ]) {
     const dir = join(fixture, 'src/content/likes', slug);
     await mkdir(dir, { recursive: true });
@@ -75,6 +76,12 @@ test('Likes previews are rendered text, with fallback titles and ID redirects', 
   const quote = await page('likes/fixture-quote');
   assert.equal(quote.querySelector('blockquote strong').textContent, 'Readable quote');
   assert.equal(quote.querySelector('figcaption').textContent, 'A quoted author');
+});
+
+test('Likes IDs may match their own slug without a self-redirect', async () => {
+  const detail = await page('likes/equal-route');
+  assert.equal(detail.querySelector('meta[http-equiv="refresh"]'), null);
+  assert.match(detail.querySelector('main').textContent, /An entry whose ID matches its slug/);
 });
 
 test('adjacent PDFs are published and music dates retain their precision', async () => {

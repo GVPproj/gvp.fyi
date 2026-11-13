@@ -2,22 +2,22 @@
 import type { InferGetStaticPropsType } from 'astro';
 import { Image } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
-import { getDjEpisodes } from '../../lib/dj-episodes';
+import { getRadioEpisodes } from '../../lib/radio-episodes';
 import { categorySettings } from '../../lib/site-settings';
 
 export async function getStaticPaths() {
-  return (await getDjEpisodes()).map(episode => ({
+  return (await getRadioEpisodes()).map(episode => ({
     params: { slug: episode.slug }, props: { episode },
   }));
 }
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 const { episode } = Astro.props;
-const programme = categorySettings('dj').find(category => category.id === episode.category)!;
+const programme = categorySettings('radio').find(category => category.id === episode.category)!;
 ---
 
 <Layout title={episode.title} type="article" alignWithHeader>
   <article class="episode-detail">
-    <a href="/dj/">← DJ</a>
+    <a href="/radio/">← Radio</a>
     <header>
       <p>{programme.title}</p>
       <h1>{episode.title}</h1>

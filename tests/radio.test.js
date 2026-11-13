@@ -19,12 +19,12 @@ async function page(path) {
 }
 
 before(async () => {
-  workspace = await createBuildFixture('dj');
+  workspace = await createBuildFixture('radio');
   fixture = workspace.directory;
   // Keep mutation/keyboard scenarios independent of the growing real catalogue.
-  // dj-catalogue.test.js builds and checks every published recording.
-  for (const name of await readdir(join(fixture, 'src/content/dj'))) {
-    if (name !== 'afw-2026-10-20') await rm(join(fixture, 'src/content/dj', name), { recursive: true });
+  // radio-catalogue.test.js builds and checks every published recording.
+  for (const name of await readdir(join(fixture, 'src/content/radio'))) {
+    if (name !== 'afw-2026-10-20') await rm(join(fixture, 'src/content/radio', name), { recursive: true });
   }
   await build();
 });
@@ -34,9 +34,9 @@ after(async () => {
 });
 
 async function addEpisode(slug, data = {}) {
-  const directory = join(fixture, 'src/content/dj', slug);
+  const directory = join(fixture, 'src/content/radio', slug);
   await mkdir(directory, { recursive: true });
-  await cp(join(fixture, 'src/content/dj/afw-2026-10-20/artwork.jpg'), join(directory, 'artwork.jpg'));
+  await cp(join(fixture, 'src/content/radio/afw-2026-10-20/artwork.jpg'), join(directory, 'artwork.jpg'));
   await writeFile(join(directory, 'index.md'), `---\n${JSON.stringify({
     id: slug, slug, publishedAt: '2026-11-09', category: 'a-friendly-wave', title: slug,
     credit: 'Hosted by Graham Van Pelt', artwork: './artwork.jpg',
@@ -47,11 +47,12 @@ async function addEpisode(slug, data = {}) {
   return directory;
 }
 
-test('navigation exposes DJ directly and leaves Now disabled in both menus', async () => {
-  const document = await page('dj');
+test('navigation exposes Radio directly and leaves Now disabled in both menus', async () => {
+  const document = await page('radio');
+  assert.equal(document.querySelector('main h1').textContent, 'Radio');
   for (const [selector, labels] of [
-    ['.desktop > ul > li', ['Software', 'Music', 'DJ', 'Likes', 'Blog', 'Now']],
-    ['#site-nav > ul > li', ['Home', 'Software', 'Music', 'DJ', 'Likes', 'Blog', 'Now']],
+    ['.desktop > ul > li', ['Software', 'Music', 'Radio', 'Likes', 'Blog', 'Now']],
+    ['#site-nav > ul > li', ['Home', 'Software', 'Music', 'Radio', 'Likes', 'Blog', 'Now']],
   ]) {
     const items = [...document.querySelectorAll(selector)];
     assert.deepEqual(items.map(item => item.textContent.trim()), labels);
@@ -61,10 +62,10 @@ test('navigation exposes DJ directly and leaves Now disabled in both menus', asy
     assert.equal(now.tabIndex, -1);
     assert.equal(items.at(-1).querySelector('a, button'), null);
   }
-  for (const link of document.querySelectorAll('nav a[href="/dj/"]')) {
+  for (const link of document.querySelectorAll('nav a[href="/radio/"]')) {
     assert.equal(link.getAttribute('aria-current'), 'page');
   }
-  assert.equal(document.querySelectorAll('nav a[href="/dj/"]').length, 2);
+  assert.equal(document.querySelectorAll('nav a[href="/radio/"]').length, 2);
 });
 
 test('verified broadcasts sort newest first with uncertain and unknown dates last', async () => {
@@ -81,9 +82,9 @@ test('verified broadcasts sort newest first with uncertain and unknown dates las
     }));
     directories.push(await addEpisode('unknown-date', { broadcast: { status: 'unknown' } }));
     await build();
-    const overview = await page('dj');
+    const overview = await page('radio');
     assert.deepEqual([...overview.querySelectorAll('.content-row a')].map(link => link.getAttribute('href')),
-      ['/dj/newer-uploaded-2000', '/dj/afw-2026-10-20', '/dj/older-uploaded-2099', '/dj/uncertain-date', '/dj/unknown-date']);
+      ['/radio/newer-uploaded-2000', '/radio/afw-2026-10-20', '/radio/older-uploaded-2099', '/radio/uncertain-date', '/radio/unknown-date']);
   } finally {
     for (const directory of directories) await rm(directory, { recursive: true, force: true });
     await build();
@@ -99,11 +100,11 @@ test('an AFW shared recording keeps its category and original artwork proportion
     .jpeg().toFile(join(directory, 'artwork.jpg'));
   try {
     await build();
-    const overview = await page('dj');
-    const cards = [...overview.querySelectorAll('a[href="/dj/shared-island-city"]')];
+    const overview = await page('radio');
+    const cards = [...overview.querySelectorAll('a[href="/radio/shared-island-city"]')];
     assert.equal(cards.length, 1);
     assert.equal(cards[0].closest('section').getAttribute('aria-labelledby'), 'programme-a-friendly-wave-heading');
-    const detail = await page('dj/shared-island-city');
+    const detail = await page('radio/shared-island-city');
     assert.equal(detail.querySelector('main img').getAttribute('width'), '640');
     assert.equal(detail.querySelector('main img').getAttribute('height'), '320');
     assert.equal(detail.querySelectorAll('main iframe, main audio, main video').length, 0);
@@ -113,13 +114,13 @@ test('an AFW shared recording keeps its category and original artwork proportion
   }
 });
 
-test('DJ rows lead to a verified local episode and external listening, never a player', async () => {
-  const overview = await page('dj');
+test('Radio rows lead to a verified local episode and external listening, never a player', async () => {
+  const overview = await page('radio');
   assert.deepEqual([...overview.querySelectorAll('.content-row h2')].map(el => el.textContent),
     ['A Friendly Wave', 'on FSR.live', 'Other Appearances']);
   assert.equal(overview.querySelectorAll('.empty-preview').length, 2);
   const card = overview.querySelector('.content-row a');
-  assert.equal(card.getAttribute('href'), '/dj/afw-2026-10-20');
+  assert.equal(card.getAttribute('href'), '/radio/afw-2026-10-20');
   assert.ok(card.querySelector('img'));
   const detail = await page(card.getAttribute('href'));
   assert.equal(detail.querySelector('main h1').textContent, 'Graham Van Pelt - AFW Live on CHIR FM - 10/20/26');
@@ -143,7 +144,7 @@ test('publication rejects repeated recording identities, local routes and Mixclo
     const directory = await addEpisode('duplicate-recording', data);
     try {
       await assert.rejects(build(), error => {
-        assert.match(error.stdout + error.stderr, /Duplicate DJ (id|slug|mixcloud)/);
+        assert.match(error.stdout + error.stderr, /Duplicate Radio (id|slug|mixcloud)/);
         return true;
       }, JSON.stringify(data));
     } finally {
@@ -216,8 +217,8 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     assert.equal(await tab.evaluate(() => getComputedStyle(document.documentElement, '::view-transition-new(root)').animationName), 'random-dissolve');
     await tab.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(await tab.locator('meta[name="astro-view-transitions-fallback"]').getAttribute('content'), 'swap');
-    await tab.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'DJ', exact: true }).click();
-    await tab.waitForURL('**/dj/');
+    await tab.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Radio', exact: true }).click();
+    await tab.waitForURL('**/radio/');
     const items = tab.locator('.desktop > ul > li');
     for (const width of [1440, 768]) {
       await tab.setViewportSize({ width, height: 1000 });
@@ -238,18 +239,18 @@ test('desktop and mobile navigation support the published keyboard journey', { t
       assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     }
     await tab.locator('.site-header .home').focus();
-    for (const href of ['/software', '/music', '/dj/']) {
+    for (const href of ['/software', '/music', '/radio/']) {
       await tab.keyboard.press('Tab');
       assert.equal(await tab.evaluate(() => document.activeElement.getAttribute('href')), href);
     }
-    assert.equal(await tab.locator('.desktop a[href="/dj/"]').evaluate(element => getComputedStyle(element).outlineStyle), 'solid');
-    for (const href of ['/likes', '/blog', '/dj/afw-2026-10-20']) {
+    assert.equal(await tab.locator('.desktop a[href="/radio/"]').evaluate(element => getComputedStyle(element).outlineStyle), 'solid');
+    for (const href of ['/likes', '/blog', '/radio/afw-2026-10-20']) {
       await tab.keyboard.press('Tab');
       assert.equal(await tab.evaluate(() => document.activeElement.getAttribute('href')), href);
     }
     await tab.keyboard.press('Enter');
-    await tab.waitForURL('**/dj/afw-2026-10-20');
-    assert.equal(await tab.locator('.desktop a[href="/dj/"]').getAttribute('aria-current'), 'page');
+    await tab.waitForURL('**/radio/afw-2026-10-20');
+    assert.equal(await tab.locator('.desktop a[href="/radio/"]').getAttribute('aria-current'), 'page');
     const image = tab.locator('main img');
     await image.evaluate(element => element.decode());
     assert.equal(await image.evaluate(element => Math.abs(element.clientWidth / element.clientHeight - element.naturalWidth / element.naturalHeight) < .01), true);
@@ -259,7 +260,7 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     await tab.setViewportSize({ width: 390, height: 844 });
     await tab.getByRole('button', { name: 'Open menu', exact: true }).click();
     const drawer = tab.locator('#site-nav');
-    assert.deepEqual(await drawer.locator(':scope > ul > li').allTextContents(), ['Home', 'Software', 'Music', 'DJ', 'Likes', 'Blog', 'Now']);
+    assert.deepEqual(await drawer.locator(':scope > ul > li').allTextContents(), ['Home', 'Software', 'Music', 'Radio', 'Likes', 'Blog', 'Now']);
     const mobileBoxes = await drawer.locator(':scope > ul > li').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().y));
     assert.ok(mobileBoxes.every((y, index) => index === 0 || y > mobileBoxes[index - 1]));
     assert.equal(await drawer.locator('[aria-disabled="true"]').evaluate(element => element.tabIndex), -1);
@@ -268,15 +269,15 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     assert.equal(await drawer.evaluate(element => element.matches(':popover-open')), false);
     assert.equal(await tab.getByRole('button', { name: 'Open menu', exact: true }).evaluate(element => element === document.activeElement), true);
     await tab.getByRole('button', { name: 'Open menu', exact: true }).click();
-    await drawer.getByRole('link', { name: 'DJ', exact: true }).click();
-    await tab.waitForURL('**/dj/');
+    await drawer.getByRole('link', { name: 'Radio', exact: true }).click();
+    await tab.waitForURL('**/radio/');
     assert.equal(await tab.locator('#site-nav').evaluate(element => element.matches(':popover-open')), false);
     assert.equal(await tab.evaluate(() => document.documentElement.style.overflow), '');
     assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     const preview = await tab.locator('.content-preview').first().boundingBox();
     assert.ok(Math.abs(preview.width - preview.height) < 1);
     await tab.locator('.content-row a').click();
-    await tab.waitForURL('**/dj/afw-2026-10-20');
+    await tab.waitForURL('**/radio/afw-2026-10-20');
     assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await tab.route(listeningUrl, route => route.fulfill({ contentType: 'text/html', body: '<title>Mixcloud boundary</title>' }));
     await tab.getByRole('link', { name: 'Listen on Mixcloud', exact: true }).click();
@@ -294,10 +295,10 @@ test('desktop and mobile navigation support the published keyboard journey', { t
       await setTimeout(50);
     }
     assert.equal(await nativeDrawer.evaluate(element => getComputedStyle(element).transform), 'none');
-    await native.getByRole('navigation', { name: 'Mobile navigation', exact: true }).getByRole('link', { name: 'DJ', exact: true }).click();
-    await native.waitForURL('**/dj/');
+    await native.getByRole('navigation', { name: 'Mobile navigation', exact: true }).getByRole('link', { name: 'Radio', exact: true }).click();
+    await native.waitForURL('**/radio/');
     await native.locator('.content-row a').click();
-    await native.waitForURL('**/dj/afw-2026-10-20');
+    await native.waitForURL('**/radio/afw-2026-10-20');
     assert.equal(await native.getByRole('link', { name: 'Listen on Mixcloud', exact: true }).getAttribute('href'), listeningUrl);
   } finally {
     await browser?.close();

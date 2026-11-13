@@ -151,13 +151,13 @@ const mixcloudRecording = listeningLink.refine(value => {
 }, 'Expected a canonical Mixcloud recording URL').transform(value =>
   `https://www.mixcloud.com${new URL(value).pathname.toLowerCase().replace(/\/$/, '')}/`);
 
-const dj = defineCollection({
-  loader: glob({ pattern: '**/index.md', base: './src/content/dj', generateId: entryId }),
+const radio = defineCollection({
+  loader: glob({ pattern: '**/index.md', base: './src/content/radio', generateId: entryId }),
   schema: ({ image }) => z.object({
     id: z.string().regex(/^[a-zA-Z0-9_-]+$/),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     publishedAt: publicationDate,
-    category: categorySchema('dj'),
+    category: categorySchema('radio'),
     title: text.max(500),
     credit: text.max(1000),
     artwork: z.preprocess(entryRelativeImage, image()),
@@ -176,4 +176,4 @@ const dj = defineCollection({
   }).strict(),
 });
 
-export const collections = { blog, software, likes, music, dj };
+export const collections = { blog, software, likes, music, radio };

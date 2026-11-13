@@ -1,11 +1,11 @@
-# DJ recordings
+# Radio recordings
 
-The DJ catalogue is manually maintained in `src/content/dj/<folder>/index.md`,
+The Radio catalogue is manually maintained in `src/content/radio/<folder>/index.md`,
 with adjacent original artwork. Build with `pnpm build`; validate with
 `pnpm check` and `pnpm test`. There are no build-time Mixcloud requests.
 Recordings also appear in the site's [combined RSS feed](rss.md).
 The initial research pass publishes 132 verified recordings; see the
-[research audit](dj-catalogue-research.md) for coverage, evidence, exclusions and
+[research audit](radio-catalogue-research.md) for coverage, evidence, exclusions and
 unresolved dates. This is a point-in-time catalogue, not a completeness guarantee.
 Browser tests use Playwright's Chromium; on a fresh machine, provision it with
 `pnpm exec playwright-core install chromium`.
@@ -62,11 +62,11 @@ title, original artwork and a plain Mixcloud listening link. Credits, broadcast
 dates, full durations and evidence links remain required repository metadata for
 manual verification, but are not rendered as separate fields or a Sources section.
 The template intentionally has no body renderer, player or download.
-`tests/dj-catalogue.test.js` checks every published card/detail journey, programme
+`tests/radio-catalogue.test.js` checks every published card/detail journey, programme
 counts, representative canonical-link decisions and the minimal presentation.
 Update the researched expectations when intentionally adding or reclassifying
 recordings; keep the
-isolated validation scenarios in `tests/dj.test.js` independent of catalogue size.
+isolated validation scenarios in `tests/radio.test.js` independent of catalogue size.
 
 ## Launch recording verification
 

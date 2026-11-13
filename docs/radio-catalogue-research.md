@@ -1,6 +1,6 @@
 # Verified Mixcloud catalogue — #41
 
-Public-source research snapshot: **2026-11-09**. Scope: [#41](https://github.com/GVPproj/gvp.fyi/issues/41), following the [manual content policy](dj-content.md). This pass publishes **132 distinct linked recordings**: **9 A Friendly Wave, 119 on FSR.live, 4 Other Appearances**, including the existing October 20 launch entry. **126** have explicitly sourced exact dates, **2** have uncertain dates and **4** are undated. This is everything verified in this pass, not a claim that no further recording exists.
+Public-source research snapshot: **2026-11-09**. Scope: [#41](https://github.com/GVPproj/gvp.fyi/issues/41), following the [manual content policy](radio-content.md). This pass publishes **132 distinct linked recordings**: **9 A Friendly Wave, 119 on FSR.live, 4 Other Appearances**, including the existing October 20 launch entry. **126** have explicitly sourced exact dates, **2** have uncertain dates and **4** are undated. This is everything verified in this pass, not a claim that no further recording exists.
 
 ## Sources and coverage
 

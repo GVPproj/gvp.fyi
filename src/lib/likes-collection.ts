@@ -19,7 +19,7 @@ export async function getLikes() {
     if (data.type && !body?.trim()) {
       throw new Error(`Quotes and notes require a Markdown body in Likes entry ${id}`);
     }
-    for (const route of [data.id, data.slug]) {
+    for (const route of new Set([data.id, data.slug])) {
       if (routes.has(route)) throw new Error(`Duplicate or conflicting Likes route: /likes/${route}`);
       routes.add(route);
     }

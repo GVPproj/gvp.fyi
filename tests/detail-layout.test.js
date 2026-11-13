@@ -44,7 +44,7 @@ test('detail articles fill the header/footer column without overflowing mobile',
   try {
     for (const width of [1564, 768, 390]) {
       await page.setViewportSize({ width, height: 1000 });
-      for (const path of ['/likes/john-heward/', '/music/the-lookout/', '/software/tipbox/', '/dj/afw-2026-10-20/', '/blog/the-agent-shepherd/']) {
+      for (const path of ['/likes/john-heward/', '/music/the-lookout/', '/software/tipbox/', '/radio/afw-2026-10-20/', '/blog/the-agent-shepherd/']) {
         await page.goto(`${origin}${path}`);
         await page.evaluate(() => document.fonts.ready);
         const boxes = await page.locator('.site-header, main article, .site-footer').evaluateAll(elements => elements.map(element => {
@@ -74,7 +74,7 @@ test('content rows reveal batches of 14 and preserve keyboard access', async () 
   try {
     for (const width of [1280, 375]) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${origin}/dj/`);
+      await page.goto(`${origin}/radio/`);
       const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'on FSR.live', exact: true }) });
       const button = row.getByRole('button', { name: 'Load more on FSR.live items' });
       await button.waitFor({ state: 'visible' });
@@ -101,7 +101,7 @@ test('content rows reveal batches of 14 and preserve keyboard access', async () 
 test('content rows keep every card accessible without JavaScript', async () => {
   const page = await browser.newPage({ javaScriptEnabled: false });
   try {
-    await page.goto(`${origin}/dj/`);
+    await page.goto(`${origin}/radio/`);
     const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'on FSR.live', exact: true }) });
     assert.ok(await row.locator('li').count() > 14);
     assert.equal(await row.locator('li:visible').count(), await row.locator('li').count());

@@ -1,16 +1,16 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ContentRow from '../../components/ContentRow.astro';
-import { getDjEpisodes } from '../../lib/dj-episodes';
+import { getRadioEpisodes } from '../../lib/radio-episodes';
 import { getCollectionOverview } from '../../lib/categorized-content';
 import { sectionLabel } from '../../lib/site-settings';
 
-const rows = getCollectionOverview('dj', await getDjEpisodes());
+const rows = getCollectionOverview('radio', await getRadioEpisodes());
 ---
 
-<Layout title={sectionLabel('dj')}>
-  <div class="dj-episodes">
-    <h1>{sectionLabel('dj')}</h1>
+<Layout title={sectionLabel('radio')}>
+  <div class="radio-episodes">
+    <h1>{sectionLabel('radio')}</h1>
     {rows.map(row => <ContentRow
       id={`programme-${row.id}`}
       title={row.title}
@@ -21,6 +21,6 @@ const rows = getCollectionOverview('dj', await getDjEpisodes());
 </Layout>
 
 <style>
-  .dj-episodes { width: 100%; max-width: 87rem; text-align: left; display: grid; gap: 1.5rem; }
-  :global(main:has(.dj-episodes)) { justify-content: flex-start; }
+  .radio-episodes { width: 100%; max-width: 87rem; text-align: left; display: grid; gap: 1.5rem; }
+  :global(main:has(.radio-episodes)) { justify-content: flex-start; }
 </style>

@@ -39,12 +39,12 @@ test('an offline build publishes the complete five-type RSS catalogue with local
     ['likes/eli-horn', '2026-11-06T17:48:33.000Z'],
     ['software/biolink', '2026-10-09T00:00:00.000Z'],
     ['music/watery-grave-ep', '2026-10-07T00:00:00.000Z'],
-    ['dj/afw-2026-10-20', '2026-11-09T00:00:00.000Z'],
+    ['radio/afw-2026-10-20', '2026-11-09T00:00:00.000Z'],
   ]) {
     const item = items.find(item => text(item, 'link') === `https://gvp.fyi/${path}/`);
     assert.equal(new Date(text(item, 'pubDate')).toISOString(), date);
   }
-  for (const [collection, category] of [['blog', 'Blog'], ['likes', 'Likes'], ['software', 'Software'], ['music', 'Music'], ['dj', 'DJ']]) {
+  for (const [collection, category] of [['blog', 'Blog'], ['likes', 'Likes'], ['software', 'Software'], ['music', 'Music'], ['radio', 'Radio']]) {
     const entries = await readdir(join(workspace.directory, 'src/content', collection));
     assert.equal(items.filter(item => text(item, 'category') === category).length, entries.length, collection);
   }
@@ -104,14 +104,14 @@ test('summaries retain reader context, original date precision and shared-record
   assert.doesNotMatch(music.textContent, /2005-01-01/);
   assert.match(description('music/family-japanese-edition').innerText, /Original release: 2009-10(?:\s|$)/);
   assert.match(description('music/new-found-land').textContent, /Songwriting/);
-  const shared = description('dj/island-city-afw-weekend-2-day-2');
+  const shared = description('radio/island-city-afw-weekend-2-day-2');
   assert.match(shared.textContent, /Programme: A Friendly Wave/);
   assert.match(shared.textContent, /Shared broadcast.*Chris Dammeyer, AIKA and Graham Van Pelt/);
   assert.match(shared.textContent, /Uncertain.*Exact day unverified/);
   assert.match(shared.textContent, /Full linked recording duration: 3:53:09/);
   assert.ok(shared.querySelector('a[href^="https://www.mixcloud.com/"]'));
-  assert.match(description('dj/fsr-island-city-w-graham-van-pelt').textContent, /Broadcast date: Unknown/);
-  assert.match(description('dj/afw-2026-10-20').textContent, /Broadcast date: 2026-10-20/);
+  assert.match(description('radio/fsr-island-city-w-graham-van-pelt').textContent, /Broadcast date: Unknown/);
+  assert.match(description('radio/afw-2026-10-20').textContent, /Broadcast date: 2026-10-20/);
   for (const item of document.querySelectorAll('item')) {
     const summary = parseHTML(`<html><body>${text(item, 'description')}</body></html>`).document.body;
     assert.equal(summary.querySelectorAll('script, style, iframe, audio, video, button, svg, template').length, 0);
@@ -170,7 +170,7 @@ test('ordinary edits and slug or folder changes retain all five publication iden
     ['likes', 'eli-horn', 'likes/eli-horn/index.md', 'renamed-rss-like'],
     ['software', 'biolink', 'software/biolink/index.mdx', 'renamed-rss-project'],
     ['music', 'watery-grave-ep', 'music/watery-grave-ep/index.mdx', 'renamed-rss-release'],
-    ['dj', 'afw-2026-10-20', 'dj/afw-2026-10-20/index.md', 'renamed-rss-recording'],
+    ['radio', 'afw-2026-10-20', 'radio/afw-2026-10-20/index.md', 'renamed-rss-recording'],
   ];
   const originalItems = [...(await feed()).querySelectorAll('item')];
   const originals = new Map();
@@ -241,8 +241,8 @@ test('builds reject impossible publication dates, missing dates and conflicting 
     ['likes/eli-horn/index.md', source => source.replace(/"created": "[^"]+"/, '"created": "2025-02-29T00:00:00Z"'), /Invalid calendar timestamp/],
     ['software/biolink/index.mdx', source => source.replace('"publishedAt": "2026-10-09"', '"publishedAt": "2025-02-29"'), /Invalid calendar publication date/],
     ['music/atlantis-tapes/index.md', source => source.replace('"publishedAt": "2026-10-07"', '"publishedAt": "2025-02-29"'), /Invalid calendar publication date/],
-    ['dj/afw-2026-10-20/index.md', source => source.replace("publishedAt: '2026-11-09'", "publishedAt: '2025-02-29'"), /Invalid calendar publication date/],
-    ['dj/afw-2026-10-20/index.md', source => source.replace(/^publishedAt:.*\n/m, ''), /publishedAt.*Required/s],
+    ['radio/afw-2026-10-20/index.md', source => source.replace("publishedAt: '2026-11-09'", "publishedAt: '2025-02-29'"), /Invalid calendar publication date/],
+    ['radio/afw-2026-10-20/index.md', source => source.replace(/^publishedAt:.*\n/m, ''), /publishedAt.*Required/s],
     ['blog/the-animated-face.mdx', source => source.replace('id: the-animated-face', 'id: the-agent-shepherd'), /Duplicate RSS identity/],
     ['software/biolink/index.mdx', source => source.replace('"id": "biolink"', '"id": "tipbox"'), /Duplicate RSS identity/],
   ]) {

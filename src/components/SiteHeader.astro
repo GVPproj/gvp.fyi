@@ -102,21 +102,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     document.querySelectorAll<HTMLElement>('.site-header [popover]').forEach((menu) => menu.hidePopover())
   })
 
-  // Brightens the header's border once it's floating over content. The header
-  // is re-rendered on every client-side navigation, so bind per page load.
-  let cleanup = () => {}
   let controller = new AbortController()
-
-  function bindScroll() {
-    const header = document.querySelector<HTMLElement>('header.site-header')
-    if (!header) return
-    const update = () => {
-      header.toggleAttribute('data-scrolled', window.scrollY > 24)
-    }
-    update()
-    window.addEventListener('scroll', update, { passive: true })
-    cleanup = () => window.removeEventListener('scroll', update)
-  }
 
   function bindScrollLock() {
     const nav = document.querySelector<HTMLElement>('#site-nav')
@@ -133,11 +119,9 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   }
 
   function bind() {
-    cleanup()
     controller.abort()
     controller = new AbortController()
     document.documentElement.style.overflow = ''
-    bindScroll()
     bindScrollLock()
   }
   document.addEventListener('astro:page-load', bind)
@@ -160,6 +144,15 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     padding: 1.5rem;
   }
 
+  .home {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    /* Keep the signature and mobile menu button aligned with the page gutter. */
+    margin: -0.25rem -0.75rem;
+    color: var(--colour-text-base);
+  }
+
   /* Desktop: a sticky, frosted bar. It must be a direct child of <body>
      (the scroll container) for `position: sticky` to work — any wrapper
      would become its containing block and it would never stick. */
@@ -172,46 +165,29 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       max-width: calc(100% - 3rem);
       min-width: 0;
       align-items: center;
-      gap: 1.75rem;
+      gap: 0.25rem;
       margin-block: 1rem 2.5rem;
-      padding: 1rem 2rem 1rem 1.625rem;
+      padding: 0.5rem;
       border: 1px solid var(--ink-700);
       border-radius: 0;
       background-color: color-mix(in srgb, var(--colour-fill) 80%, transparent);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 4px 12px -6px hsl(204 80% 6% / 0.3);
-      transition: border-color 200ms ease;
-    }
-
-    header[data-scrolled] {
-      border-color: var(--ink-500);
     }
 
     .home {
-      flex: 0 1 10rem;
-      width: 10rem;
+      flex: 0 1 11.5rem;
+      width: 11.5rem;
       min-width: 0;
+      height: 3rem;
+      margin: 0;
     }
 
     header :global(.sig) {
       width: 100%;
       height: auto;
     }
-  }
-
-  .home {
-    display: flex;
-    align-items: center;
-    color: var(--colour-text-base);
-  }
-
-  .home:hover {
-    color: var(--colour-highlight);
-  }
-
-  .home.current {
-    color: var(--colour-accent);
   }
 
   nav ul {
@@ -228,23 +204,21 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   button:focus-visible,
   summary:focus-visible {
     outline: 2px solid var(--colour-accent);
-    outline-offset: 4px;
+    outline-offset: 3px;
   }
 
   nav a {
     color: var(--colour-text-base);
   }
 
-  nav a:hover,
-  .group-toggle:hover,
-  summary:hover {
-    color: var(--colour-highlight);
+  :is(.home, nav a, .group-toggle, summary) {
+    border-radius: 0;
   }
 
-  nav a.current,
-  .group-toggle.current,
-  summary.current {
-    color: var(--colour-accent);
+  :is(.home, nav a, .group-toggle, summary):is(.current, :hover, :focus-visible),
+  .nav-group:has(.dropdown:popover-open) > .group-toggle {
+    background: var(--colour-accent);
+    color: var(--colour-fill);
   }
 
   .desktop {
@@ -264,10 +238,14 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     min-height: 1.75rem;
   }
 
+  .desktop > ul > li > :is(a, .group-toggle, .disabled) {
+    padding: 0.625rem 0.75rem;
+  }
+
   .desktop > ul {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 0.25rem;
     white-space: nowrap;
     font-family: var(--font-sans);
     font-size: 1.25rem;
@@ -276,12 +254,9 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   }
 
   @media (width >= 48rem) {
-    /* hairline divider between sig and links */
     .desktop {
       display: block;
       flex-shrink: 0;
-      padding-inline-start: 1.75rem;
-      border-inline-start: 1px solid var(--ink-700);
     }
 
     button.menu-toggle {
@@ -344,8 +319,6 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     padding: 0.625rem 0.875rem;
     border-radius: 0;
   }
-
-  .dropdown a:hover { background: var(--colour-fill-muted); }
 
   .menu-toggle,
   .menu-close {
@@ -427,10 +400,6 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
 
   #site-nav li + li { margin-block-start: 0.5rem; }
 
-  #site-nav a:hover,
-  #site-nav summary:hover,
-  #site-nav a.current { background: var(--colour-fill-muted); }
-
   #site-nav a,
   #site-nav summary,
   #site-nav .disabled {
@@ -439,11 +408,6 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     justify-content: space-between;
     gap: 0.875rem;
     padding: 0.875rem 1rem;
-  }
-
-  /* :active gives immediate press feedback. */
-  #site-nav a:active {
-    color: var(--colour-highlight);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -9,7 +9,9 @@ import { getLikes } from '../../lib/likes-collection';
 export async function getStaticPaths() {
   return (await getLikes()).flatMap(item => [
     { params: { slug: item.slug }, props: { item, redirect: false } },
-    { params: { slug: item.id }, props: { item, redirect: true } },
+    ...(item.id === item.slug ? [] : [
+      { params: { slug: item.id }, props: { item, redirect: true } },
+    ]),
   ]);
 }
 

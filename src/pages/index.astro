@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import { Image } from 'astro:assets';
 import { getMusicReleases } from '../lib/music-releases';
 import { getLikes } from '../lib/likes-collection';
-import { getDjEpisodes } from '../lib/dj-episodes';
+import { getRadioEpisodes } from '../lib/radio-episodes';
 import AmbientPad from '../components/AmbientPad.astro';
 import PixelBox from '../components/elements/PixelBox.astro';
 import Testimonials from '../components/Testimonials.astro';
@@ -11,7 +11,7 @@ import Layout from '../layouts/Layout.astro';
 
 const latestAlbum = (await getMusicReleases())[0];
 const latestLike = (await getLikes())[0];
-const latestMix = (await getDjEpisodes())[0];
+const latestMix = (await getRadioEpisodes())[0];
 const latestPost = (await getCollection('blog'))
   .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
 const firstParagraph = latestPost?.body?.trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ') ?? '';
@@ -70,7 +70,7 @@ const excerpt = firstParagraph.length > 160
     )}
     {latestMix && (
       <section class="latest-mix latest-panel" aria-labelledby="latest-mix-heading">
-        <h2 id="latest-mix-heading">Latest DJ Mix:</h2>
+        <h2 id="latest-mix-heading">Latest Radio Show:</h2>
         <PixelBox>
           <a class="framed-cover" href={latestMix.href} aria-label={`View ${latestMix.title}`}>
             <Image src={latestMix.image} alt={`${latestMix.title} cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />

@@ -3,12 +3,12 @@
 Subscribe at `/rss.xml`. The static Astro endpoint uses `@astrojs/rss`, the configured
 site URL and site title/description. It reads only repository content at build time:
 no feed service, Mixcloud API, synchronization or runtime server is involved.
-The complete published Blog, Likes, Software, Music and DJ catalogue is included.
+The complete published Blog, Likes, Software, Music and Radio catalogue is included.
 
 ## Publishing and editing
 
 - Blog uses its existing `date`; Likes uses its existing `created` timestamp.
-- Software, Music and DJ require `publishedAt: YYYY-MM-DD`: the day the entry is
+- Software, Music and Radio require `publishedAt: YYYY-MM-DD`: the day the entry is
   published **on this site**, not the project, release or broadcast's original date.
   Set this explicitly when adding an entry. Dates are validated calendar dates;
   date-only values mean midnight UTC. Never use filesystem timestamps or build time.
@@ -27,8 +27,8 @@ The complete published Blog, Likes, Software, Music and DJ catalogue is included
   attribution and source/asset links. Quotes and notes retain their full text in the
   feed, independently of the shorter overview preview.
 - Keep original Music `release_date` precision and `display_date` qualifications.
-  Keep DJ `broadcast.status` and uncertain notes; never manufacture an exact day
-  from a year, month, upload timestamp or guess. DJ descriptions name the programme,
+  Keep Radio `broadcast.status` and uncertain notes; never manufacture an exact day
+  from a year, month, upload timestamp or guess. Radio descriptions name the programme,
   participation credit, broadcast-date status and **full linked recording** duration.
   Shared broadcasts remain shared, not wholly Graham's set. Publish a recording
   once, in its programme, even when its uploader differs.
@@ -38,7 +38,7 @@ The complete published Blog, Likes, Software, Music and DJ catalogue is included
 
 ## Initial archive backfill
 
-All current Software, Music and DJ entries have repository evidence of introduction
+All current Software, Music and Radio entries have repository evidence of introduction
 into the public site catalogue. We recovered that day and persist it in frontmatter;
 we do **not** claim exact production deployment timestamps. Later migrations into
 Astro content collections do not constitute new publications.
@@ -50,8 +50,8 @@ Astro content collections do not constitute new publications.
 | Twelve Miracle Fortress releases | `2026-10-07` | `9540b37`: catalogue expansion |
 | Think About Life and other credits except No Joy (17) | `2026-10-07` | `1236f23`: catalogue expansion |
 | No Joy 7-inch | `2026-10-07` | `b94a461`: addition to published catalogue |
-| DJ `afw-2026-10-20` | `2026-11-09` | `a05a33f`: DJ launch |
-| Other 131 current DJ recordings | `2026-11-09` | `d89f357`: verified catalogue addition |
+| Radio `afw-2026-10-20` | `2026-11-09` | `a05a33f`: DJ launch |
+| Other 131 current Radio recordings | `2026-11-09` | `d89f357`: verified catalogue addition |
 
 No current entry needed an invented historical date or a first-feed fallback.
 For a future archive addition without reliable site-publication evidence, deliberately
