@@ -10,4 +10,4 @@
 }
 ---
 
-A polished Markdown notes app for developers, with notebooks, tags, code highlighting and encrypted sync across devices.
+It's a paid, closed-source markdown notes app, but it's just done so well that I can't really look elsewhere. I got started with this kind of note-taking using the app Notational Velocity, with simplenote sync.  I love having my notes on every device and every OS, synced and ready to use.

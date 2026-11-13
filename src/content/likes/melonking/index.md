@@ -9,3 +9,5 @@
   "image": "./image.webp"
 }
 ---
+
+Go look around in here, it's an inspiring place. 

@@ -9,3 +9,5 @@
   "image": "./image.png"
 }
 ---
+
+This piece has stuck with me for years as a bit of a vibe capsule for my life.

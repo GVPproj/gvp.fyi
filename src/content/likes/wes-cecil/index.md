@@ -10,4 +10,4 @@
 }
 ---
 
-Philosophy and cultural criticism.  Like that really great prof you had in undergrad?
+Philosophy and cultural criticism.  Like that really great prof you had in undergrad?  I recommend the study of Plato's Symposium, the series on Taoism, and the series on Values as good spots to jump in.

@@ -9,3 +9,5 @@
   "image": "./image.webp"
 }
 ---
+
+I see and hear about 1,000,001 other browsers every year.  None of them ever really give me the comfort of Firefox.  I just want to render some webpages!  I don't need a special sidebar or an eyeball watching everything I do online or ai summarizing stuff (I can read).  The dev tools are great IMO.

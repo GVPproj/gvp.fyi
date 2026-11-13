@@ -9,3 +9,4 @@
   "image": "./image.webp"
 }
 ---
+The idea behind my current site is a bit of a personal are.na, if you couldn't tell!
