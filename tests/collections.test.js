@@ -58,6 +58,25 @@ test('overviews preserve category policies and normalized links', async () => {
   }
 });
 
+test('Eternal Family appears in Consulting with a square homepage screenshot', async () => {
+  const overview = await page('software');
+  const row = [...overview.querySelectorAll('.content-row')]
+    .find(row => row.querySelector('h2')?.textContent === 'Consulting');
+  assert.ok(row);
+  const link = row.querySelector('a[href="/software/eternal-family"]');
+  assert.ok(link);
+  assert.match(link.textContent, /Eternal Family/);
+
+  const detail = await page('software/eternal-family');
+  assert.equal(detail.querySelector('h1').textContent, 'Eternal Family');
+  assert.match(detail.querySelector('.content-body').textContent, /Streaming platform/);
+  assert.match(detail.querySelector('.content-body').textContent, /Reader and publication/);
+  assert.ok(detail.querySelector('nav[aria-label="Project links"] a[href="https://eternal.tv/"]'));
+  const screenshot = detail.querySelector('img.screenshot');
+  assert.ok(screenshot);
+  assert.equal(screenshot.getAttribute('width'), screenshot.getAttribute('height'));
+});
+
 test('Inside Touch has its own music row and a verified release player', async () => {
   const overview = await page('music');
   const row = [...overview.querySelectorAll('.content-row')]
