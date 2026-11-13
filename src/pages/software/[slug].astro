@@ -25,8 +25,8 @@ const { Content } = await render(project.entry);
     <header>
       <h1>{project.title}</h1>
     </header>
-    <ContentBody><Content /></ContentBody>
     {project.showScreenshot && <Image class="screenshot" src={project.image} layout="constrained" sizes="calc(100vw - 3rem)" alt={project.screenshotAlt ?? `Screenshot of ${project.title}`} />}
+    <ContentBody><Content /></ContentBody>
     <section aria-labelledby="tooling-heading">
       <h2 id="tooling-heading">Originally Built With</h2>
       <ul class="tooling">{project.tooling.map(tool => <li>{tool}</li>)}</ul>
