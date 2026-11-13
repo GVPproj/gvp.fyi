@@ -2,7 +2,7 @@
 publishedAt: '2026-11-09'
 id: "island-city-2026-07-29"
 slug: "island-city-2026-07-29"
-category: "island-city"
+category: "a-friendly-wave"
 title: "Island City w/ Graham Van Pelt - 07/29/26"
 credit: "Hosted by Graham Van Pelt"
 artwork: "./artwork.png"

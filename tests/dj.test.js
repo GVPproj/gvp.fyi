@@ -90,9 +90,9 @@ test('verified broadcasts sort newest first with uncertain and unknown dates las
   }
 });
 
-test('a shared Island City recording stays in its programme regardless of uploader', async () => {
+test('an AFW shared recording keeps its category and original artwork proportions', async () => {
   const directory = await addEpisode('shared-island-city', {
-    category: 'island-city', credit: 'Shared broadcast — Graham Van Pelt and Guest Presenter',
+    category: 'a-friendly-wave', credit: 'Shared broadcast — Graham Van Pelt and Guest Presenter',
     duration_seconds: 7205,
   });
   await sharp({ create: { width: 640, height: 320, channels: 3, background: '#88c0d0' } })
@@ -102,7 +102,7 @@ test('a shared Island City recording stays in its programme regardless of upload
     const overview = await page('dj');
     const cards = [...overview.querySelectorAll('a[href="/dj/shared-island-city"]')];
     assert.equal(cards.length, 1);
-    assert.equal(cards[0].closest('section').getAttribute('aria-labelledby'), 'programme-island-city-heading');
+    assert.equal(cards[0].closest('section').getAttribute('aria-labelledby'), 'programme-a-friendly-wave-heading');
     const detail = await page('dj/shared-island-city');
     assert.equal(detail.querySelector('main img').getAttribute('width'), '640');
     assert.equal(detail.querySelector('main img').getAttribute('height'), '320');
@@ -116,7 +116,7 @@ test('a shared Island City recording stays in its programme regardless of upload
 test('DJ rows lead to a verified local episode and external listening, never a player', async () => {
   const overview = await page('dj');
   assert.deepEqual([...overview.querySelectorAll('.content-row h2')].map(el => el.textContent),
-    ['A Friendly Wave', 'Island City', 'Other Appearances']);
+    ['A Friendly Wave', 'on FSR.live', 'Other Appearances']);
   assert.equal(overview.querySelectorAll('.empty-preview').length, 2);
   const card = overview.querySelector('.content-row a');
   assert.equal(card.getAttribute('href'), '/dj/afw-2026-10-20');

@@ -21,26 +21,28 @@ before(async () => {
 });
 after(async () => workspace?.cleanup());
 
-test('all four A Friendly Wave recordings are browsable in newest-first research order', async () => {
+test('A Friendly Wave includes Island City continuations and shared broadcasts in date order', async () => {
   const cards = [...row('a-friendly-wave').querySelectorAll('a')];
   assert.deepEqual(cards.map(card => card.getAttribute('href')), [
-    '/dj/afw-2026-10-20', '/dj/afw-2026-06-30', '/dj/afw-2026-03-01', '/dj/afw-2026-02-10',
+    '/dj/afw-2026-10-20', '/dj/island-city-2026-07-29', '/dj/island-city-2026-07-22',
+    '/dj/afw-2026-06-30', '/dj/afw-2026-03-01', '/dj/afw-2026-02-10',
+    '/dj/island-city-2026-01-18', '/dj/island-city-afw-cafe-mode-2025-05-24',
+    '/dj/island-city-afw-weekend-2-day-2',
   ]);
 });
 
-test('Island City unifies the full FSR catalogue, AFW continuations and shared broadcasts', async () => {
+test('on FSR.live contains only the full FSR catalogue', async () => {
+  assert.equal(row('island-city').querySelector('h2').textContent, 'on FSR.live');
   const cards = [...row('island-city').querySelectorAll('a')];
-  assert.equal(cards.length, 124);
-  assert.deepEqual(cards.slice(0, 3).map(card => card.getAttribute('href')), [
-    '/dj/island-city-2026-07-29', '/dj/island-city-2026-07-22', '/dj/island-city-2026-01-18',
-  ]);
+  assert.equal(cards.length, 119);
+  for (const card of cards) {
+    const detail = await page(card.getAttribute('href'));
+    assert.ok(detail.querySelector('main a[href^="https://www.mixcloud.com/fsrlive/"]'));
+  }
   // These ten recordings are explicitly credited in FSR descriptions but absent from its playlist.
   for (const date of ['2021-11-05', '2022-01-14', '2022-07-01', '2022-07-22', '2022-10-21',
     '2022-11-04', '2022-12-16', '2023-04-21', '2023-06-02', '2023-12-01']) {
     assert.ok(row('island-city').querySelector(`a[href="/dj/island-city-${date}"]`), date);
-  }
-  for (const slug of ['island-city-afw-cafe-mode-2025-05-24', 'island-city-afw-weekend-2-day-2']) {
-    assert.equal(row('island-city').querySelectorAll(`a[href="/dj/${slug}"]`).length, 1);
   }
   for (const [date, originalKey] of [
     ['2022-04-29', 'island-city-w-graham-van-pelt-28april2022'],

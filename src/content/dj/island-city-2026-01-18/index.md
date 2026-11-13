@@ -2,7 +2,7 @@
 publishedAt: '2026-11-09'
 id: "island-city-2026-01-18"
 slug: "island-city-2026-01-18"
-category: "island-city"
+category: "a-friendly-wave"
 title: "Island City - 18/01/26"
 credit: "Hosted by Graham Van Pelt"
 artwork: "./artwork.jpg"

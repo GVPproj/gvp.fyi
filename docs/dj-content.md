@@ -20,9 +20,12 @@ Browser tests use Playwright's Chromium; on a fresh machine, provision it with
 - Set `publishedAt: YYYY-MM-DD` to the site-publication day, separately from the
   broadcast date. Keep it and the persistent ID on ordinary edits or slug changes.
   See the [RSS publication policy and initial backfill evidence](rss.md).
-- `category` is the programme: `a-friendly-wave`, `island-city`, or
-  `other-appearances`. It does not follow the uploading account. Programme row
-  labels/order live in `src/config/site-settings.json`.
+- `category` selects the content row: `a-friendly-wave` for AFW recordings
+  (including Island City continuations and shared AFW broadcasts), `island-city`
+  for “on FSR.live”, or `other-appearances`. Group by station/event, not solely
+  by programme title or uploading account. Row labels/order live in
+  `src/config/site-settings.json`. The legacy `island-city` category ID and
+  existing episode slugs remain stable.
 - Preserve the source `title` and original artwork. `artwork` must be an adjacent
   repository image (e.g. `./artwork.jpg`). Cards crop to square; detail pages retain
   the image's original proportions.

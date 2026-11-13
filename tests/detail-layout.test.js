@@ -75,8 +75,8 @@ test('content rows reveal batches of 14 and preserve keyboard access', async () 
     for (const width of [1280, 375]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${origin}/dj/`);
-      const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'Island City', exact: true }) });
-      const button = row.getByRole('button', { name: 'Load more Island City items' });
+      const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'on FSR.live', exact: true }) });
+      const button = row.getByRole('button', { name: 'Load more on FSR.live items' });
       await button.waitFor({ state: 'visible' });
       const total = await row.locator('li').count();
       assert.ok(total > 14);
@@ -102,7 +102,7 @@ test('content rows keep every card accessible without JavaScript', async () => {
   const page = await browser.newPage({ javaScriptEnabled: false });
   try {
     await page.goto(`${origin}/dj/`);
-    const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'Island City', exact: true }) });
+    const row = page.locator('.content-row').filter({ has: page.getByRole('heading', { name: 'on FSR.live', exact: true }) });
     assert.ok(await row.locator('li').count() > 14);
     assert.equal(await row.locator('li:visible').count(), await row.locator('li').count());
     assert.equal(await row.getByRole('button', { includeHidden: true }).isVisible(), false);

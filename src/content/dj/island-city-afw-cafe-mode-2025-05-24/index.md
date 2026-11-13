@@ -2,7 +2,7 @@
 publishedAt: '2026-11-09'
 id: "island-city-afw-cafe-mode-2025-05-24"
 slug: "island-city-afw-cafe-mode-2025-05-24"
-category: "island-city"
+category: "a-friendly-wave"
 title: "A  FRIENDLY WAVE Cafe Mode - May 24 2025 w/ Leo Chan, Jeff Stefani and Graham Van Pelt (Island City)"
 credit: "Shared broadcast — Leo Chan, Jeff Stefani and Graham Van Pelt (Island City)"
 artwork: "./artwork.jpg"

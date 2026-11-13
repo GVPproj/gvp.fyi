@@ -2,7 +2,7 @@
 publishedAt: '2026-11-09'
 id: "island-city-afw-weekend-2-day-2"
 slug: "island-city-afw-weekend-2-day-2"
-category: "island-city"
+category: "a-friendly-wave"
 title: "A  FRIENDLY WAVE - Weekend 2 Day 2 w/ Chris Dammeyer, AIKA & Island City w/ Graham Van Pelt"
 credit: "Shared broadcast — Chris Dammeyer, AIKA and Graham Van Pelt (Island City)"
 artwork: "./artwork.jpg"

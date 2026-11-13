@@ -105,7 +105,7 @@ test('summaries retain reader context, original date precision and shared-record
   assert.match(description('music/family-japanese-edition').innerText, /Original release: 2009-10(?:\s|$)/);
   assert.match(description('music/new-found-land').textContent, /Songwriting/);
   const shared = description('dj/island-city-afw-weekend-2-day-2');
-  assert.match(shared.textContent, /Programme: Island City/);
+  assert.match(shared.textContent, /Programme: A Friendly Wave/);
   assert.match(shared.textContent, /Shared broadcast.*Chris Dammeyer, AIKA and Graham Van Pelt/);
   assert.match(shared.textContent, /Uncertain.*Exact day unverified/);
   assert.match(shared.textContent, /Full linked recording duration: 3:53:09/);
