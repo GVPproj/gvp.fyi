@@ -11,7 +11,6 @@ export async function getSoftwareProjects() {
       entry,
       href: `/software/${entry.id}`,
       image: entry.data.screenshot,
-      metadata: entry.data.tooling.join(' · '),
     };
   }).sort((a, b) => a.order - b.order || a.entry.id.localeCompare(b.entry.id));
 }

@@ -12,11 +12,6 @@
   },
   "navigation": [
     {
-      "id": "software",
-      "label": "Software",
-      "href": "/software"
-    },
-    {
       "id": "music",
       "label": "Music",
       "href": "/music"
@@ -25,6 +20,11 @@
       "id": "radio",
       "label": "Radio",
       "href": "/radio/"
+    },
+    {
+      "id": "software",
+      "label": "Software",
+      "href": "/software"
     },
     {
       "id": "likes",
@@ -71,12 +71,12 @@
         "title": "Applications"
       },
       {
-        "id": "small-websites",
-        "title": "Small websites"
+        "id": "websites",
+        "title": "Websites"
       },
       {
-        "id": "early-projects",
-        "title": "Early projects"
+        "id": "random-old-stuff",
+        "title": "Random Old Stuff"
       }
     ],
     "releases": [
