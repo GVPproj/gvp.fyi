@@ -222,11 +222,11 @@ const padKeys = "qwerasdfzxcv";
         background: var(--nord0);
         min-height: 44px;
         padding: 0.3rem;
-        cursor: pointer;
+        cursor: var(--cursor-pointer);
     }
     button:disabled {
         opacity: 0.55;
-        cursor: default;
+        cursor: var(--cursor-default);
     }
     button:not(:disabled):hover {
         border-color: var(--nord8);
@@ -374,7 +374,7 @@ const padKeys = "qwerasdfzxcv";
         direction: rtl;
         appearance: none;
         background: transparent;
-        cursor: ns-resize;
+        cursor: var(--cursor-ns-resize);
     }
     .volume-fader input::-webkit-slider-runnable-track {
         width: 8px;
@@ -433,7 +433,7 @@ const padKeys = "qwerasdfzxcv";
     }
     .volume-fader input:disabled {
         opacity: 0.55;
-        cursor: default;
+        cursor: var(--cursor-default);
     }
     @media (pointer: coarse) {
         .pad-key {

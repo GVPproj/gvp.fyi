@@ -174,9 +174,9 @@ const dice = Array.from({ length: 10 }, () => Math.floor(Math.random() * 6) + 1)
   dd { margin: 0; font-size: 1.125rem; font-variant-numeric: tabular-nums; }
   .scoring { font-size: .75rem; }
   .dice { display: grid; grid-template-columns: repeat(5, minmax(0, 70px)); justify-content: center; gap: clamp(.5rem, 2.5vw, 2rem); margin-block: 2rem; }
-  button { min-block-size: 2.75rem; border: 1px solid #697078; border-radius: 6px; padding: .5rem .75rem; background: #fff; color: #0c0f0a; font: inherit; line-height: 1.25; cursor: pointer; }
+  button { min-block-size: 2.75rem; border: 1px solid #697078; border-radius: 6px; padding: .5rem .75rem; background: #fff; color: #0c0f0a; font: inherit; line-height: 1.25; cursor: var(--cursor-pointer); }
   button:focus-visible { outline: 3px solid #c50046; outline-offset: 4px; }
-  button:disabled { cursor: default; }
+  button:disabled { cursor: var(--cursor-default); }
   .die { min-inline-size: 0; min-block-size: 0; inline-size: 100%; padding: 0; aspect-ratio: 1; border: 0; border-radius: 10px; background-size: 100% 100%; font-size: 0; box-shadow: 1px 3px 5px 3px #0004; }
   .die[data-value='1'] { background-image: url('./assets/1.png'); }
   .die[data-value='2'] { background-image: url('./assets/2.png'); }

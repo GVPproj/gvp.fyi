@@ -37,6 +37,60 @@ after(async () => {
   await workspace?.cleanup();
 });
 
+test('Nord cursors preserve interaction states and native fallbacks', async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${origin}/`);
+    const cursor = selector => page.locator(selector).first().evaluate(element => getComputedStyle(element).cursor);
+    const expectCursor = async (selector, name, hotspot, fallback) => {
+      assert.equal(await cursor(selector), `url("${origin}/cursors/nord/${name}.png") ${hotspot}, ${fallback}`);
+    };
+    await expectCursor('body', 'default', '0 0', 'default');
+    await expectCursor('a[href]', 'pointer', '5 0', 'pointer');
+    await expectCursor('button', 'pointer', '5 0', 'pointer');
+    await expectCursor('.latest-post-card p', 'pointer', '5 0', 'pointer');
+    await expectCursor('.home-intro', 'text', '15 15', 'text');
+
+    // Decode the actual assets, not just the CSS declarations.
+    for (const name of ['default', 'pointer', 'text', 'ns-resize', 'progress']) {
+      assert.deepEqual(await page.evaluate(async name => {
+        const image = new Image();
+        image.src = `/cursors/nord/${name}.png`;
+        await image.decode();
+        return [image.naturalWidth, image.naturalHeight];
+      }, name), [32, 32]);
+    }
+
+    await page.evaluate(() => document.documentElement.setAttribute('data-navigation-loading', ''));
+    await expectCursor('a[href]', 'progress', '0 8', 'progress');
+    await expectCursor('.home-intro', 'progress', '0 8', 'progress');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expectCursor('body', 'progress', '0 8', 'progress');
+    await page.evaluate(() => document.documentElement.removeAttribute('data-navigation-loading'));
+
+    await page.emulateMedia({ forcedColors: 'active' });
+    assert.equal(await cursor('body'), 'default');
+    assert.equal(await cursor('a[href]'), 'pointer');
+    assert.equal(await cursor('.home-intro'), 'text');
+
+    await page.emulateMedia({ forcedColors: 'none' });
+    await expectCursor('.volume-fader input', 'ns-resize', '15 15', 'ns-resize');
+    await page.locator('.volume-fader input').evaluate(input => { input.disabled = true; });
+    await expectCursor('.volume-fader input', 'default', '0 0', 'default');
+  } finally {
+    await page.close();
+  }
+
+  const touch = await browser.newPage({ isMobile: true, hasTouch: true });
+  try {
+    await touch.goto(`${origin}/`);
+    assert.equal(await touch.locator('body').evaluate(element => getComputedStyle(element).cursor), 'default');
+    assert.equal(await touch.locator('a[href]').first().evaluate(element => getComputedStyle(element).cursor), 'pointer');
+  } finally {
+    await touch.close();
+  }
+});
+
 test('detail articles fill the header/footer column without overflowing mobile', async () => {
   const page = await browser.newPage();
   // No external embeds are needed to measure the local layout.

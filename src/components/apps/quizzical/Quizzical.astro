@@ -268,10 +268,10 @@
     color: white;
     font: inherit;
     font-weight: 650;
-    cursor: pointer;
+    cursor: var(--cursor-pointer);
   }
   button:hover { background: #38477f; }
-  button:disabled { opacity: .65; cursor: default; }
+  button:disabled { opacity: .65; cursor: var(--cursor-default); }
   :is(button, input, legend, h3):focus-visible { outline: 3px solid #293264; outline-offset: 4px; }
   fieldset { min-inline-size: 0; margin: 0 0 1.5rem; padding: 0 0 1.5rem; border: 0; border-bottom: 1px solid #bbc3dc; }
   legend { max-width: 100%; padding: 0; margin-bottom: .75rem; font-weight: 700; font-size: 1.05rem; }
@@ -285,7 +285,7 @@
     border: 1px solid #65709b;
     border-radius: .65rem;
     padding: .5rem .75rem;
-    cursor: pointer;
+    cursor: var(--cursor-pointer);
     background: #fffdf6;
   }
   input { margin: 0; flex: none; accent-color: #4d5b9e; width: 1rem; height: 1rem; }
@@ -293,7 +293,7 @@
   .choice:has(input:focus-visible) { outline: 3px solid #293264; outline-offset: 3px; }
   .choice.correct { background: #c0e4cf; border-color: #39754f; }
   .choice.wrong { background: #f6d3d4; border-color: #a13f45; }
-  fieldset:disabled .choice { cursor: default; }
+  fieldset:disabled .choice { cursor: var(--cursor-default); }
   input:disabled { opacity: 1; }
   .feedback { margin-top: .75rem; font-size: .95rem; }
 </style>

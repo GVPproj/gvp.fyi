@@ -246,7 +246,7 @@ a {
 /* Navigation stays interactive while Astro prepares the next page. */
 :root[data-navigation-loading],
 :root[data-navigation-loading] * {
-  cursor: progress !important;
+  cursor: var(--cursor-progress) !important;
 }
 
 #navigation-status {

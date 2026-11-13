@@ -115,10 +115,10 @@ const modes = ['monochrome', 'monochrome-dark', 'monochrome-light', 'analogic', 
   input[type='color'] { padding: .15rem; border-radius: 4px; background: #e5e7eb; }
   input[type='text'] { padding: .35rem; text-align: center; text-transform: uppercase; }
   select { width: 100%; padding: .5rem; }
-  button { padding: .5rem .75rem; cursor: pointer; font-size: .75rem; font-weight: 500; border-color: #3d4b60; border-radius: 4px; }
+  button { padding: .5rem .75rem; cursor: var(--cursor-pointer); font-size: .75rem; font-weight: 500; border-color: #3d4b60; border-radius: 4px; }
   button[type='submit'] { background: #3d4b60; }
   button:hover { background: #3d4b60; border-color: #d1d5db; }
-  button:disabled, button[aria-disabled='true'] { cursor: default; opacity: .6; }
+  button:disabled, button[aria-disabled='true'] { cursor: var(--cursor-default); opacity: .6; }
   :is(input, select, button):focus-visible { outline: 3px solid #88c0d0; outline-offset: 3px; }
   .palette { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .swatch { display: grid; justify-items: center; min-width: 0; }

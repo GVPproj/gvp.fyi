@@ -1,0 +1,43 @@
+/* Native cursors remain available on touch-only devices and in forced colors. */
+:root {
+  --cursor-default: default;
+  --cursor-pointer: pointer;
+  --cursor-text: text;
+  --cursor-ns-resize: ns-resize;
+  --cursor-progress: progress;
+  cursor: var(--cursor-default);
+}
+
+/* Keep the original 32px size and hotspots; progress uses a static ANI frame. */
+@media (any-pointer: fine) and (forced-colors: none) {
+  :root {
+    --cursor-default: url('/cursors/nord/default.png') 0 0, default;
+    --cursor-pointer: url('/cursors/nord/pointer.png') 5 0, pointer;
+    --cursor-text: url('/cursors/nord/text.png') 15 15, text;
+    --cursor-ns-resize: url('/cursors/nord/ns-resize.png') 15 15, ns-resize;
+    --cursor-progress: url('/cursors/nord/progress.png') 0 8, progress;
+  }
+}
+
+/* An inherited arrow otherwise hides the browser's text-selection affordance. */
+:where(p, h1, h2, h3, h4, h5, h6, li, dt, dd, blockquote, figcaption, pre, code, td, th,
+  textarea, input:not([type]), input[type='text'], input[type='search'],
+  input[type='email'], input[type='url'], input[type='tel'], input[type='password'],
+  input[type='number'], [contenteditable=''], [contenteditable='true']) {
+  cursor: var(--cursor-text);
+}
+
+:any-link,
+:where(button, summary, select, input[type='button'], input[type='submit'],
+  input[type='reset'], input[type='checkbox'], input[type='radio']) {
+  cursor: var(--cursor-pointer);
+}
+
+/* Linked cards and nested button content must keep their control's cursor. */
+:where(:any-link, button, summary) * {
+  cursor: inherit;
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: var(--cursor-default);
+}
