@@ -152,11 +152,19 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       inset: 0 0 auto;
       z-index: 10;
       height: 5.5rem;
-      background: var(--colour-fill);
+      border-bottom: 1px solid var(--ink-700);
+      background: color-mix(in srgb, var(--colour-fill) 80%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
     :global(body) {
       padding-top: 5.5rem;
+    }
+
+    header :global(.sig) {
+      width: 8rem;
+      height: auto;
     }
 
     header .home:is(.current, :hover, :focus-visible) {
@@ -405,6 +413,8 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
 
   #site-nav::backdrop {
     background: hsl(204 80% 6% / 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     transition: background 0.2s ease-out;
   }
 
