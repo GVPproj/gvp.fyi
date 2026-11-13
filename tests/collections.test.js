@@ -77,6 +77,28 @@ test('Eternal Family appears in Consulting with a square homepage screenshot', a
   assert.equal(screenshot.getAttribute('width'), screenshot.getAttribute('height'));
 });
 
+test('Gap Year appears in Games with official screenshots and audio credit', async () => {
+  const overview = await page('software');
+  const row = [...overview.querySelectorAll('.content-row')]
+    .find(row => row.querySelector('h2')?.textContent === 'Games');
+  assert.ok(row?.querySelector('a[href="/software/gap-year"]'));
+
+  const detail = await page('software/gap-year');
+  assert.equal(detail.querySelector('h1').textContent, 'Gap Year');
+  assert.match(detail.querySelector('.content-body').textContent, /Lead Audio/);
+  assert.ok(detail.querySelector('nav[aria-label="Project links"] a[href="https://store.steampowered.com/app/2585900/Gap_Year/"]'));
+  const images = [...detail.querySelectorAll('img.screenshot, .gallery img')];
+  assert.equal(images.length, 3);
+  for (const image of images) {
+    assert.ok(image.getAttribute('alt'));
+    assert.ok(Number(image.getAttribute('width')) > 0);
+    assert.ok(Number(image.getAttribute('height')) > 0);
+  }
+  assert.equal(detail.querySelector('[aria-labelledby="tooling-heading"]'), null);
+  const tipbox = await page('software/tipbox');
+  assert.ok(tipbox.querySelector('[aria-labelledby="tooling-heading"]'));
+});
+
 test('Inside Touch has its own music row and a verified release player', async () => {
   const overview = await page('music');
   const row = [...overview.querySelectorAll('.content-row')]

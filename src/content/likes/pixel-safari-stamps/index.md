@@ -10,4 +10,3 @@
 }
 ---
 
-A collection of tiny stamps for personal sites, covering technology, personality, fandoms, and more.
