@@ -9,3 +9,5 @@
   "image": "./image.webp"
 }
 ---
+
+This tool has saved me many hours and many headaches.  One of the more elegant pieces of software.

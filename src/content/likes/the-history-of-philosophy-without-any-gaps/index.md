@@ -10,4 +10,6 @@
 }
 ---
 
-Goes deep on everything, Chinese version recommended also :)
+Perfect tone and humour if you want to listen to 5000 hours of philosophy history.
+
+Goes deep on everything, Chinese version recommended also.
