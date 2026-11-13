@@ -74,11 +74,9 @@ Create `src/content/likes/<slug>/index.md` with JSON frontmatter, following this
   "image": "./image.webp"
 }
 ---
-
-A brief, factual description of what the linked page offers.
 ```
 
-Use the user's wording when provided. Otherwise write one concise sentence grounded in the page; avoid invented endorsements, claims, or personal experience. Omit `type`, `attribution`, and `download` for this ordinary URL-and-image entry. Escape JSON strings correctly. For an existing entry, make targeted edits and preserve its other content unless asked to change it.
+Do not write any copy or body text: new entries contain frontmatter only. Omit `type`, `attribution`, and `download` for this ordinary URL-and-image entry. Escape JSON strings correctly. For an existing entry, make targeted edits and preserve its existing body unless explicitly asked to change it.
 
 ## 4. Verify and report
 

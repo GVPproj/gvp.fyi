@@ -14,6 +14,9 @@ const year = new Date().getFullYear();
       </a>
     </div>
   </div>
+  <div class="footer-end">
+    <img class="the-end" src="/images/the-end.gif" alt="The End" width="230" height="20" loading="lazy" />
+  </div>
 </footer>
 
 <div id="construction-worker" class="construction-worker" popover="manual">
@@ -107,6 +110,20 @@ const year = new Date().getFullYear();
     display: block;
     width: 88px;
     height: 31px;
+  }
+
+  .footer-end {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .the-end {
+    display: block;
+    width: 230px;
+    height: auto;
+    max-width: 100%;
   }
 
   img {
