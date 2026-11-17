@@ -1,5 +1,5 @@
 {
-  "description": "My little corner of the web.  Find music, software, and anything I find interesting.",
+  "description": "Graham Van Pelt's special internet area",
   "identity": "Graham Van Pelt",
   "title": "gvp.fyi",
   "homeLabel": "Home",
@@ -39,9 +39,18 @@
   ],
   "categories": {
     "radio": [
-      { "id": "a-friendly-wave", "title": "A Friendly Wave" },
-      { "id": "island-city", "title": "on FSR.live" },
-      { "id": "other-appearances", "title": "Other Appearances" }
+      {
+        "id": "a-friendly-wave",
+        "title": "A Friendly Wave"
+      },
+      {
+        "id": "island-city",
+        "title": "on FSR.live"
+      },
+      {
+        "id": "other-appearances",
+        "title": "Other Appearances"
+      }
     ],
     "likes": [
       {
