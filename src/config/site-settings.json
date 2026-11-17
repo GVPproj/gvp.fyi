@@ -1,5 +1,5 @@
 {
-  "description": "Graham Van Pelt's special internet area",
+  "description": "graham van pelt's special internet area",
   "identity": "Graham Van Pelt",
   "title": "gvp.fyi",
   "homeLabel": "Home",
@@ -80,16 +80,16 @@
         "title": "Applications"
       },
       {
+        "id": "websites",
+        "title": "Websites"
+      },
+      {
         "id": "consulting",
         "title": "Consulting"
       },
       {
         "id": "games",
         "title": "Games"
-      },
-      {
-        "id": "websites",
-        "title": "Current Websites"
       },
       {
         "id": "random-old-stuff",
