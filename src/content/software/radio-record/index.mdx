@@ -1,0 +1,28 @@
+---
+{
+  "id": "radio-record",
+  "title": "Radio Recorder",
+  "summary": "A self-hosted app for recording CHIR FM broadcasts, playing them back and trimming clips for download.",
+  "category": "portfolio",
+  "order": 2,
+  "publishedAt": "2026-11-17",
+  "tooling":
+    [
+      "Go",
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "WaveSurfer.js",
+      "FFmpeg",
+      "Cloudflare Tunnel",
+    ],
+  "screenshot": "./assets/radio-record.webp",
+  "screenshotAlt": "CHIR FM recording player with a waveform, yellow trim selection, playback controls and options to add an intro and outro before downloading a merged FLAC.",
+}
+---
+
+A self-hosted tool for capturing weekly CHIR FM broadcasts and preparing recordings for sharing. A scheduled job records the stream, and a password-protected Go web app provides playback and downloads.
+
+The player includes a zoomable waveform, playback speed controls and keyboard shortcuts for setting trim points. Select a section, preview it, and optionally add an intro or outro station ID before downloading a merged FLAC.
+
+Built with Go’s HTML templates and FFmpeg, running on a Debian laptop behind a Cloudflare Tunnel.

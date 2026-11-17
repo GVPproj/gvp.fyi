@@ -47,10 +47,7 @@ const software = defineCollection({
         src: localImage,
         alt: z.string(),
       })).optional(),
-    }).strict().refine(project => project.url || project.repo, {
-      message: 'Software requires a website (url) or repository (repo) link',
-      path: ['url'],
-    });
+    }).strict();
   },
 });
 
