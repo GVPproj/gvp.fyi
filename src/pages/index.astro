@@ -23,7 +23,7 @@ const excerpt = firstParagraph.length > 160
 <Layout alignWithHeader>
   <div class="home-playground">
     <h1 class="home-intro">
-Making <a href="/music">music</a>, <a href="/radio">radio</a>, and <a href="/software">software</a>.  
+Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="intro-word"><a href="/radio">radio</a>,</span> and <span class="intro-word"><a href="/software">software</a>.</span>
 
     </h1>
     <AmbientPad />
@@ -98,6 +98,10 @@ Making <a href="/music">music</a>, <a href="/radio">radio</a>, and <a href="/sof
     font-size: clamp(1.75rem, 2.5vw, 3.5rem);
     line-height: 1.2;
     text-wrap: balance;
+  }
+
+  .intro-word {
+    white-space: nowrap;
   }
 
   .home-intro a {
