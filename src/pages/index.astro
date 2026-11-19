@@ -1,17 +1,18 @@
 ---
 import { getCollection } from 'astro:content';
-import { Image } from 'astro:assets';
 import { getMusicReleases } from '../lib/music-releases';
 import { getLikes } from '../lib/likes-collection';
 import { getRadioEpisodes } from '../lib/radio-episodes';
 import AmbientPad from '../components/AmbientPad.astro';
+import ContentRow from '../components/ContentRow.astro';
 import PixelBox from '../components/elements/PixelBox.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Layout from '../layouts/Layout.astro';
 
-const latestAlbum = (await getMusicReleases())[0];
-const latestLike = (await getLikes())[0];
-const latestMix = (await getRadioEpisodes())[0];
+const latestItemLimit = 4;
+const latestAlbums = (await getMusicReleases()).slice(0, latestItemLimit);
+const latestLikes = (await getLikes()).slice(0, latestItemLimit);
+const latestMixes = (await getRadioEpisodes()).slice(0, latestItemLimit);
 const latestPost = (await getCollection('blog'))
   .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
 const firstParagraph = latestPost?.body?.trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ') ?? '';
@@ -28,7 +29,7 @@ Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="
     </h1>
     <AmbientPad />
     {latestPost && (
-      <section class="latest-post latest-panel" aria-labelledby="latest-post-heading">
+      <section class="latest-post" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post:</h2>
         <PixelBox>
           <a class="latest-post-card" href={`/blog/${latestPost.id}/`} aria-labelledby="latest-post-title">
@@ -39,45 +40,9 @@ Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="
         </PixelBox>
       </section>
     )}
-    {latestLike && (
-      <section class="latest-like latest-panel" aria-labelledby="latest-like-heading">
-        <h2 id="latest-like-heading">Latest Like:</h2>
-        <PixelBox>
-          <a class="framed-cover" href={latestLike.href} aria-label={`View ${latestLike.title}`}>
-            {latestLike.image ? (
-              <Image src={latestLike.image} alt={latestLike.title} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
-            ) : (
-              <div class="like-preview">
-                <h3>{latestLike.title}</h3>
-                {(latestLike.text || latestLike.summary) && <p>{latestLike.text || latestLike.summary}</p>}
-                {latestLike.metadata && <p>{latestLike.metadata}</p>}
-                {!latestLike.type && <p>{latestLike.label}</p>}
-              </div>
-            )}
-          </a>
-        </PixelBox>
-      </section>
-    )}
-    {latestAlbum && (
-      <section class="latest-album latest-panel" aria-labelledby="latest-album-heading">
-        <h2 id="latest-album-heading">Latest Album:</h2>
-        <PixelBox>
-          <a class="latest-album-cover framed-cover" href={latestAlbum.href} aria-label={`View ${latestAlbum.title} by ${latestAlbum.artist}`}>
-            <Image src={latestAlbum.image} alt={`${latestAlbum.title} album cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
-          </a>
-        </PixelBox>
-      </section>
-    )}
-    {latestMix && (
-      <section class="latest-mix latest-panel" aria-labelledby="latest-mix-heading">
-        <h2 id="latest-mix-heading">Latest Radio Show:</h2>
-        <PixelBox>
-          <a class="framed-cover" href={latestMix.href} aria-label={`View ${latestMix.title}`}>
-            <Image src={latestMix.image} alt={`${latestMix.title} cover`} widths={[320, 640, 960]} sizes="(min-width: 48rem) 640px, calc(100vw - 6rem)" />
-          </a>
-        </PixelBox>
-      </section>
-    )}
+    {latestLikes.length > 0 && <ContentRow id="latest-like" title="Latest Likes:" items={latestLikes} layout="grid" />}
+    {latestAlbums.length > 0 && <ContentRow id="latest-album" title="Latest Albums:" items={latestAlbums} layout="grid" />}
+    {latestMixes.length > 0 && <ContentRow id="latest-mix" title="Latest Radio Shows:" items={latestMixes} layout="grid" />}
     <Testimonials />
   </div>
 </Layout>
@@ -117,46 +82,17 @@ Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="
     text-decoration-color: currentColor;
   }
 
-  .latest-panel {
+  .latest-post {
     width: 100%;
     text-align: left;
   }
 
-  .latest-panel h2 {
+  .latest-post h2,
+  .home-playground :global(.content-row-grid h2) {
     margin: 0 0 0.75rem;
     font-size: 1.5rem;
-  }
-
-  .latest-panel .framed-cover {
-    --link-lift: 0px;
-    display: block;
-    box-sizing: border-box;
-    min-width: 0;
-    padding: 1rem;
     color: var(--color-accent);
-    text-decoration: none;
-    border: 4px solid transparent;
-    box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0);
   }
-
-  .framed-cover::before { display: none; }
-
-  .framed-cover img {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    box-sizing: border-box;
-    border: 3px solid var(--nord0);
-    box-shadow: 2px 2px 0 var(--nord3), -2px -2px 0 #171c25;
-  }
-
-  .framed-cover:hover { background: var(--nord2); }
-  .framed-cover:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
-
-  .like-preview { display: grid; gap: 0.75rem; overflow-wrap: anywhere; }
-  .like-preview h3 { margin: 0; font-size: 1.5rem; }
-  .like-preview p { margin: 0; color: var(--nord4); line-height: 1.5; }
 
   .latest-post h3 {
     margin: 0;
