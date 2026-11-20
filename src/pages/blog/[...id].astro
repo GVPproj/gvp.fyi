@@ -37,6 +37,7 @@ const { Content } = await render(post);
   h1 { margin-block: 1rem 2rem; }
   .post-body { color: var(--color-foreground); }
   .post-body :global(> * + *) { margin-block-start: 1.5rem; }
+  .post-body :global(img) { max-width: 100%; height: auto; }
   .post-body :global(code) { font-size: 0.95em; color: var(--color-accent); }
   .post-body :global(pre) {
     padding: 0.875rem 1.125rem;

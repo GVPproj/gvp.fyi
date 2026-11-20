@@ -123,6 +123,35 @@ test('detail articles fill the header/footer column without overflowing mobile',
   }
 });
 
+test('blog images scale to the post width without overflowing', async () => {
+  const page = await browser.newPage();
+  try {
+    for (const width of [1564, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/blog/how-to-mute-password-managers-on-internal-email-fields/`);
+      const { bodyWidth, imageWidth, imageHeight, naturalWidth, naturalHeight } = await page
+        .locator('.post-body img').evaluate(async image => {
+          await image.decode();
+          const { width, height } = image.getBoundingClientRect();
+          return {
+            bodyWidth: image.closest('.post-body').getBoundingClientRect().width,
+            imageWidth: width,
+            imageHeight: height,
+            naturalWidth: image.naturalWidth,
+            naturalHeight: image.naturalHeight,
+          };
+        });
+      assert.ok(Math.abs(imageWidth - Math.min(bodyWidth, naturalWidth)) < 1,
+        `at ${width}px: image is ${imageWidth}px wide in a ${bodyWidth}px post`);
+      assert.ok(Math.abs(imageHeight - imageWidth * naturalHeight / naturalWidth) < 1,
+        `at ${width}px: image should retain its aspect ratio`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
 test('content rows reveal batches of 14 and preserve keyboard access', async () => {
   const page = await browser.newPage();
   try {

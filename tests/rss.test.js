@@ -166,7 +166,7 @@ test('RSS subscription works with keyboard alone, no JavaScript and reduced moti
 test('ordinary edits and slug or folder changes retain all five publication identities and dates', async () => {
   const root = workspace.directory;
   const cases = [
-    ['blog', 'the-animated-face', 'blog/the-animated-face.mdx', 'renamed-rss-post'],
+    ['blog', 'the-animated-face', 'blog/the-animated-face/index.mdx', 'renamed-rss-post'],
     ['likes', 'eli-horn', 'likes/eli-horn/index.md', 'renamed-rss-like'],
     ['software', 'biolink', 'software/biolink/index.mdx', 'renamed-rss-project'],
     ['music', 'watery-grave-ep', 'music/watery-grave-ep/index.mdx', 'renamed-rss-release'],
@@ -205,8 +205,8 @@ test('ordinary edits and slug or folder changes retain all five publication iden
     for (const [kind, slug, relative, nextSlug] of cases) {
       const file = join(root, 'src/content', relative);
       if (kind === 'blog' || kind === 'software') {
-        const from = kind === 'blog' ? file : join(root, 'src/content/software', slug);
-        const to = kind === 'blog' ? join(root, 'src/content/blog', `${nextSlug}.mdx`) : join(root, 'src/content/software', nextSlug);
+        const from = join(root, 'src/content', kind, slug);
+        const to = join(root, 'src/content', kind, nextSlug);
         await rename(from, to);
         moves.push([from, to]);
       } else {
@@ -237,13 +237,13 @@ test('ordinary edits and slug or folder changes retain all five publication iden
 
 test('builds reject impossible publication dates, missing dates and conflicting persistent identities', async () => {
   for (const [relative, change, message] of [
-    ['blog/the-animated-face.mdx', source => source.replace("date: '2026-10-01'", "date: '2025-02-29'"), /Invalid calendar publication date/],
+    ['blog/the-animated-face/index.mdx', source => source.replace("date: '2026-10-01'", "date: '2025-02-29'"), /Invalid calendar publication date/],
     ['likes/eli-horn/index.md', source => source.replace(/"created": "[^"]+"/, '"created": "2025-02-29T00:00:00Z"'), /Invalid calendar timestamp/],
     ['software/biolink/index.mdx', source => source.replace('"publishedAt": "2026-10-09"', '"publishedAt": "2025-02-29"'), /Invalid calendar publication date/],
     ['music/atlantis-tapes/index.md', source => source.replace('"publishedAt": "2026-10-07"', '"publishedAt": "2025-02-29"'), /Invalid calendar publication date/],
     ['radio/afw-2026-10-20/index.md', source => source.replace("publishedAt: '2026-11-09'", "publishedAt: '2025-02-29'"), /Invalid calendar publication date/],
     ['radio/afw-2026-10-20/index.md', source => source.replace(/^publishedAt:.*\n/m, ''), /publishedAt.*Required/s],
-    ['blog/the-animated-face.mdx', source => source.replace('id: the-animated-face', 'id: the-agent-shepherd'), /Duplicate RSS identity/],
+    ['blog/the-animated-face/index.mdx', source => source.replace('id: the-animated-face', 'id: the-agent-shepherd'), /Duplicate RSS identity/],
     ['software/biolink/index.mdx', source => source.replace('"id": "biolink"', '"id": "tipbox"'), /Duplicate RSS identity/],
   ]) {
     const file = join(workspace.directory, 'src/content', relative);

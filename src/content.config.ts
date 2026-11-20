@@ -8,8 +8,12 @@ const publicationDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine(validCalendarDate, 'Invalid calendar publication date');
 const summary = z.string().trim().min(1);
 
+// Folder IDs keep duplicate explicit slugs visible to route validation rather than
+// allowing glob's default slug-derived IDs to silently overwrite an entry.
+const entryId = ({ entry }: { entry: string }) => entry.replace(/\/index\.mdx?$/, '');
+
 const blog = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
+  loader: glob({ pattern: '**/index.{md,mdx}', base: './src/content/blog', generateId: entryId }),
   schema: z.object({
     id: persistentId,
     title: z.string().min(1),
@@ -50,10 +54,6 @@ const software = defineCollection({
     }).strict();
   },
 });
-
-// Folder IDs keep duplicate explicit slugs visible to route validation rather than
-// allowing glob's default slug-derived IDs to silently overwrite an entry.
-const entryId = ({ entry }: { entry: string }) => entry.replace(/\/index\.mdx?$/, '');
 
 // Date.parse normalizes impossible days (e.g. February 30). Check the authored
 // calendar components, without changing date precision or timezone semantics.
