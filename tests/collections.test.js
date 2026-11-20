@@ -38,7 +38,24 @@ before(async () => {
     })}\n---\n${body}\n`);
     if (data.download) await writeFile(join(dir, 'document.pdf'), '%PDF-1.4\n%%EOF\n');
   }
+  const postDir = join(fixture, 'src/content/blog/fixture-latest');
+  await mkdir(postDir, { recursive: true });
+  await writeFile(join(postDir, 'index.mdx'), `---
+id: fixture-latest
+title: Latest post
+summary: A readable preview.
+date: '2099-01-01'
+---
+import Face from '@src/components/elements/Face.astro';
+
+<Face />
+`);
   await build();
+});
+
+test('homepage previews the latest post summary, not its MDX source', async () => {
+  const home = await page('');
+  assert.equal(home.querySelector('.latest-post-card p')?.textContent, 'A readable preview.');
 });
 
 after(async () => {

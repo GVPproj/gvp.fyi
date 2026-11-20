@@ -6,10 +6,12 @@ import PixelBox from './elements/PixelBox.astro';
 interface Props {
   title: string;
   artist?: string;
+  showHeader?: boolean;
   tracks: { title: string; src: string }[];
 }
 
-const { title, artist, tracks } = Astro.props;
+const { title, artist, tracks, showHeader = true } = Astro.props;
+const TrackHeading = showHeader ? 'h3' : 'h2';
 for (const track of tracks) {
   if (!track.src.startsWith('/audio/')) continue;
   const file = await stat(new URL(`.${track.src}`, publicDir)).catch(() => undefined);
@@ -18,16 +20,18 @@ for (const track of tracks) {
 ---
 
 <PixelBox as="section" class="music-player" aria-label={`Listen to ${title}`}>
-  <header>
-    <h2>{title}</h2>
-    {artist && <p>{artist}</p>}
-  </header>
+  {showHeader && (
+    <header>
+      <h2>{title}</h2>
+      {artist && <p>{artist}</p>}
+    </header>
+  )}
   <ol>
     {tracks.map((track, index) => (
       <li>
         <div class="track-heading">
           <span class="track-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-          <h3>{track.title}</h3>
+          <TrackHeading class="track-title">{track.title}</TrackHeading>
           <a href={track.src} download aria-label={`Download ${track.title}`}>MP3 ↓</a>
         </div>
         <music-transport>
@@ -110,10 +114,11 @@ for (const track of tracks) {
   h2 { margin: 0 0 .25rem; }
   header p { margin: 0; color: var(--nord4); font-size: .9rem; }
   ol { list-style: none; margin: 0; padding: 0; }
-  li { padding: 1rem clamp(.75rem, 4vw, 1.5rem); border-block-start: 1px solid var(--nord3); }
+  li { padding: 1rem clamp(.75rem, 4vw, 1.5rem); }
+  header + ol > li:first-child, li + li { border-block-start: 1px solid var(--nord3); }
   .track-heading { display: flex; align-items: baseline; gap: .75rem; margin-block-end: .75rem; }
   .track-number { color: var(--nord4); font-size: .75rem; font-variant-numeric: tabular-nums; }
-  .track-heading h3 { flex: 1; margin: 0; font-size: 1rem; font-weight: 400; }
+  .track-title { flex: 1; margin: 0; font-size: 1rem; font-weight: 400; }
   a { color: var(--color-accent); font-size: .75rem; white-space: nowrap; text-decoration: none; }
   a:hover { text-decoration: underline; }
   a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }

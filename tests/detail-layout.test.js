@@ -48,7 +48,7 @@ test('Nord cursors preserve interaction states and native fallbacks', async () =
     await expectCursor('body', 'default', '0 0', 'default');
     await expectCursor('a[href]', 'pointer', '5 0', 'pointer');
     await expectCursor('button', 'pointer', '5 0', 'pointer');
-    await expectCursor('.latest-post-card p', 'pointer', '5 0', 'pointer');
+    await expectCursor('.latest-post-card h3', 'pointer', '5 0', 'pointer');
     await expectCursor('.home-intro', 'text', '15 15', 'text');
 
     // Decode the actual assets, not just the CSS declarations.

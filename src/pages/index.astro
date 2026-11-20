@@ -15,10 +15,6 @@ const latestLikes = (await getLikes()).slice(0, latestItemLimit);
 const latestMixes = (await getRadioEpisodes()).slice(0, latestItemLimit);
 const latestPost = (await getCollection('blog'))
   .sort((a, b) => b.data.date.localeCompare(a.data.date))[0];
-const firstParagraph = latestPost?.body?.trim().split(/\n\s*\n/)[0].replace(/\s+/g, ' ') ?? '';
-const excerpt = firstParagraph.length > 160
-  ? `${firstParagraph.slice(0, 160).replace(/\s+\S*$/, '')}…`
-  : firstParagraph;
 ---
 
 <Layout alignWithHeader>
@@ -35,7 +31,7 @@ Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="
           <a class="latest-post-card" href={`/blog/${latestPost.id}/`} aria-labelledby="latest-post-title">
             <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
             <h3 id="latest-post-title">{latestPost.data.title}</h3>
-            {excerpt && <p>{excerpt}</p>}
+            {!latestPost.id.startsWith('audio-journal-') && <p>{latestPost.data.summary}</p>}
           </a>
         </PixelBox>
       </section>
