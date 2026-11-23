@@ -7,6 +7,7 @@ import { getMusicReleases } from '../lib/music-releases';
 import { getRadioEpisodes } from '../lib/radio-episodes';
 import { categorySettings, siteSettings } from '../lib/site-settings';
 import { resolveWebURL } from '../lib/web-url';
+import { renderBlogForRSS } from '../lib/rss-blog-content';
 
 type FeedEntry = {
   kind: 'Blog' | 'Likes' | 'Software' | 'Music' | 'Radio';
@@ -15,6 +16,7 @@ type FeedEntry = {
   date: string;
   href: string;
   description: string;
+  content?: string;
 };
 
 export const prerender = true;
@@ -38,19 +40,21 @@ export const GET: APIRoute = async ({ site }) => {
     const url = resolveWebURL(value, site);
     return url ? `<p><a href="${escapeHTML(url)}">${escapeHTML(label)}</a></p>` : '';
   }
-  function add({ kind, id, title, date, href, description }: FeedEntry) {
+  function add({ kind, id, title, date, href, description, content }: FeedEntry) {
     const identity = `urn:gvp.fyi:${kind.toLowerCase()}:${id}`;
     if (identities.has(identity)) throw new Error(`Duplicate RSS identity: ${identity}`);
     identities.add(identity);
     items.push({
       identity, title, pubDate: new Date(date), link: new URL(`${href}/`, site).href,
-      description, categories: [kind],
+      description, content, categories: [kind],
       customData: `<guid isPermaLink="false">${identity}</guid>`,
     });
   }
-  for (const { id, data } of await getCollection('blog')) {
-    add({ kind: 'Blog', id: data.id, title: data.title, date: data.date,
-      href: `/blog/${id}`, description: paragraph(data.summary) });
+  for (const post of await getCollection('blog')) {
+    const { id, data } = post;
+    const href = `/blog/${id}`;
+    add({ kind: 'Blog', id: data.id, title: data.title, date: data.date, href,
+      description: paragraph(data.summary), content: await renderBlogForRSS(post, new URL(`${href}/`, site)) });
   }
   for (const like of await getLikes()) {
     add({ kind: 'Likes', id: like.id, title: like.title, date: like.created, href: like.href,

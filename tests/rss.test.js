@@ -120,6 +120,39 @@ test('summaries retain reader context, original date precision and shared-record
   }
 });
 
+test('Blog RSS includes readable article HTML, published images and links for media', async () => {
+  const document = await feed();
+  assert.equal(document.documentElement.getAttribute('xmlns:content'), 'http://purl.org/rss/1.0/modules/content/');
+  const articles = new Map();
+  for (const item of document.querySelectorAll('item')) {
+    const encoded = item.getElementsByTagName('content:encoded')[0]?.textContent;
+    if (text(item, 'category') !== 'Blog') {
+      assert.equal(encoded, undefined);
+      continue;
+    }
+    assert.ok(encoded?.trim(), text(item, 'link'));
+    const body = parseHTML(`<html><body>${encoded}</body></html>`).document.body;
+    assert.equal(body.querySelector('script, style, svg, iframe, audio, button, [style], [srcset]'), null);
+    for (const node of body.querySelectorAll('[href], [src]')) {
+      assert.match(node.getAttribute('href') ?? node.getAttribute('src'), /^https?:\/\//);
+    }
+    articles.set(new URL(text(item, 'link')).pathname, body);
+  }
+  const face = articles.get('/blog/the-animated-face/');
+  assert.match(face.textContent, /a one-line drawing of my face/);
+  assert.match(face.querySelector('pre code').textContent, /<svg/);
+  assert.ok(face.querySelector('a[href="https://gvp.fyi/blog/the-animated-face/"]'));
+  const post = articles.get('/blog/how-to-mute-password-managers-on-internal-email-fields/');
+  const image = post.querySelector('figure img');
+  assert.match(image.getAttribute('alt'), /Assignees field/);
+  const imageURL = new URL(image.getAttribute('src'));
+  assert.equal(imageURL.origin, 'https://gvp.fyi');
+  assert.ok((await readFile(join(workspace.directory, 'dist', imageURL.pathname))).length > 0);
+  const audio = articles.get('/blog/audio-journal-nov-20-2026/');
+  assert.ok(audio.querySelector('a[href="https://gvp.fyi/audio/audio-journal/Nov-20-2026.mp3"]'));
+  assert.doesNotMatch(audio.textContent, /Unable to play|0:00/);
+});
+
 test('RSS subscription works with keyboard alone, no JavaScript and reduced motion at desktop and mobile sizes', async () => {
   const mime = { '.css': 'text/css', '.js': 'text/javascript', '.xml': 'application/xml', '.html': 'text/html', '.woff2': 'font/woff2' };
   const server = createServer(async (request, response) => {
@@ -185,7 +218,10 @@ test('ordinary edits and slug or folder changes retain all five publication iden
         ? source.replace(/"title": "(?:\\.|[^"\\])*"/, `"title": ${JSON.stringify(title)}`)
         : source.replace(/^title: .*$/m, `title: ${JSON.stringify(title)}`);
       await writeFile(file, kind === 'blog'
-        ? changed.replace(/^summary: .*$/m, 'summary: "Literal <script>not executable</script> & readable text."') : changed);
+        ? changed.replace(/^summary: .*$/m, 'summary: "Literal <script>not executable</script> & readable text."')
+          + '\n\n[Relative link](../related/?a=1&b=2) · [Section](#read-more)\n\n'
+          + '<a href="javascript:void(0)" data-example="not-for-the-feed">Inert link</a>\n'
+        : changed);
     }
     await workspace.build();
     let items = [...(await feed()).querySelectorAll('item')];
@@ -200,6 +236,12 @@ test('ordinary edits and slug or folder changes retain all five publication iden
         const summary = parseHTML(`<html><body>${text(after, 'description')}</body></html>`).document.body;
         assert.equal(summary.querySelector('script'), null);
         assert.equal(summary.textContent, 'Literal <script>not executable</script> & readable text.');
+        const encoded = after.getElementsByTagName('content:encoded')[0].textContent;
+        const article = parseHTML(`<html><body>${encoded}</body></html>`).document.body;
+        assert.ok(article.querySelector('a[href="https://gvp.fyi/blog/related/?a=1&b=2"]'));
+        assert.ok(article.querySelector(`a[href="${url}#read-more"]`));
+        assert.equal(article.querySelector('a:not([href])')?.textContent, 'Inert link');
+        assert.equal(article.querySelector('[data-example]'), null);
       }
     }
     for (const [kind, slug, relative, nextSlug] of cases) {
