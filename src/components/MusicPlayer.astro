@@ -56,11 +56,40 @@ for (const track of tracks) {
       const time = this.querySelector<HTMLElement>('[data-time]')!;
       const choices = this.querySelectorAll<HTMLButtonElement>('button[data-src]');
 
+      const wheels = this.querySelectorAll<HTMLElement>('[data-wheel]');
+      const motion = matchMedia('(prefers-reduced-motion: no-preference)');
+      let lastSecond = 0;
+      let frame = 0;
+      const updateCounter = () => {
+        const position = audio.currentTime;
+        const seconds = Math.floor(position);
+        wheels.forEach((strip, i) => {
+          const place = 10 ** (wheels.length - 1 - i);
+          if (seconds !== lastSecond) {
+            const digit = Math.floor(seconds / place) % 10;
+            strip.children[0].textContent = String(digit);
+            strip.children[1].textContent = String((digit + 1) % 10);
+          }
+          // The units drum turns continuously; higher drums engage during the last unit of a carry.
+          const engaged = seconds % place === place - 1;
+          if (engaged || seconds !== lastSecond) {
+            strip.style.setProperty('--roll', `${engaged ? -50 * (position - seconds) : 0}%`);
+          }
+        });
+        if (seconds !== lastSecond) {
+          time.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+          lastSecond = seconds;
+        }
+        if (!frame && !audio.paused && this.isConnected && motion.matches) {
+          frame = requestAnimationFrame(() => { frame = 0; updateCounter(); });
+        }
+      };
+
       const stop = () => {
         this.dataset.state = 'stopped';
         audio.pause();
         audio.currentTime = 0;
-        time.textContent = '0:00';
+        updateCounter();
       };
       play.addEventListener('click', async () => {
         error.hidden = true;
@@ -84,10 +113,8 @@ for (const track of tracks) {
       });
       audio.addEventListener('ended', stop);
       audio.addEventListener('error', () => { this.dataset.state = 'stopped'; error.hidden = false; });
-      audio.addEventListener('timeupdate', () => {
-        const seconds = Math.floor(audio.currentTime);
-        time.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-      });
+      audio.addEventListener('playing', updateCounter);
+      audio.addEventListener('timeupdate', updateCounter);
       choices.forEach((choice, index) => choice.addEventListener('click', () => {
         stop();
         error.hidden = true;
@@ -98,7 +125,7 @@ for (const track of tracks) {
         this.querySelector('[data-title]')!.textContent = title;
         this.querySelector('[data-number]')!.textContent = String(index + 1).padStart(2, '0');
         download.href = audio.src;
-        download.setAttribute('aria-label', `Save ${title} (download MP3)`);
+        download.setAttribute('aria-label', `Download ${title} (MP3)`);
         for (const other of choices) other.removeAttribute('aria-current');
         choice.setAttribute('aria-current', 'true');
       }));

@@ -11,235 +11,168 @@ const { title, src } = Astro.props;
   <div class="grille" aria-hidden="true"></div>
   <div class="door">
     <div class="cassette">
-      <span class="inscription" data-title role="status" aria-atomic="true">{title}</span>
-      <div class="mechanism">
-        <div class="stamp" aria-hidden="true"><small>Side</small>A</div>
-        <div class="window" aria-hidden="true"><i class="hub"></i><i class="hub"></i></div>
-        <div class="stamp"><small>Track</small><span data-number>01</span></div>
+      <div class="paper">
+        <span class="side" aria-hidden="true">B</span>
+        <span class="inscription" data-title role="status" aria-atomic="true">{title}</span>
       </div>
-      <div class="molding" aria-hidden="true"></div>
-      {['tl', 'tr', 'bl', 'br'].map(corner => <i class={`screw ${corner}`} aria-hidden="true"></i>)}
+      <div class="yellow-band">
+        <svg class="reels" viewBox="0 0 86 24" shape-rendering="crispEdges" aria-hidden="true">
+          <!-- The well and hubs share a coarse pixel grid with the printed label. -->
+          <path fill="#af9864" d="M8 0h70v2h4v3h3v3h1v9h-2v3h-3v2h-4v2H9v-1H5v-3H2v-3H0V8h2V5h2V2h4z" />
+          <path fill="#d6cfb9" d="M9 2h68v2h4v3h2v9h-2v3h-3v2H8v-2H5v-3H3V8h2V5h4z" />
+          <path fill="#f9f1da" d="M28 4h30v13H28z" />
+          <path fill="#382e30" d="M28 4h9v3h1v4h1v6H28zm19 0h11v13H45v-6h1V7h1z" />
+          <path fill="#918b7d" d="M27 3h32v1H27zm0 1h1v14h-1zm3 15h1v2h-1zm6 0h1v2h-1zm6 0h1v2h-1zm6 0h1v2h-1zm6 0h1v2h-1z" />
+          {[13, 73].map(x => <g transform={`translate(${x} 12)`}>
+            <path fill="#69898b" d="M-4-8h8v2h3v3h1v6H7v3H4v2h-8V6h-3V3h-1v-6h1v-3h3z" />
+            <g class="hub">
+              <path fill="#fcf9e8" d="M-3-6h6v2h3v7H4v3h-7V4h-3v-7h3z" />
+              <path fill="#566a70" d="M-1-7h2v3h-2zm5 6h3v2H4zm-5 5h2v3h-2zm-6-5h3v2h-3z" />
+            </g>
+          </g>)}
+        </svg>
+      </div>
+      <div class="print-band"><span>TRK <b data-number>01</b></span><strong aria-hidden="true">C90</strong></div>
+      <svg class="foot" viewBox="0 0 104 18" shape-rendering="crispEdges" aria-hidden="true">
+        <path fill="#aca995" d="M6 0h92v5h2v6h2v7H2v-7h2V5h2z" />
+        <path fill="#ded8bf" d="M8 2h88v4h2v7h2v5H4v-5h2V6h2z" />
+        <path fill="#828375" d="M15 11h6v5h-6zm15-2h5v4h-5zm40 0h5v4h-5zm14 2h6v5h-6z" />
+        <path fill="#f9f3de" d="M15 10h5v4h-5zm15-2h4v3h-4zm40 0h4v3h-4zm14 2h5v4h-5z" />
+      </svg>
     </div>
+    <!-- A separate lens crosses both the cassette and the dark recess around it. -->
+    <svg class="lens" viewBox="0 0 160 92" preserveAspectRatio="none" shape-rendering="crispEdges" aria-hidden="true">
+      <path fill="#cfe7e4" opacity=".19" d="M9 0h11v6h-3v6h-3v6h-3v6H8v6H5v6H2v6H0V18h2v-6h3V6h4zm19 0h3v6h-3v6h-3v6h-3v6h-3v6h-3v6h-3v6h-3v6H7v6H4v6H1v6H0v-12h1v-6h3v-6h3v-6h3v-6h3v-6h3v-6h3v-6h3V6h6z" />
+      <path fill="#e1f1e9" opacity=".17" d="M125 0h7v8h-5v8h-5v8h-5v8h-5v8h-5v8h-5v8h-5v8h-5v8h-5v8h-5v8h-5v4h-7v-4h5v-8h5v-8h5v-8h5v-8h5v-8h5v-8h5v-8h5v-8h5v-8h5V8h5z" />
+      <path fill="#daeeec" opacity=".14" d="M160 39v27h-3v6h-3v6h-3v6h-3v8h-13v-5h3v-6h3v-6h3v-6h3v-6h3v-6h3v-6h3V39z" />
+    </svg>
   </div>
   <div class="fascia">
     <span class="lamp" aria-hidden="true"></span>
-    <span class="counter" role="timer" aria-label="Elapsed time" data-time>0:00</span>
+    <span class="counter" role="timer" aria-label="Elapsed time" title="Tape counter · elapsed seconds">
+      <span class="sr-only" data-time>0:00</span>
+      {[0, 1, 2].map(() => <span class="wheel" aria-hidden="true">
+        <span class="strip" data-wheel><span>0</span><span>1</span></span>
+      </span>)}
+    </span>
   </div>
   <div class="keys">
-    <button type="button" class="key" data-play>
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1v14l11-7z" /></svg>Play
+    <button type="button" class="key" data-play aria-label="Play" title="Play">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1v14l11-7z" /></svg>
     </button>
-    <button type="button" class="key" data-pause>
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h4v12H2zm8 0h4v12h-4z" /></svg>Pause
+    <button type="button" class="key" data-pause aria-label="Pause" title="Pause">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h4v12H2zm8 0h4v12h-4z" /></svg>
     </button>
-    <button type="button" class="key" data-stop>
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v12H2z" /></svg>Stop
+    <button type="button" class="key" data-stop aria-label="Stop" title="Stop">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v12H2z" /></svg>
     </button>
-    <button type="button" class="key" data-mute aria-pressed="false">
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6h3l5-4v12l-5-4H0zm10.5-.5 1-1 1.5 2 1.5-2 1 1-1.5 2 1.5 2-1 1-1.5-2-1.5 2-1-1 1.5-2z" /></svg>Mute
+    <button type="button" class="key" data-mute aria-label="Mute" title="Mute" aria-pressed="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6h3l5-4v12l-5-4H0zm10.5-.5 1-1 1.5 2 1.5-2 1 1-1.5 2 1.5 2-1 1-1.5-2-1.5 2-1-1 1.5-2z" /></svg>
     </button>
-    <a class="key" data-download href={src} download aria-label={`Save ${title} (download MP3)`}>
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1h4v5h3l-5 5-5-5h3zM1 11h2v2h10v-2h2v4H1z" /></svg>Save
+    <a class="key" data-download href={src} download aria-label={`Download ${title} (MP3)`} title="Download MP3">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1h4v5h3l-5 5-5-5h3zM1 11h2v2h10v-2h2v4H1z" /></svg>
     </a>
   </div>
 </div>
 
 <style>
   .deck {
-    box-sizing: border-box;
+    --ink: #252832;
     width: min(100%, 380px);
-    min-width: 0;
     padding: 12px 10px 8px;
-    border: 2px solid #171c25;
+    border: 2px solid var(--ink);
     border-bottom-width: 7px;
-    background: linear-gradient(115deg, #eceae5, #c9c9c4 55%, #dcdad6);
-    box-shadow: inset 2px 2px #fffdf5, inset -3px -3px #898b8a;
-    color: #242226;
-    font: 1rem/1.2 'Gohu', ui-monospace, monospace;
+    background: #cccac1;
+    box-shadow: inset 3px 3px #f4f0df, inset -3px -3px #939399;
+    color: var(--ink);
+    font: 1rem/1.2 var(--font-sans);
     text-align: left;
   }
   .grille {
-    aspect-ratio: 2.8;
+    aspect-ratio: 1.4;
     margin: 0 3px 12px;
-    --hole: radial-gradient(ellipse 2px 2.4px at center, #303133 56%, #727574 74%, #fff9e9 91%, transparent);
-    background: var(--hole) 0 0 / 8px 8px, var(--hole) 4px 4px / 8px 8px;
+    --holes: conic-gradient(at 3px 3px, transparent 75%, #393a40 0);
+    background: var(--holes) 0 0 / 8px 8px, var(--holes) 4px 4px / 8px 8px,
+      conic-gradient(at 3px 3px, transparent 75%, #eeeade 0) 1px 1px / 8px 8px;
+    background-color: #c2c1b8;
   }
   .door {
     position: relative;
-    padding: 8px 6%;
-    border: 4px ridge #c1b2a1;
-    background: linear-gradient(150deg, #34221c, #644334 65%, #483027);
-    box-shadow: 0 0 0 2px #59514c, inset 0 0 0 2px #281c19;
+    padding: 10px 8% 12px;
+    border: 3px solid;
+    border-color: #6d7073 #eee9d9 #eee9d9 #6d7073;
+    background: #31343b;
+    box-shadow: 0 0 0 2px #56585d, inset 4px 5px #21252a;
   }
-  .door::after {
-    content: '';
+  .lens {
     position: absolute;
-    inset: 2px;
+    inset: 0;
+    width: 100%; height: 100%;
     pointer-events: none;
-    background: linear-gradient(119deg, transparent 14%, #ffe8c010 14% 22%, transparent 22% 24%, #ffe8c00c 24% 27%, transparent 27%);
+    background: #475d691a;
+    border: 2px solid;
+    border-color: #a6b5b2 #545d64 #444c53 #829495;
+    box-shadow: inset 2px 2px #d6e8df50, inset -2px -3px #151c2877;
   }
   .cassette {
-    container-type: inline-size;
-    position: relative;
-    padding-top: 3%;
-    overflow: hidden;
-    border: 1px solid #141210;
-    border-radius: 7px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' opacity='.18' filter='url(%23n)' d='M0 0h96v96H0z'/%3E%3C/svg%3E"), linear-gradient(115deg, #494845, #32312e 55%, #282724);
-    box-shadow: inset 1px 1px #77756e, inset -1px -2px #1d1b18, 0 2px 3px #160f0c;
-    color: #f2d398;
-    text-align: center;
+    padding: 3.5% 3.5% 0;
+    background: #cfc9b1;
+    border: 2px solid #28282a;
+    box-shadow: inset 2px 2px #eee8ce, inset -2px -2px #a29e92, 3px 4px #20242a;
   }
-  .inscription {
-    display: block;
-    margin: 0 9%;
-    padding: .3em .5em;
-    overflow-wrap: anywhere;
-    border-block: 1px solid #605b51;
-    background: #35312d;
-    box-shadow: 0 1px #141210;
-    font: bold clamp(.8125rem, 5cqi, 1rem)/1.15 Georgia, serif;
-    text-shadow: 0 1px #161310;
+  .paper {
+    display: flex; align-items: baseline; gap: .5em;
+    padding: 4px 7px 6px;
+    color: #27272a;
+    background: linear-gradient(to top, transparent 3px, #c4bfaf 3px 4px, transparent 4px) #fffae9;
+    clip-path: polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% 100%, 0 100%);
   }
-  .mechanism {
-    display: grid;
-    grid-template-columns: 1fr 47% 1fr;
-    align-items: center;
+  .side { padding-inline: 2px; border: 1px solid #817f72; font-size: .75rem; line-height: 1; }
+  .inscription { overflow-wrap: anywhere; }
+  .yellow-band { background: #ffcc22; padding: 2px 0; }
+  .reels { display: block; width: 65%; margin-inline: auto; }
+  .hub { transform-box: fill-box; transform-origin: center; }
+  .print-band { display: flex; align-items: center; gap: 8%; padding-left: 4%; background: #202328; color: #faf1dd; }
+  .print-band strong { color: #3acdce; font-size: 1.15rem; }
+  .print-band::after {
+    content: ''; align-self: stretch; width: 34%; margin-left: auto;
+    background: repeating-conic-gradient(#ee8928 0 25%, #ffd33a 0 50%) 0 0 / 6px 12px;
   }
-  .stamp {
-    font: bold 8cqi/.95 Arial, sans-serif;
-    letter-spacing: -.05em;
-  }
-  .stamp small {
-    display: block;
-    margin-bottom: .25em;
-    font-size: max(.5rem, 2.8cqi);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-  }
-  .window {
-    position: relative;
-    aspect-ratio: 1.75;
-    border: 2px solid #1b1917;
-    background:
-      linear-gradient(125deg, #ffffff12, transparent 36% 68%, #fff1),
-      radial-gradient(circle at 0 50%, #393635 0 10cqi, #777272 10.2cqi, #282525 11cqi, transparent 11.4cqi),
-      radial-gradient(circle at 100% 50%, #393635 0 10cqi, #777272 10.2cqi, #201d20 11cqi 12.5cqi, transparent 13cqi),
-      radial-gradient(circle at 0 50%, #262229 12cqi, #16151b 26cqi, #39323b 26.4cqi, transparent 27cqi),
-      linear-gradient(110deg, #484855, #9495a0 64%, #656671);
-    box-shadow: inset 0 2px 4px #181419b3, 0 1px #79766b;
-  }
-  .hub {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    translate: -50% -50%;
-    width: 26%;
-    aspect-ratio: 1;
-    border: 2px solid #24211e;
-    border-radius: 50%;
-    background: radial-gradient(circle, #353434 0 30%, transparent 32% 48%, #eeeae1 50% 65%, #9c988f 68%),
-      repeating-conic-gradient(#f8f4ea 0 20deg, #403e3b 21deg 60deg);
-    box-shadow: 0 0 0 1px #68635c;
-  }
-  .hub + .hub { left: 100%; }
-  .molding {
-    width: 70%;
-    aspect-ratio: 4.7;
-    margin: 3% auto 0;
-    clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
-    border-top: 2px solid #201e1b;
-    background:
-      radial-gradient(circle at 14% 79%, #161310 0 3.5%, #5e5951 4%, transparent 5%),
-      radial-gradient(circle at 30% 69%, #100f0f 0 3%, #545049 3.6%, transparent 4.6%),
-      radial-gradient(circle at 70% 69%, #100f0f 0 3%, #545049 3.6%, transparent 4.6%),
-      radial-gradient(circle at 86% 79%, #161310 0 3.5%, #5e5951 4%, transparent 5%),
-      repeating-linear-gradient(#47433e 0 1px, #252320 1px 3px) center / 66% 100% no-repeat,
-      linear-gradient(100deg, #4f4c46, #292723);
-    box-shadow: inset 0 1px #706b63;
-  }
-  .screw {
-    position: absolute;
-    width: 3.7%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    rotate: -25deg;
-    background: linear-gradient(#080808, #080808) center / 56% 15% no-repeat,
-      linear-gradient(#080808, #080808) center / 15% 56% no-repeat,
-      radial-gradient(circle at 38% 32%, #77736b, #292824 48%, #0b0b0b 65%, #77736b 75%);
-  }
-  .tl, .bl { left: 1.4%; }
-  .tr, .br { right: 1.4%; }
-  .tl, .tr { top: 3%; }
-  .bl, .br { bottom: 3%; }
-  .fascia {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    padding: 4px 8px;
-    background: #813947;
-    box-shadow: inset 0 1px #c88789, inset 0 -2px #562532;
-  }
+  .foot { display: block; width: 75%; margin: 3px auto 0; }
+  .fascia { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 4px 8px; background: #813947; box-shadow: inset 0 2px #bc8286, inset 0 -2px #562532; }
   .lamp { width: 8px; height: 8px; background: #421e25; box-shadow: 0 1px #ca8989, inset 1px 1px #2e2021; }
   :global(music-deck[data-state='playing']) .lamp { background: #ffc46f; }
   .fascia::before { content: ''; flex: 1; height: 5px; order: 1; border-block: 1px solid #cc9294; }
-  .counter {
-    order: 2;
-    padding: 1px 5px;
-    background: #2e2526;
-    color: #ffe1b3;
-    font-size: .8125rem;
-    letter-spacing: .07em;
-    box-shadow: inset 1px 1px #19171a, 1px 1px #b7747e;
+  .counter { position: relative; order: 2; display: flex; gap: 2px; padding: 2px 3px; border: 1px solid; border-color: #3c2429 #cc9391 #cc9391 #3c2429; background: #11131a; color: #f7f1dd; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .wheel { position: relative; overflow: hidden; width: 1em; height: 1.125em; text-align: center; font: 1rem/1.125 var(--font-sans); background: #343438; }
+  .wheel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#08090bbd, transparent 35% 65%, #08090bbd); }
+  .strip, .strip span { display: block; }
+  @media (prefers-reduced-motion: no-preference) {
+    .strip { transform: translateY(var(--roll, 0%)); }
   }
-  .keys {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    align-items: start;
-    gap: 2px;
-    padding: 3px 3px 4px;
-    background: #16171a;
-  }
+  .keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: start; gap: 2px; padding: 3px 3px 4px; background: #16171a; }
   .key {
-    --face: #383b40;
-    --edge: #686a6d;
-    display: grid;
-    place-items: center;
-    gap: 4px;
-    min-width: 0;
-    margin: 0;
-    padding: 6px 0 4px;
-    border: 0;
-    border-radius: 0;
-    border-bottom: 6px solid #24262a;
-    background: linear-gradient(var(--face) 80%, #0002), var(--face);
-    color: #fff9eb;
-    box-shadow: inset 1px 2px var(--edge), inset -1px 0 #0005;
-    text-decoration: none;
-    text-transform: uppercase;
-    font: .6875rem/1.2 'Gohu', ui-monospace, monospace;
-    text-align: center;
+    --face: #383b40; --edge: #686a6d;
+    position: relative; display: grid; place-items: center; min-width: 0; height: 3.25rem; margin: 0; padding: 0;
+    border: 0; border-radius: 0; border-bottom: 6px solid #24262a;
+    background: var(--face); color: #fff9eb;
+    box-shadow: inset 2px 2px var(--edge), inset -2px -2px #0005;
+    text-decoration: none; text-transform: uppercase; text-align: center;
+    font: .6875rem/1.2 var(--font-sans);
   }
   .key[data-play] { --face: #a8353a; --edge: #e37c79; border-bottom-color: #782729; }
-  .key svg { width: 15px; height: 15px; fill: currentColor; }
-  .key::after {
-    content: '';
-    width: 62%;
-    height: 5px;
-    background: repeating-linear-gradient(#0005 0 1px, #fff2 1px 2px);
-  }
+  .key svg { width: 18px; height: 18px; fill: currentColor; shape-rendering: crispEdges; }
+  .key::after { content: ''; position: absolute; bottom: 3px; left: 19%; width: 62%; height: 4px; background: repeating-linear-gradient(#0005 0 1px, #fff2 1px 2px); }
   .key:hover { filter: brightness(1.16); }
   .key:focus-visible { position: relative; outline: 3px solid #ffda86; outline-offset: 1px; z-index: 1; }
   .key:active, [data-mute][aria-pressed='true'],
   :global(music-deck[data-state='playing']) [data-play],
   :global(music-deck[data-state='paused']) [data-pause] {
-    transform: translateY(3px);
-    border-bottom-width: 3px;
-    box-shadow: inset 1px 2px #0006;
+    transform: translateY(3px); border-bottom-width: 3px; box-shadow: inset 1px 2px #0006;
   }
   @media (prefers-reduced-motion: no-preference) {
-    :global(music-deck[data-state='playing']) .hub { animation: wind 3s linear infinite; }
+    :global(music-deck[data-state='playing']) .hub { animation: wind 3s steps(12) infinite; }
   }
   @keyframes wind { to { transform: rotate(1turn); } }
 </style>
