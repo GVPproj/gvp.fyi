@@ -24,7 +24,7 @@ after(async () => workspace?.cleanup());
 test('A Friendly Wave includes Island City continuations and shared broadcasts in date order', async () => {
   const cards = [...row('a-friendly-wave').querySelectorAll('a')];
   assert.deepEqual(cards.map(card => card.getAttribute('href')), [
-    '/radio/afw-2026-11-17', '/radio/afw-2026-10-20', '/radio/island-city-2026-07-29', '/radio/island-city-2026-07-22',
+    '/radio/afw-2026-11-24', '/radio/afw-2026-11-17', '/radio/afw-2026-10-20', '/radio/island-city-2026-07-29', '/radio/island-city-2026-07-22',
     '/radio/afw-2026-06-30', '/radio/afw-2026-03-01', '/radio/afw-2026-02-10',
     '/radio/island-city-2026-01-18', '/radio/island-city-afw-cafe-mode-2025-05-24',
     '/radio/island-city-afw-weekend-2-day-2',
@@ -91,6 +91,6 @@ test('all recordings have title-only cards and artwork-led detail pages without 
       assert.equal(detail.querySelectorAll('main iframe, main audio, main video, main [download]').length, 0);
     }
   }
-  assert.equal(routes.size, 133);
-  assert.equal(recordings.size, 133);
+  assert.equal(routes.size, 134);
+  assert.equal(recordings.size, 134);
 });
