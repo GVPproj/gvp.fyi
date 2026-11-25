@@ -149,6 +149,69 @@ test('cassette Stop rewinds and releases the keys without latching itself', asyn
   }
 });
 
+test('cassette keys play local sounds except when latched or muted', async () => {
+  const page = await browser.newPage({ acceptDownloads: true });
+  try {
+    await page.addInitScript(() => {
+      window.transportSamples = [];
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (...args) {
+        const [, offset] = args;
+        if (offset > 0) window.transportSamples.push({ offset, rate: this.playbackRate });
+        return start.apply(this, args);
+      };
+    });
+    const sprite = page.waitForResponse(response => response.url() === `${origin}/audio/transport/iidx.mp3`);
+    await page.goto(`${origin}/music/watery-grave-ep/#tape-deck`);
+    assert.equal((await sprite).ok(), true);
+    const deck = page.locator('music-deck');
+    const play = deck.getByRole('button', { name: 'Play', exact: true });
+    const pause = deck.getByRole('button', { name: 'Pause' });
+    const mute = deck.getByRole('button', { name: 'Mute' });
+    const stop = deck.getByRole('button', { name: 'Stop' });
+    const download = deck.getByRole('link', { name: /^Download .* \(MP3\)$/ });
+    const waitForState = state => page.waitForFunction(state => document.querySelector('music-deck').dataset.state === state, state);
+    const waitForSamples = count => page.waitForFunction(count => window.transportSamples.length >= count, count);
+
+    await play.hover();
+    await page.mouse.down();
+    await waitForSamples(1);
+    assert.deepEqual(await page.evaluate(() => window.transportSamples.map(sample => sample.offset % 1)), [0]);
+    await page.mouse.up();
+    await waitForSamples(2);
+    await waitForState('playing');
+    await play.click();
+    await play.press('Enter');
+
+    await pause.press('Space');
+    await waitForSamples(4);
+    await waitForState('paused');
+    await pause.click();
+    await pause.press('Space');
+
+    await mute.click();
+    await waitForSamples(6);
+    await play.click();
+    await stop.press('Enter');
+    await Promise.all([page.waitForEvent('download'), download.click()]);
+
+    await mute.press('Enter');
+    await waitForSamples(8);
+    await deck.getByRole('button', { name: 'Load Secret Passage Way' }).click();
+    const [file] = await Promise.all([page.waitForEvent('download'), download.click()]);
+    assert.equal(file.suggestedFilename(), '03-secret-passage-way.mp3');
+    await waitForSamples(10);
+    await stop.click();
+    await waitForSamples(12);
+
+    const samples = await page.evaluate(() => window.transportSamples.map(({ offset, rate }) => [offset, rate.value]));
+    assert.deepEqual(samples.map(([offset]) => Math.round(offset * 1000) % 1000), Array.from({ length: 6 }, () => [0, 200]).flat());
+    assert.ok(samples.every(([offset, rate]) => offset >= 1 && offset <= 4.2 && rate >= 0.899 && rate <= 1.101));
+  } finally {
+    await page.close();
+  }
+});
+
 test('blog images scale to the post width without overflowing', async () => {
   const page = await browser.newPage();
   try {

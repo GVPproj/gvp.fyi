@@ -66,7 +66,7 @@ const { title, src } = Astro.props;
     <button type="button" class="key" data-stop aria-label="Stop" title="Stop">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v12H2z" /></svg>
     </button>
-    <button type="button" class="key" data-mute aria-label="Mute" title="Mute" aria-pressed="false">
+    <button type="button" class="key" data-mute aria-label="Mute" title="Mute playback and button sounds" aria-pressed="false">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6h3l5-4v12l-5-4H0zm10.5-.5 1-1 1.5 2 1.5-2 1 1-1.5 2 1.5 2-1 1-1.5-2-1.5 2-1-1 1.5-2z" /></svg>
     </button>
     <a class="key" data-download href={src} download aria-label={`Download ${title} (MP3)`} title="Download MP3">

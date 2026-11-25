@@ -44,10 +44,15 @@ for (const track of tracks) {
 </section>}
 
 <script>
+  import { addTransportSounds } from '../scripts/cassette-transport-sounds';
+
   class MusicDeck extends HTMLElement {
+    private removeTransportSounds?: () => void;
+
     connectedCallback() {
-      if (this.dataset.ready) return;
       const audio = this.querySelector('audio')!;
+      this.removeTransportSounds ??= addTransportSounds(this, audio);
+      if (this.dataset.ready) return;
       const play = this.querySelector<HTMLButtonElement>('[data-play]')!;
       const pause = this.querySelector<HTMLButtonElement>('[data-pause]')!;
       const mute = this.querySelector<HTMLButtonElement>('[data-mute]')!;
@@ -136,7 +141,11 @@ for (const track of tracks) {
       this.querySelector<HTMLElement>('[data-recorder]')!.hidden = false;
       this.dataset.ready = 'true';
     }
-    disconnectedCallback() { this.querySelector('audio')?.pause(); }
+    disconnectedCallback() {
+      this.removeTransportSounds?.();
+      this.removeTransportSounds = undefined;
+      this.querySelector('audio')?.pause();
+    }
   }
   if (!customElements.get('music-deck')) customElements.define('music-deck', MusicDeck);
 </script>
