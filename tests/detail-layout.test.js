@@ -123,6 +123,32 @@ test('detail articles fill the header/footer column without overflowing mobile',
   }
 });
 
+test('cassette Stop rewinds and releases the keys without latching itself', async () => {
+  const page = await browser.newPage({ viewport: { width: 320, height: 740 } });
+  try {
+    await page.goto(`${origin}/music/watery-grave-ep/#tape-deck`);
+    const deck = page.locator('music-deck');
+    await deck.getByRole('button', { name: 'Load Secret Passage Way' }).click();
+    assert.equal(await deck.locator('[data-title]').innerText(), 'Secret Passage Way');
+    assert.match(await deck.locator('[data-download]').getAttribute('href'), /03-secret-passage-way\.mp3$/);
+    const play = deck.locator('[data-play]');
+    const stop = deck.locator('[data-stop]');
+    const position = key => key.evaluate(el => getComputedStyle(el).transform);
+    await play.click();
+    await page.waitForFunction(() => document.querySelector('music-deck audio').currentTime > 0);
+    assert.notEqual(await position(play), 'none');
+    await stop.focus();
+    await stop.press('Space');
+    await page.waitForFunction(() => document.querySelector('music-deck').dataset.state === 'stopped');
+    assert.deepEqual(await deck.locator('audio').evaluate(el => [el.paused, el.currentTime]), [true, 0]);
+    assert.equal(await position(play), 'none');
+    assert.equal(await position(stop), 'none');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  } finally {
+    await page.close();
+  }
+});
+
 test('blog images scale to the post width without overflowing', async () => {
   const page = await browser.newPage();
   try {

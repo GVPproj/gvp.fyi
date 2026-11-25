@@ -190,9 +190,12 @@ test('adjacent PDFs are published and music dates retain their precision', async
   assert.equal(bytes.subarray(0, 5).toString(), '%PDF-');
   const release = await page('music/watery-grave-ep');
   assert.equal(release.querySelector('time').getAttribute('datetime'), '2005');
-  assert.equal(release.querySelectorAll('audio').length, 5);
-  assert.equal(release.querySelectorAll('.content-body .music-player audio').length, 5);
-  assert.equal(release.querySelectorAll('.music-player a[download]').length, 5);
+  const player = release.querySelector('.content-body .music-player');
+  assert.equal(player.querySelectorAll('audio[controls]').length, 1);
+  const tracks = [...player.querySelectorAll('button[data-src]')].map(button => button.getAttribute('data-src'));
+  assert.equal(tracks.length, 5);
+  assert.equal(player.querySelector('audio').getAttribute('src'), tracks[0]);
+  assert.deepEqual([...player.querySelectorAll('[data-fallback] a[download]')].map(link => link.getAttribute('href')), tracks);
   assert.ok(!release.body.textContent.includes('No listening link is currently available'));
 });
 

@@ -1,17 +1,19 @@
 ---
 import { stat } from 'node:fs/promises';
 import { publicDir } from 'astro:config/server';
+import CassetteRecorder from './CassetteRecorder.astro';
 import PixelBox from './elements/PixelBox.astro';
 
 interface Props {
+  id?: string;
   title: string;
   artist?: string;
   showHeader?: boolean;
   tracks: { title: string; src: string }[];
 }
 
-const { title, artist, tracks, showHeader = true } = Astro.props;
-const TrackHeading = showHeader ? 'h3' : 'h2';
+const { id, title, artist, tracks, showHeader = true } = Astro.props;
+const [first] = tracks;
 for (const track of tracks) {
   if (!track.src.startsWith('/audio/')) continue;
   const file = await stat(new URL(`.${track.src}`, publicDir)).catch(() => undefined);
@@ -19,135 +21,116 @@ for (const track of tracks) {
 }
 ---
 
-<PixelBox as="section" class="music-player" aria-label={`Listen to ${title}`}>
-  {showHeader && (
-    <header>
-      <h2>{title}</h2>
-      {artist && <p>{artist}</p>}
-    </header>
-  )}
-  <ol>
-    {tracks.map((track, index) => (
-      <li>
-        <div class="track-heading">
-          <span class="track-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-          <TrackHeading class="track-title">{track.title}</TrackHeading>
-          <a href={track.src} download aria-label={`Download ${track.title}`}>MP3 ↓</a>
-        </div>
-        <music-transport>
-          <audio controls preload="none" src={track.src} aria-label={track.title}>
-            <a href={track.src}>Listen to {track.title}</a>
-          </audio>
-          <div class="transport" hidden>
-            <button type="button" data-play aria-label={`Play ${track.title}`}>▶</button>
-            <input type="range" min="0" max="100" value="0" step="0.1" disabled aria-label={`Seek in ${track.title}`} />
-            <span class="time">0:00 / —:—</span>
-            <button type="button" data-mute aria-label={`Mute ${track.title}`} aria-pressed="false">Mute</button>
-          </div>
-          <p class="playback-error" role="status" hidden>Unable to play this track. Try the MP3 link above.</p>
-        </music-transport>
-      </li>
-    ))}
-  </ol>
-</PixelBox>
+{first && <section {id} class="music-player" aria-label={`Listen to ${title}`}>
+  {showHeader && <header><h2>{title}</h2>{artist && <p>{artist}</p>}</header>}
+  <music-deck data-state="stopped">
+    <audio controls preload="none" src={first.src} aria-label={first.title}></audio>
+    <div data-fallback>
+      {tracks.map(track => <a href={track.src} download>Download {track.title}</a>)}
+    </div>
+    <div data-recorder hidden>
+      <CassetteRecorder {...first} />
+      <p class="error" role="status" hidden>Unable to play this track. Try downloading the MP3.</p>
+      {tracks.length > 1 && <PixelBox class="track-index">
+        <div class="legend"><span>Track index</span><span>{String(tracks.length).padStart(2, '0')} tracks</span></div>
+        <ol aria-label="Load a track">
+          {tracks.map((track, i) => <li><button type="button" data-src={track.src} data-label={track.title} aria-label={`Load ${track.title}`} aria-current={i === 0 ? 'true' : undefined}>
+            <span class="number">{String(i + 1).padStart(2, '0')}</span><span>{track.title}</span><span class="loaded" aria-hidden="true">Loaded</span>
+          </button></li>)}
+        </ol>
+      </PixelBox>}
+    </div>
+  </music-deck>
+</section>}
 
 <script>
-  class MusicTransport extends HTMLElement {
+  class MusicDeck extends HTMLElement {
     connectedCallback() {
       if (this.dataset.ready) return;
-      this.dataset.ready = 'true';
       const audio = this.querySelector('audio')!;
-      const transport = this.querySelector<HTMLElement>('.transport')!;
       const play = this.querySelector<HTMLButtonElement>('[data-play]')!;
+      const pause = this.querySelector<HTMLButtonElement>('[data-pause]')!;
       const mute = this.querySelector<HTMLButtonElement>('[data-mute]')!;
-      const seek = this.querySelector<HTMLInputElement>('input')!;
-      const time = this.querySelector<HTMLElement>('.time')!;
-      const error = this.querySelector<HTMLElement>('.playback-error')!;
-      const title = audio.getAttribute('aria-label');
-      const format = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
-      const update = () => {
-        const hasDuration = Number.isFinite(audio.duration) && audio.duration > 0;
-        seek.disabled = !hasDuration;
-        seek.max = String(hasDuration ? audio.duration : 100);
-        seek.value = String(audio.currentTime);
-        seek.setAttribute('aria-valuetext', `${format(audio.currentTime)} of ${hasDuration ? format(audio.duration) : 'unknown duration'}`);
-        time.textContent = `${format(audio.currentTime)} / ${hasDuration ? format(audio.duration) : '—:—'}`;
-        play.textContent = audio.paused ? '▶' : 'Ⅱ';
-        play.setAttribute('aria-label', `${audio.paused ? 'Play' : 'Pause'} ${title}`);
+      const download = this.querySelector<HTMLAnchorElement>('[data-download]')!;
+      const error = this.querySelector<HTMLElement>('.error')!;
+      const time = this.querySelector<HTMLElement>('[data-time]')!;
+      const choices = this.querySelectorAll<HTMLButtonElement>('button[data-src]');
+
+      const stop = () => {
+        this.dataset.state = 'stopped';
+        audio.pause();
+        audio.currentTime = 0;
+        time.textContent = '0:00';
       };
       play.addEventListener('click', async () => {
-        if (!audio.paused) { audio.pause(); return; }
         error.hidden = true;
-        try { await audio.play(); } catch { error.hidden = false; }
+        try { await audio.play(); }
+        catch (e) { if (!(e instanceof DOMException && e.name === 'AbortError')) error.hidden = false; }
       });
-      audio.addEventListener('play', () => {
-        document.querySelectorAll<HTMLAudioElement>('music-transport audio').forEach(other => {
-          if (other !== audio) other.pause();
-        });
-      });
-      seek.addEventListener('input', () => { audio.currentTime = Number(seek.value); update(); });
+      pause.addEventListener('click', () => audio.pause());
+      this.querySelector('[data-stop]')!.addEventListener('click', stop);
       mute.addEventListener('click', () => { audio.muted = !audio.muted; });
-      audio.addEventListener('volumechange', () => {
-        mute.setAttribute('aria-pressed', String(audio.muted));
-        mute.textContent = audio.muted ? 'Unmute' : 'Mute';
-        mute.setAttribute('aria-label', `${audio.muted ? 'Unmute' : 'Mute'} ${title}`);
+      audio.addEventListener('volumechange', () => mute.setAttribute('aria-pressed', String(audio.muted)));
+      audio.addEventListener('play', () => {
+        if (audio.paused) return;
+        this.dataset.state = 'playing';
+        for (const other of document.querySelectorAll<HTMLAudioElement>('music-deck audio')) {
+          if (other !== audio) other.pause();
+        }
       });
-      audio.addEventListener('error', () => { error.hidden = false; });
-      for (const event of ['timeupdate', 'loadedmetadata', 'durationchange', 'play', 'pause', 'ended', 'emptied']) {
-        audio.addEventListener(event, update);
-      }
-      update();
+      audio.addEventListener('pause', () => {
+        // Stop and track changes also emit pause; neither should latch the Pause key.
+        if (audio.paused && this.dataset.state === 'playing') this.dataset.state = 'paused';
+      });
+      audio.addEventListener('ended', stop);
+      audio.addEventListener('error', () => { this.dataset.state = 'stopped'; error.hidden = false; });
+      audio.addEventListener('timeupdate', () => {
+        const seconds = Math.floor(audio.currentTime);
+        time.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+      });
+      choices.forEach((choice, index) => choice.addEventListener('click', () => {
+        stop();
+        error.hidden = true;
+        const title = choice.dataset.label!;
+        audio.src = choice.dataset.src!;
+        audio.setAttribute('aria-label', title);
+        audio.load();
+        this.querySelector('[data-title]')!.textContent = title;
+        this.querySelector('[data-number]')!.textContent = String(index + 1).padStart(2, '0');
+        download.href = audio.src;
+        download.setAttribute('aria-label', `Save ${title} (download MP3)`);
+        for (const other of choices) other.removeAttribute('aria-current');
+        choice.setAttribute('aria-current', 'true');
+      }));
+
       audio.controls = false;
       audio.hidden = true;
-      transport.hidden = false;
+      this.querySelector<HTMLElement>('[data-fallback]')!.hidden = true;
+      this.querySelector<HTMLElement>('[data-recorder]')!.hidden = false;
+      this.dataset.ready = 'true';
     }
+    disconnectedCallback() { this.querySelector('audio')?.pause(); }
   }
-  if (!customElements.get('music-transport')) customElements.define('music-transport', MusicTransport);
+  if (!customElements.get('music-deck')) customElements.define('music-deck', MusicDeck);
 </script>
 
 <style>
-  .music-player {
-    color-scheme: dark;
-    text-align: left;
-  }
-  header { padding: 1.5rem; }
-  h2 { margin: 0 0 .25rem; }
-  header p { margin: 0; color: var(--nord4); font-size: .9rem; }
-  ol { list-style: none; margin: 0; padding: 0; }
-  li { padding: 1rem clamp(.75rem, 4vw, 1.5rem); }
-  header + ol > li:first-child, li + li { border-block-start: 1px solid var(--nord3); }
-  .track-heading { display: flex; align-items: baseline; gap: .75rem; margin-block-end: .75rem; }
-  .track-number { color: var(--nord4); font-size: .75rem; font-variant-numeric: tabular-nums; }
-  .track-title { flex: 1; margin: 0; font-size: 1rem; font-weight: 400; }
-  a { color: var(--color-accent); font-size: .75rem; white-space: nowrap; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
-  audio { display: block; width: 100%; min-width: 0; height: 40px; }
+  .music-player { width: min(100%, 380px); margin-inline: auto; text-align: left; scroll-margin-block-start: 6rem; }
+  header { margin-bottom: .75rem; }
+  h2 { margin: 0; }
+  header p, .error { color: var(--nord4); font-size: .875rem; }
+  music-deck, audio, [data-fallback] a { display: block; }
+  audio { width: 100%; }
   [hidden] { display: none !important; }
-  music-transport { display: block; }
-  .transport { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
-  button {
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    padding: .5rem .75rem;
-    border: 2px solid #171c25;
-    border-radius: 0;
-    background: var(--nord2);
-    box-shadow: inset 2px 2px 0 var(--nord3), inset -2px -2px 0 var(--nord0);
-    color: var(--color-accent);
-    font: inherit;
-    font-size: .8rem;
-    cursor: var(--cursor-pointer);
-  }
-  button:hover { background: var(--nord3); }
-  button:active, button[aria-pressed='true'] { box-shadow: inset 2px 2px 0 var(--nord0); }
-  button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-  input[type='range'] { flex: 1; min-width: 5rem; width: 5rem; height: 2.75rem; margin: 0; background: transparent; appearance: none; cursor: var(--cursor-pointer); }
-  input[type='range']:disabled { opacity: .45; cursor: var(--cursor-default); }
-  input[type='range']::-webkit-slider-runnable-track { height: .5rem; background: var(--nord0); border: 1px solid var(--nord3); }
-  input[type='range']::-moz-range-track { height: .5rem; background: var(--nord0); border: 1px solid var(--nord3); }
-  input[type='range']::-webkit-slider-thumb { appearance: none; width: .75rem; height: 1.25rem; margin-top: -.4375rem; border: 2px solid var(--nord0); border-radius: 0; background: var(--color-accent); }
-  input[type='range']::-moz-range-thumb { width: .75rem; height: 1.25rem; border: 2px solid var(--nord0); border-radius: 0; background: var(--color-accent); }
-  .time { color: var(--nord4); font-size: .75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .playback-error { color: var(--nord4); font-size: .875rem; margin-block-start: .75rem; }
+  [data-recorder] { display: grid; gap: 1rem; }
+  .legend { display: flex; justify-content: space-between; padding: .45rem .85rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--nord4); border-bottom: 2px solid #171c25; }
+  ol { list-style: none; margin: 0; padding: .2rem; }
+  li + li { border-top: 1px solid var(--nord3); }
+  li button { display: grid; grid-template-columns: 2ch 1fr auto; gap: .8rem; align-items: center; width: 100%; min-height: 2.75rem; padding: .4rem .65rem; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--nord6); text-align: left; font: inherit; cursor: var(--cursor-pointer); }
+  .number, .loaded { color: var(--nord4); font-size: .75rem; }
+  .loaded { display: none; color: var(--nord8); }
+  button[aria-current] { border-left-color: var(--nord8); background: var(--nord0); }
+  button[aria-current] .loaded { display: inline; }
+  li button:hover { background: var(--nord3); }
+  li button:focus-visible { outline: 2px solid var(--nord8); outline-offset: -2px; }
 </style>
