@@ -19,6 +19,10 @@ const blog = defineCollection({
     title: z.string().min(1),
     summary,
     date: publicationDate,
+    audioJournal: z.object({
+      title: z.string().trim().min(1),
+      src: z.string().regex(/^\/audio\/(?:[\w-]+\/)*[\w-]+\.mp3$/, 'Audio Journals require a local MP3 under /audio/'),
+    }).strict().optional(),
   }),
 });
 

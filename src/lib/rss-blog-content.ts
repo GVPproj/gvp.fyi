@@ -1,7 +1,8 @@
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
-import { render, type CollectionEntry } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 import mdxRenderer from '@astrojs/mdx/server.js';
 import { parseHTML } from 'linkedom';
+import BlogPostBody from '../components/BlogPostBody.astro';
 import { resolveWebURL } from './web-url';
 
 const articleTags = new Set(`a abbr b blockquote br caption cite code dd del details div dl dt em
@@ -16,8 +17,7 @@ const articleAttributes: Record<string, readonly string[]> = {
 export async function renderBlogForRSS(entry: CollectionEntry<'blog'>, permalink: URL) {
   const container = await AstroContainer.create();
   container.addServerRenderer({ name: 'astro:jsx', renderer: mdxRenderer });
-  const { Content } = await render(entry);
-  const html = await container.renderToString(Content);
+  const html = await container.renderToString(BlogPostBody, { props: { post: entry } });
   const { document } = parseHTML(`<html><body>${html}</body></html>`);
   const body = document.body;
 

@@ -56,6 +56,7 @@ import Face from '@src/components/elements/Face.astro';
 test('homepage previews the latest post summary, not its MDX source', async () => {
   const home = await page('');
   assert.equal(home.querySelector('.latest-post-card p')?.textContent, 'A readable preview.');
+  assert.equal(home.querySelector('.latest-post music-deck'), null);
 });
 
 after(async () => {
@@ -86,8 +87,9 @@ test('Eternal Family appears in Consulting with a square homepage screenshot', a
 
   const detail = await page('software/eternal-family');
   assert.equal(detail.querySelector('h1').textContent, 'Eternal Family');
-  assert.match(detail.querySelector('.content-body').textContent, /Streaming platform/);
-  assert.match(detail.querySelector('.content-body').textContent, /Reader and publication/);
+  const headings = [...detail.querySelectorAll('.content-body h2')].map(heading => heading.textContent);
+  assert.ok(headings.some(heading => /\bstreaming platform\b/i.test(heading)), 'Missing streaming platform section');
+  assert.ok(headings.some(heading => /\breader\b.*\bpublication\b/i.test(heading)), 'Missing Reader publication section');
   assert.ok(detail.querySelector('nav[aria-label="Project links"] a[href="https://eternal.tv/"]'));
   const screenshot = detail.querySelector('img.screenshot');
   assert.ok(screenshot);
@@ -102,7 +104,9 @@ test('Gap Year appears in Games with official screenshots and audio credit', asy
 
   const detail = await page('software/gap-year');
   assert.equal(detail.querySelector('h1').textContent, 'Gap Year');
-  assert.match(detail.querySelector('.content-body').textContent, /Lead Audio/);
+  assert.match(detail.querySelector('.content-body').textContent, /\baudio programming\b/i);
+  const credits = [...detail.querySelectorAll('[aria-labelledby="team-heading"] li')];
+  assert.ok(credits.some(credit => credit.textContent === 'Graham Van Pelt — Lead Audio'), 'Missing Lead Audio team credit');
   assert.ok(detail.querySelector('nav[aria-label="Project links"] a[href="https://store.steampowered.com/app/2585900/Gap_Year/"]'));
   const images = [...detail.querySelectorAll('img.screenshot, .gallery img')];
   assert.equal(images.length, 3);

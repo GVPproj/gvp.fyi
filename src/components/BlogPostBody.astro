@@ -1,0 +1,15 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import MusicPlayer from './MusicPlayer.astro';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { title, audioJournal } = post.data;
+const { Content } = await render(post);
+---
+
+{audioJournal && <MusicPlayer {title} showHeader={false} tracks={[audioJournal]} />}
+<Content />

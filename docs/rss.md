@@ -20,9 +20,13 @@ The complete published Blog, Likes, Software, Music and Radio catalogue is inclu
   local canonical detail URL, not to the GUID or an external listening page.
 - Blog, Software and Music require a plain-text `summary`. Describe the content,
   not its implementation. Do not put Markdown, imports, HTML, scripts or interactive
-  components in it. The feed does not render full MDX posts or embedded applications.
-  Software tooling/website/repository and Music artist/release/credits/listening
-  metadata are added to the summary automatically.
+  components in it. Software tooling/website/repository and Music artist/release/
+  credits/listening metadata are added to the summary automatically.
+- Blog items also include the rendered MDX body in `content:encoded` for readers
+  that support it. Article formatting, code and raster images are kept; links and
+  image URLs are made absolute. Site styles, scripts and controls are omitted.
+  Audio and video can be reached by direct links, and posts with embedded media
+  link back to the original page for the full experience.
 - Likes summaries use rendered body text (with unsafe/interactive markup removed),
   attribution and source/asset links. Quotes and notes retain their full text in the
   feed, independently of the shorter overview preview.

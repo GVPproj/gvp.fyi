@@ -47,25 +47,33 @@ async function addEpisode(slug, data = {}) {
   return directory;
 }
 
-test('navigation exposes Radio directly and leaves Now disabled in both menus', async () => {
+const desktopLinks = [
+  ['Music', '/music'],
+  ['Radio', '/radio/'],
+  ['Software', '/software'],
+  ['Likes', '/likes'],
+  ['Blog', '/blog'],
+];
+const mobileLinks = [['Home', '/'], ...desktopLinks];
+
+test('navigation exposes Radio as a direct, current link in both menus', async () => {
   const document = await page('radio');
   assert.equal(document.querySelector('main h1').textContent, 'Radio');
-  for (const [selector, labels] of [
-    ['.desktop > ul > li', ['Software', 'Music', 'Radio', 'Likes', 'Blog', 'Now']],
-    ['#site-nav > ul > li', ['Home', 'Software', 'Music', 'Radio', 'Likes', 'Blog', 'Now']],
+  for (const [selector, expected] of [
+    ['nav[aria-label="Main navigation"] > ul > li', desktopLinks],
+    ['nav[aria-label="Mobile navigation"] > .drawer-panel > ul > li', mobileLinks],
   ]) {
     const items = [...document.querySelectorAll(selector)];
-    assert.deepEqual(items.map(item => item.textContent.trim()), labels);
-    const now = items.at(-1).querySelector('[aria-disabled="true"]');
-    assert.ok(now);
-    assert.equal(now.hasAttribute('href'), false);
-    assert.equal(now.tabIndex, -1);
-    assert.equal(items.at(-1).querySelector('a, button'), null);
+    const links = items.map(item => {
+      const link = item.querySelector(':scope > a[href]');
+      assert.ok(link, `${item.textContent.trim()} must be a direct link`);
+      return link;
+    });
+    assert.deepEqual(links.map(link => [link.textContent.trim(), link.getAttribute('href')]), expected);
+    for (const link of links) {
+      assert.equal(link.getAttribute('aria-current'), link.getAttribute('href') === '/radio/' ? 'page' : null);
+    }
   }
-  for (const link of document.querySelectorAll('nav a[href="/radio/"]')) {
-    assert.equal(link.getAttribute('aria-current'), 'page');
-  }
-  assert.equal(document.querySelectorAll('nav a[href="/radio/"]').length, 2);
 });
 
 test('verified broadcasts sort newest first with uncertain and unknown dates last', async () => {
@@ -217,40 +225,56 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     assert.equal(await tab.evaluate(() => getComputedStyle(document.documentElement, '::view-transition-new(root)').animationName), 'random-dissolve');
     await tab.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(await tab.locator('meta[name="astro-view-transitions-fallback"]').getAttribute('content'), 'swap');
-    await tab.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Radio', exact: true }).click();
+    const home = tab.getByRole('link', { name: 'Go back to the homepage', exact: true });
+    const desktop = tab.getByRole('navigation', { name: 'Main navigation', exact: true });
+    const namedLink = (nav, name) => nav.getByRole('link', { name, exact: true });
+    const assertFocused = async target => {
+      assert.equal(await target.evaluate(element => element === document.activeElement), true, `${target} should have focus`);
+    };
+    const tabTo = async target => {
+      await tab.keyboard.press('Tab');
+      await assertFocused(target);
+    };
+    const assertFocusOutline = async target => {
+      assert.equal(await target.evaluate(element => getComputedStyle(element).outlineStyle), 'solid');
+    };
+    const desktopRadio = namedLink(desktop, 'Radio');
+    await tabTo(home);
+    await tabTo(namedLink(desktop, 'Music'));
+    await tabTo(desktopRadio);
+    await assertFocusOutline(desktopRadio);
+    await tab.keyboard.press('Enter');
     await tab.waitForURL('**/radio/');
-    const items = tab.locator('.desktop > ul > li');
+    assert.equal(await desktopRadio.getAttribute('aria-current'), 'page');
+
+    const items = desktop.getByRole('link');
     for (const width of [1440, 768]) {
       await tab.setViewportSize({ width, height: 1000 });
+      await tab.evaluate(() => document.fonts.ready);
       const boxes = await items.evaluateAll(elements => elements.map(element => {
-        const { x, y, width, height } = element.getBoundingClientRect();
-        return { x, y, width, height };
+        const { left, top, right, width, height } = element.getBoundingClientRect();
+        return { left, top, right, width, height };
       }));
-      assert.equal(boxes[0].y, boxes[1].y);
-      assert.equal(boxes[1].y, boxes[2].y);
-      assert.equal(boxes[3].y, boxes[4].y);
-      assert.equal(boxes[4].y, boxes[5].y);
-      assert.ok(boxes[3].y > boxes[0].y);
-      assert.ok(boxes[0].x < boxes[1].x && boxes[1].x < boxes[2].x);
+      assert.equal(boxes.length, desktopLinks.length);
       const header = await tab.locator('.site-header').boundingBox();
       const footer = await tab.locator('.footer-content').boundingBox();
+      for (const [index, box] of boxes.entries()) {
+        assert.ok(box.width > 0 && box.height > 0);
+        assert.ok(Math.abs(box.top - boxes[0].top) < 1, `desktop links share one row at ${width}px`);
+        assert.ok(index === 0 || box.left >= boxes[index - 1].right, `desktop links do not overlap at ${width}px`);
+        assert.ok(box.left >= header.x && box.right <= header.x + header.width, `desktop links fit inside the header at ${width}px`);
+      }
       assert.ok(Math.abs(header.x - footer.x) < 1);
       assert.ok(Math.abs(header.width - footer.width) < 1);
       assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     }
-    await tab.locator('.site-header .home').focus();
-    for (const href of ['/software', '/music', '/radio/']) {
-      await tab.keyboard.press('Tab');
-      assert.equal(await tab.evaluate(() => document.activeElement.getAttribute('href')), href);
-    }
-    assert.equal(await tab.locator('.desktop a[href="/radio/"]').evaluate(element => getComputedStyle(element).outlineStyle), 'solid');
-    for (const href of ['/likes', '/blog', '/radio/afw-2026-10-20']) {
-      await tab.keyboard.press('Tab');
-      assert.equal(await tab.evaluate(() => document.activeElement.getAttribute('href')), href);
-    }
+    const episodeLink = tab.locator('.content-row a');
+    await home.focus();
+    for (const [name] of desktopLinks) await tabTo(namedLink(desktop, name));
+    await tabTo(episodeLink);
     await tab.keyboard.press('Enter');
     await tab.waitForURL('**/radio/afw-2026-10-20');
-    assert.equal(await tab.locator('.desktop a[href="/radio/"]').getAttribute('aria-current'), 'page');
+    assert.equal(await desktopRadio.getAttribute('aria-current'), 'page');
     const image = tab.locator('main img');
     await image.evaluate(element => element.decode());
     assert.equal(await image.evaluate(element => Math.abs(element.clientWidth / element.clientHeight - element.naturalWidth / element.naturalHeight) < .01), true);
@@ -258,29 +282,56 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     assert.equal(await tab.getByRole('link', { name: 'Listen on Mixcloud', exact: true }).getAttribute('href'), listeningUrl);
 
     await tab.setViewportSize({ width: 390, height: 844 });
-    await tab.getByRole('button', { name: 'Open menu', exact: true }).click();
+    const openMenu = tab.getByRole('button', { name: 'Open menu', exact: true });
     const drawer = tab.locator('#site-nav');
-    assert.deepEqual(await drawer.locator(':scope > ul > li').allTextContents(), ['Home', 'Software', 'Music', 'Radio', 'Likes', 'Blog', 'Now']);
-    const mobileBoxes = await drawer.locator(':scope > ul > li').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().y));
-    assert.ok(mobileBoxes.every((y, index) => index === 0 || y > mobileBoxes[index - 1]));
-    assert.equal(await drawer.locator('[aria-disabled="true"]').evaluate(element => element.tabIndex), -1);
+    const mobile = tab.getByRole('navigation', { name: 'Mobile navigation', exact: true });
+    const closeMenu = mobile.getByRole('button', { name: 'Close menu', exact: true });
+    const mobileRadio = namedLink(mobile, 'Radio');
+    const isDrawerOpen = () => drawer.evaluate(element => element.matches(':popover-open'));
+    const scrollLock = () => tab.evaluate(() => document.documentElement.style.overflow);
+    assert.equal(await desktop.isVisible(), false);
+    assert.equal(await mobile.isVisible(), false);
+    await home.focus();
+    await tabTo(openMenu);
+    await assertFocusOutline(openMenu);
+    await tab.keyboard.press('Enter');
+    assert.equal(await isDrawerOpen(), true);
+    assert.equal(await scrollLock(), 'hidden');
     assert.equal(await drawer.evaluate(element => getComputedStyle(element).transitionDuration), '0s');
+    assert.equal(await drawer.locator('.drawer-panel').evaluate(element => getComputedStyle(element).transitionDuration), '0s');
+    const mobileBoxes = await mobile.getByRole('link').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().top));
+    assert.equal(mobileBoxes.length, mobileLinks.length);
+    assert.ok(mobileBoxes.every((y, index) => index === 0 || y > mobileBoxes[index - 1]));
+    await tabTo(closeMenu);
+    for (const [name] of mobileLinks) await tabTo(namedLink(mobile, name));
     await tab.keyboard.press('Escape');
-    assert.equal(await drawer.evaluate(element => element.matches(':popover-open')), false);
-    assert.equal(await tab.getByRole('button', { name: 'Open menu', exact: true }).evaluate(element => element === document.activeElement), true);
-    await tab.getByRole('button', { name: 'Open menu', exact: true }).click();
-    await drawer.getByRole('link', { name: 'Radio', exact: true }).click();
+    assert.equal(await isDrawerOpen(), false);
+    assert.equal(await scrollLock(), '');
+    await assertFocused(openMenu);
+
+    await tab.keyboard.press('Enter');
+    await tabTo(closeMenu);
+    await tabTo(namedLink(mobile, 'Home'));
+    await tabTo(namedLink(mobile, 'Music'));
+    await tabTo(mobileRadio);
+    await assertFocusOutline(mobileRadio);
+    assert.equal(await mobileRadio.getAttribute('aria-current'), 'page');
+    await tab.keyboard.press('Enter');
     await tab.waitForURL('**/radio/');
-    assert.equal(await tab.locator('#site-nav').evaluate(element => element.matches(':popover-open')), false);
-    assert.equal(await tab.evaluate(() => document.documentElement.style.overflow), '');
+    assert.equal(await isDrawerOpen(), false);
+    assert.equal(await scrollLock(), '');
     assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     const preview = await tab.locator('.content-preview').first().boundingBox();
     assert.ok(Math.abs(preview.width - preview.height) < 1);
-    await tab.locator('.content-row a').click();
+    await openMenu.focus();
+    await tabTo(episodeLink);
+    await tab.keyboard.press('Enter');
     await tab.waitForURL('**/radio/afw-2026-10-20');
     assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await tab.route(listeningUrl, route => route.fulfill({ contentType: 'text/html', body: '<title>Mixcloud boundary</title>' }));
-    await tab.getByRole('link', { name: 'Listen on Mixcloud', exact: true }).click();
+    await tab.locator('main a[href="/radio/"]').focus();
+    await tabTo(tab.getByRole('link', { name: 'Listen on Mixcloud', exact: true }));
+    await tab.keyboard.press('Enter');
     await tab.waitForURL(listeningUrl);
     assert.deepEqual(errors, []);
 
@@ -289,12 +340,11 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     await native.goto(`${origin}/`);
     await native.getByRole('button', { name: 'Open menu', exact: true }).click();
     // Poll from Node: page-side timers are disabled in this no-JS context.
-    const nativeDrawer = native.locator('#site-nav');
+    const nativePanel = native.locator('#site-nav:popover-open .drawer-panel');
+    const panelTransform = () => nativePanel.evaluate(element => getComputedStyle(element).transform);
     const deadline = Date.now() + 5000;
-    while (await nativeDrawer.evaluate(element => getComputedStyle(element).transform) !== 'none' && Date.now() < deadline) {
-      await setTimeout(50);
-    }
-    assert.equal(await nativeDrawer.evaluate(element => getComputedStyle(element).transform), 'none');
+    while (await panelTransform() !== 'none' && Date.now() < deadline) await setTimeout(50);
+    assert.equal(await panelTransform(), 'none');
     await native.getByRole('navigation', { name: 'Mobile navigation', exact: true }).getByRole('link', { name: 'Radio', exact: true }).click();
     await native.waitForURL('**/radio/');
     await native.locator('.content-row a').click();

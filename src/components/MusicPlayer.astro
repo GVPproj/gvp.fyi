@@ -3,6 +3,7 @@ import { stat } from 'node:fs/promises';
 import { publicDir } from 'astro:config/server';
 import CassetteRecorder from './CassetteRecorder.astro';
 import PixelBox from './elements/PixelBox.astro';
+import playerStyles from '../styles/music-player.css?url&no-inline';
 
 interface Props {
   id?: string;
@@ -22,6 +23,8 @@ for (const track of tracks) {
 ---
 
 {first && <section {id} class="music-player" aria-label={`Listen to ${title}`}>
+  <!-- Link the asset only when a deck renders, not on every page that imports it. -->
+  <link rel="stylesheet" href={playerStyles} />
   {showHeader && <header><h2>{title}</h2>{artist && <p>{artist}</p>}</header>}
   <music-deck data-state="stopped">
     <audio controls preload="none" src={first.src} aria-label={first.title}></audio>
@@ -149,24 +152,3 @@ for (const track of tracks) {
   }
   if (!customElements.get('music-deck')) customElements.define('music-deck', MusicDeck);
 </script>
-
-<style>
-  .music-player { width: min(100%, 380px); margin-inline: auto; text-align: left; scroll-margin-block-start: 6rem; }
-  header { margin-bottom: .75rem; }
-  h2 { margin: 0; }
-  header p, .error { color: var(--nord4); font-size: .875rem; }
-  music-deck, audio, [data-fallback] a { display: block; }
-  audio { width: 100%; }
-  [hidden] { display: none !important; }
-  [data-recorder] { display: grid; gap: 1rem; }
-  .legend { display: flex; justify-content: space-between; padding: .45rem .85rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--nord4); border-bottom: 2px solid #171c25; }
-  ol { list-style: none; margin: 0; padding: .2rem; }
-  li + li { border-top: 1px solid var(--nord3); }
-  li button { display: grid; grid-template-columns: 2ch 1fr auto; gap: .8rem; align-items: center; width: 100%; min-height: 2.75rem; padding: .4rem .65rem; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--nord6); text-align: left; font: inherit; cursor: var(--cursor-pointer); }
-  .number, .loaded { color: var(--nord4); font-size: .75rem; }
-  .loaded { display: none; color: var(--nord8); }
-  button[aria-current] { border-left-color: var(--nord8); background: var(--nord0); }
-  button[aria-current] .loaded { display: inline; }
-  li button:hover { background: var(--nord3); }
-  li button:focus-visible { outline: 2px solid var(--nord8); outline-offset: -2px; }
-</style>

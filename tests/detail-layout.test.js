@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
 import { createBuildFixture } from './build-fixture.js';
@@ -13,6 +13,13 @@ before(async () => {
     origin = process.env.LAYOUT_TEST_ORIGIN;
   } else {
     workspace = await createBuildFixture('detail-layout');
+    const postDir = join(workspace.directory, 'src/content/blog/latest-journal-fixture');
+    await mkdir(postDir);
+    await writeFile(join(postDir, 'index.md'), `---\n${JSON.stringify({
+      id: 'latest-journal-fixture', title: 'Fixture Audio Journal',
+      summary: 'A test recording.', date: '2099-01-01',
+      audioJournal: { title: 'Fixture recording', src: '/audio/audio-journal/Nov-20-2026.mp3' },
+    })}\n---\n`);
     await workspace.build();
     server = createServer(async (request, response) => {
       const pathname = new URL(request.url, 'http://localhost').pathname;
@@ -120,6 +127,49 @@ test('detail articles fill the header/footer column without overflowing mobile',
     }
   } finally {
     await page.close();
+  }
+});
+
+test('plain blog posts do not load cassette player styles', async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${origin}/blog/the-agent-shepherd/`);
+    assert.equal(await page.locator('music-deck').count(), 0);
+    const stylesheets = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => link.href));
+    assert.equal(stylesheets.some(url => /music-?player/i.test(url)), false);
+  } finally {
+    await page.close();
+  }
+});
+
+test('the latest Audio Journal plays inside the homepage panel', async () => {
+  const page = await browser.newPage({ viewport: { width: 320, height: 740 } });
+  try {
+    await page.goto(`${origin}/`);
+    const panel = page.getByRole('region', { name: 'Latest blog post:' });
+    const post = panel.locator('.latest-post-card');
+    const deck = panel.locator('music-deck');
+    assert.equal(await post.locator('music-deck').count(), 0);
+    assert.equal(await deck.locator('audio').getAttribute('src'), '/audio/audio-journal/Nov-20-2026.mp3');
+    await deck.getByRole('button', { name: 'Play', exact: true }).press('Space');
+    await page.waitForFunction(() => document.querySelector('.latest-post music-deck audio').currentTime > 0);
+    assert.equal(page.url(), `${origin}/`);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await post.click();
+    const detailDeck = page.locator('.post-body music-deck');
+    assert.equal(await detailDeck.locator('audio').getAttribute('src'), '/audio/audio-journal/Nov-20-2026.mp3');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.post-body music-deck .keys')).display === 'grid');
+  } finally {
+    await page.close();
+  }
+
+  const fallback = await browser.newPage({ javaScriptEnabled: false });
+  try {
+    await fallback.goto(`${origin}/`);
+    assert.ok(await fallback.locator('.latest-post audio[controls]').isVisible());
+    assert.ok(await fallback.locator('.latest-post [data-fallback] a[download]').isVisible());
+  } finally {
+    await fallback.close();
   }
 });
 

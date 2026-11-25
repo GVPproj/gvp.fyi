@@ -74,9 +74,11 @@ test('every content page advertises RSS and exposes a native footer subscription
     const discovery = document.querySelector('head link[rel="alternate"][type="application/rss+xml"]');
     assert.equal(discovery?.getAttribute('href'), 'https://gvp.fyi/rss.xml', path);
     const link = document.querySelector('footer a[href="/rss.xml"]');
-    assert.equal(link?.textContent, 'RSS', path);
-    assert.equal(link.hasAttribute('tabindex'), false);
-    assert.equal(link.hasAttribute('data-astro-reload'), true);
+    assert.ok(link, path);
+    assert.equal(link.querySelector('img')?.getAttribute('alt'), 'RSS Feed', path);
+    assert.equal(link.getAttribute('target'), '_blank', path);
+    assert.equal(link.hasAttribute('tabindex'), false, path);
+    assert.equal(link.hasAttribute('data-astro-reload'), true, path);
   }
 });
 
@@ -168,23 +170,31 @@ test('RSS subscription works with keyboard alone, no JavaScript and reduced moti
   let browser;
   try {
     browser = await chromium.launch();
+    const origin = `http://127.0.0.1:${server.address().port}`;
+    const articleURL = `${origin}/blog/the-agent-shepherd/`;
+    const feedURL = `${origin}/rss.xml`;
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ javaScriptEnabled: false, reducedMotion: 'reduce', viewport: { width, height: 844 } });
       const tab = await context.newPage();
-      await tab.goto(`http://127.0.0.1:${server.address().port}/blog/the-agent-shepherd/`);
+      await tab.goto(articleURL);
+      const link = tab.locator('footer').getByRole('link', { name: 'RSS Feed', exact: true });
+      assert.equal(await link.count(), 1);
+      const focusedLink = link.and(tab.locator(':focus'));
       for (let step = 0; step < 30; step++) {
         await tab.keyboard.press('Tab');
-        if (await tab.evaluate(() => document.activeElement.getAttribute('href') === '/rss.xml')) break;
+        if (await focusedLink.count()) break;
       }
-      assert.equal(await tab.evaluate(() => document.activeElement.getAttribute('href')), '/rss.xml');
-      const link = tab.getByRole('link', { name: 'RSS', exact: true });
+      assert.equal(await focusedLink.count(), 1, `RSS link should receive Tab focus at ${width}px`);
       assert.notEqual(await link.evaluate(element => getComputedStyle(element).outlineStyle), 'none');
       assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-      const [response] = await Promise.all([
-        tab.waitForResponse(response => response.url().endsWith('/rss.xml')),
+      const [popup, response] = await Promise.all([
+        tab.waitForEvent('popup'),
+        // The new tab's initial navigation is observed on the browser context.
+        context.waitForEvent('response', response => response.url() === feedURL && response.request().isNavigationRequest()),
         tab.keyboard.press('Enter'),
       ]);
-      await tab.waitForURL('**/rss.xml');
+      await popup.waitForURL(feedURL);
+      assert.equal(tab.url(), articleURL);
       assert.equal(response.status(), 200);
       assert.match(response.headers()['content-type'], /xml/);
       assert.equal(SyntaxValidator.validate(await response.text()), true);

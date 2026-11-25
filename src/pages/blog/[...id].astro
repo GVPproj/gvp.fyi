@@ -1,5 +1,6 @@
 ---
-import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BlogPostBody from '../../components/BlogPostBody.astro';
 import { sectionLabel } from '../../lib/site-settings';
 import Layout from '../../layouts/Layout.astro';
 
@@ -13,7 +14,6 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
 ---
 
 <Layout title={post.data.title} type="article" alignWithHeader>
@@ -22,7 +22,7 @@ const { Content } = await render(post);
       <a href="/blog/">← {sectionLabel('blog')}</a>
       <h1>{post.data.title}</h1>
     </header>
-    <div class="post-body"><Content /></div>
+    <div class="post-body"><BlogPostBody {post} /></div>
   </article>
 </Layout>
 
@@ -37,6 +37,7 @@ const { Content } = await render(post);
   h1 { margin-block: 1rem 2rem; }
   .post-body { color: var(--color-foreground); }
   .post-body :global(> * + *) { margin-block-start: 1.5rem; }
+  .post-body :global(figure) { margin-inline: 0; }
   .post-body :global(img) { max-width: 100%; height: auto; }
   .post-body :global(code) { font-size: 0.95em; color: var(--color-accent); }
   .post-body :global(pre) {
