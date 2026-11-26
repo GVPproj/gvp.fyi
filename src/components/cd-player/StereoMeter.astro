@@ -1,0 +1,24 @@
+---
+// Thirty LEDs per channel, one per dB from −30 to 0 dBFS.
+const leds = Array.from({ length: 30 }, (_, i) => `M${12 + i * 6} 0h4v6h-4z`);
+---
+<svg class="meter" viewBox="0 0 202 18" preserveAspectRatio="none" role="img" aria-label="Stereo playback peak meter, −30 to 0 dBFS">
+  {[2,10].map((y,i) => <g transform={`translate(0 ${y})`}>
+    <text x="2" y="6">{i ? 'R' : 'L'}</text>
+    <g shape-rendering="crispEdges">
+      <path d={leds.slice(0,24).join('')} fill="#183723" />
+      <path d={leds.slice(24).join('')} fill="#412121" />
+      <svg x="12" width="180" height="6" viewBox="12 0 180 6">
+        <g data-meter-bank style="clip-path:inset(0 100% 0 0)">
+          <path d={leds.slice(0,24).join('')} fill="#44df65" />
+          <path d={leds.slice(24).join('')} fill="#ff4842" />
+        </g>
+      </svg>
+    </g>
+  </g>)}
+</svg>
+<style>
+  .meter { display:block; width:100%; height:var(--transport-height); box-sizing:border-box; background:#101517; border:2px solid; border-color:#161619 #59585a #676668 #202023; padding:2px; }
+  text { font:7px Gohu,monospace; }
+  .meter > g > text:first-child { fill:#c9d1c9; }
+</style>

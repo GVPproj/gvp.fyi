@@ -4,8 +4,21 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { parseHTML } from 'linkedom';
 import { chromium } from 'playwright-core';
 import { createBuildFixture } from './build-fixture.js';
+
+async function addPost(fixture, post) {
+  const directory = join(fixture.directory, 'src/content/blog', post.id);
+  await mkdir(directory);
+  await writeFile(join(directory, 'index.md'), `---\n${JSON.stringify(post)}\n---\n`);
+}
+
+const fixtureJournal = {
+  id: 'latest-journal-fixture', title: 'Fixture Audio Journal',
+  summary: 'A test recording.', date: '2099-01-01',
+  audioJournal: { title: 'Fixture recording', src: '/audio/audio-journal/Nov-20-2026.mp3' },
+};
 
 let workspace, server, browser, origin;
 before(async () => {
@@ -13,13 +26,7 @@ before(async () => {
     origin = process.env.LAYOUT_TEST_ORIGIN;
   } else {
     workspace = await createBuildFixture('detail-layout');
-    const postDir = join(workspace.directory, 'src/content/blog/latest-journal-fixture');
-    await mkdir(postDir);
-    await writeFile(join(postDir, 'index.md'), `---\n${JSON.stringify({
-      id: 'latest-journal-fixture', title: 'Fixture Audio Journal',
-      summary: 'A test recording.', date: '2099-01-01',
-      audioJournal: { title: 'Fixture recording', src: '/audio/audio-journal/Nov-20-2026.mp3' },
-    })}\n---\n`);
+    await addPost(workspace, fixtureJournal);
     await workspace.build();
     server = createServer(async (request, response) => {
       const pathname = new URL(request.url, 'http://localhost').pathname;
@@ -54,7 +61,7 @@ test('Nord cursors preserve interaction states and native fallbacks', async () =
     };
     await expectCursor('body', 'default', '0 0', 'default');
     await expectCursor('a[href]', 'pointer', '5 0', 'pointer');
-    await expectCursor('button', 'pointer', '5 0', 'pointer');
+    await expectCursor('button:enabled', 'pointer', '5 0', 'pointer');
     await expectCursor('.latest-post-card h3', 'pointer', '5 0', 'pointer');
     await expectCursor('.home-intro', 'text', '15 15', 'text');
 
@@ -81,9 +88,7 @@ test('Nord cursors preserve interaction states and native fallbacks', async () =
     assert.equal(await cursor('.home-intro'), 'text');
 
     await page.emulateMedia({ forcedColors: 'none' });
-    await expectCursor('.volume-fader input', 'ns-resize', '15 15', 'ns-resize');
-    await page.locator('.volume-fader input').evaluate(input => { input.disabled = true; });
-    await expectCursor('.volume-fader input', 'default', '0 0', 'default');
+    await expectCursor('.cd-player button:disabled', 'default', '0 0', 'default');
   } finally {
     await page.close();
   }
@@ -139,6 +144,23 @@ test('plain blog posts do not load cassette player styles', async () => {
     assert.equal(stylesheets.some(url => /music-?player/i.test(url)), false);
   } finally {
     await page.close();
+  }
+});
+
+test('the homepage CD player uses the latest journal even when the latest post is plain', async () => {
+  const fixture = await createBuildFixture('cd-player');
+  try {
+    await addPost(fixture, fixtureJournal);
+    await addPost(fixture, {
+      id: 'newer-plain-fixture', title: 'Newer plain post',
+      summary: 'No recording.', date: '2099-01-02',
+    });
+    await fixture.build();
+    const { document } = parseHTML(await readFile(join(fixture.directory, 'dist/index.html'), 'utf8'));
+    assert.equal(document.querySelector('.latest-post-card')?.getAttribute('href'), '/blog/newer-plain-fixture/');
+    assert.equal(document.querySelector('.cd-player audio')?.getAttribute('src'), fixtureJournal.audioJournal.src);
+  } finally {
+    await fixture.cleanup();
   }
 });
 

@@ -1,0 +1,102 @@
+---
+import Rack from './Rack.astro';
+
+interface Props { title: string; src: string }
+const { title, src } = Astro.props;
+const controls = [
+  ['back', 'Back 10 seconds', 'M1 2h2v10H1zm10 0v10H9v-2H6V8H4V6h2V4h3V2z'],
+  ['play', 'Play', 'M2 1h2v2h3v2h3v1h2v2h-2v1H7v2H4v2H2z'],
+  ['stop', 'Stop', 'M2 2h10v10H2z'],
+  ['forward', 'Forward 10 seconds', 'M11 2h2v10h-2zM3 2h2v2h3v2h2v2H8v2H5v2H3z'],
+];
+---
+<section class="cd-player" aria-label={`Audio Journal CD player: ${title}`}>
+  <div data-face hidden>
+    <Rack>
+      <div slot="display" class="lcd"><small>TRACK</small><small data-mode>STOP</small><b>01</b><b data-time>0:00</b></div>
+      <div slot="keys" class="keys">{controls.map(([action,label,d]) => (
+        <button type="button" data-action={action} aria-label={label} title={label} disabled={action === 'back' || action === 'forward'}>
+          <svg viewBox="0 0 14 14" aria-hidden="true" shape-rendering="crispEdges"><path d={d}/></svg>
+        </button>
+      ))}</div>
+    </Rack>
+  </div>
+  <audio controls preload="none" src={src} aria-label={`Audio Journal: ${title}`}></audio>
+</section>
+<style>
+  .cd-player { --transport-height:30px; width:100%; min-width:0; }
+  audio { max-width:100%; }
+  .lcd { display:grid; grid-template-columns:auto auto; align-content:center; justify-content:space-around; column-gap:3px; height:100%; box-sizing:border-box; background:var(--lcd-bg); color:var(--lcd-ink); font-family:'Gohu',monospace; text-align:left; line-height:1; padding:4px; }
+  small { font-size:9px; letter-spacing:.06em; }
+  b { font-size:clamp(16px,3vw,30px); font-weight:400; white-space:nowrap; }
+  .keys { display:flex; gap:3px; }
+  .keys button { flex:1; min-width:0; min-height:var(--transport-height); color:var(--key-ink); background:var(--key-face); border:2px solid; border-color:#888892 #17171c #141419 #65656b; box-shadow:0 2px #111; padding:3px; }
+  .keys svg { vertical-align:middle; width:12px; fill:currentColor; }
+  .keys button:enabled:hover {filter:brightness(1.2)}
+  .keys button:disabled {color:#afabb0}
+  .keys button:active {border-style:inset; transform:translateY(1px)}
+  .keys button:focus-visible {outline:2px solid #ffdc91;outline-offset:2px;position:relative;z-index:1}
+</style>
+<script>
+  import { setPath, wireUp, press, release } from 'button-sounds';
+  import { stereoMeter } from './stereo-meter';
+
+  document.addEventListener('astro:page-load', () => {
+    const deck = document.querySelector<HTMLElement>('.cd-player');
+    if (!deck) return;
+    const audio = deck.querySelector('audio')!;
+    const meter = stereoMeter(audio, [...deck.querySelectorAll<SVGGElement>('[data-meter-bank]')]);
+    const buttons = [...deck.querySelectorAll<HTMLButtonElement>('[data-action]')];
+    const seekKeys = buttons.filter(button => ['back', 'forward'].includes(button.dataset.action!));
+    const playKey = deck.querySelector<HTMLButtonElement>('[data-action=play]')!;
+    const icon = playKey.querySelector('path')!;
+    const playIcon = icon.getAttribute('d')!;
+    const mode = deck.querySelector('[data-mode]')!;
+    const time = deck.querySelector('[data-time]')!;
+    const controller = new AbortController();
+    const { signal } = controller;
+    setPath('/audio/transport');
+    const preset = 'uhk-soft';
+    const opts = { volume: 0.5, lofi: false, pitchVariation: 0.1 };
+    const clean = buttons.map(button => wireUp(button, preset, opts));
+    function keySound(trigger: typeof press) {
+      if (!signal.aborted) trigger(preset, { ...opts, playbackRate: 1 + (Math.random()*2 - 1)*opts.pitchVariation });
+    }
+    function render() {
+      const seconds = Math.floor(audio.currentTime);
+      time.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+      mode.textContent = audio.error ? 'ERR' : !audio.paused ? 'PLAY' : audio.currentTime ? 'PAUSE' : 'STOP';
+      playKey.ariaLabel = playKey.title = audio.paused ? 'Play' : 'Pause';
+      icon.setAttribute('d', audio.paused ? playIcon : 'M2 2h4v10H2zm6 0h4v10H8z');
+    }
+    function stop() { audio.pause(); audio.currentTime = 0; render(); }
+    buttons.forEach(button => button.addEventListener('click', event => {
+      if (!event.detail) { keySound(press); setTimeout(() => keySound(release), 90); }
+      switch (button.dataset.action) {
+        case 'play':
+          if (!audio.paused) { audio.pause(); break; }
+          meter.activate();
+          audio.play().catch(error => { if (error.name !== 'AbortError') mode.textContent = 'ERR'; });
+          break;
+        case 'stop': stop(); break;
+        default:
+          if (Number.isFinite(audio.duration)) audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + (button.dataset.action === 'back' ? -10 : 10)));
+      }
+    }, { signal }));
+    for (const event of ['timeupdate', 'play', 'pause', 'error']) audio.addEventListener(event, render, { signal });
+    audio.addEventListener('durationchange', () => {
+      seekKeys.forEach(key => { key.disabled = !Number.isFinite(audio.duration); });
+    }, { signal });
+    audio.addEventListener('ended', stop, { signal });
+    // The journal can also appear in the latest-post cassette. Play only one deck at a time.
+    document.addEventListener('play', event => {
+      if (event.target === audio) document.querySelectorAll<HTMLAudioElement>('music-deck audio').forEach(other => other.pause());
+      else if (event.target instanceof HTMLAudioElement && event.target.closest('music-deck')) audio.pause();
+    }, { capture: true, signal });
+    audio.hidden = true;
+    deck.querySelector<HTMLElement>('[data-face]')!.hidden = false;
+    document.addEventListener('astro:before-swap', () => {
+      controller.abort(); audio.pause(); meter.dispose(); clean.forEach(remove => remove());
+    }, { once: true });
+  });
+</script>

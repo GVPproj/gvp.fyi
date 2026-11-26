@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import { getMusicReleases } from '../lib/music-releases';
 import { getLikes } from '../lib/likes-collection';
 import { getRadioEpisodes } from '../lib/radio-episodes';
-import AmbientPad from '../components/AmbientPad.astro';
+import CdPlayer from '../components/cd-player/CdPlayer.astro';
 import ContentRow from '../components/ContentRow.astro';
 import MusicPlayer from '../components/MusicPlayer.astro';
 import PixelBox from '../components/elements/PixelBox.astro';
@@ -14,8 +14,10 @@ const latestItemLimit = 4;
 const latestAlbums = (await getMusicReleases()).slice(0, latestItemLimit);
 const latestLikes = (await getLikes()).slice(0, latestItemLimit);
 const latestMixes = (await getRadioEpisodes()).slice(0, latestItemLimit);
-const latestPost = (await getCollection('blog'))
-  .sort((a, b) => b.data.date.localeCompare(a.data.date) || a.id.localeCompare(b.id))[0];
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.date.localeCompare(a.data.date) || a.id.localeCompare(b.id));
+const latestPost = posts[0];
+const latestJournal = posts.find(post => post.data.audioJournal)?.data.audioJournal;
 const audioJournal = latestPost?.data.audioJournal;
 ---
 
@@ -25,7 +27,7 @@ const audioJournal = latestPost?.data.audioJournal;
 Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="intro-word"><a href="/radio">radio</a>,</span> and <span class="intro-word"><a href="/software">software</a>.</span>
 
     </h1>
-    <AmbientPad />
+    {latestJournal && <CdPlayer title={latestJournal.title} src={latestJournal.src} />}
     {latestPost && (
       <section class="latest-post" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post:</h2>
