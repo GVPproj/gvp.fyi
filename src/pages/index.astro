@@ -1,11 +1,10 @@
 ---
-import { getCollection } from 'astro:content';
+import { getDatedEntries } from '../lib/dated-entries';
 import { getMusicReleases } from '../lib/music-releases';
 import { getLikes } from '../lib/likes-collection';
 import { getRadioEpisodes } from '../lib/radio-episodes';
 import CdPlayer from '../components/cd-player/CdPlayer.astro';
 import ContentRow from '../components/ContentRow.astro';
-import MusicPlayer from '../components/MusicPlayer.astro';
 import PixelBox from '../components/elements/PixelBox.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Layout from '../layouts/Layout.astro';
@@ -14,11 +13,8 @@ const latestItemLimit = 4;
 const latestAlbums = (await getMusicReleases()).slice(0, latestItemLimit);
 const latestLikes = (await getLikes()).slice(0, latestItemLimit);
 const latestMixes = (await getRadioEpisodes()).slice(0, latestItemLimit);
-const posts = (await getCollection('blog'))
-  .sort((a, b) => b.data.date.localeCompare(a.data.date) || a.id.localeCompare(b.id));
-const latestPost = posts[0];
-const latestJournal = posts.find(post => post.data.audioJournal)?.data.audioJournal;
-const audioJournal = latestPost?.data.audioJournal;
+const [latestPost] = await getDatedEntries('blog');
+const tracks = (await getDatedEntries('musicJournal')).map(entry => entry.data.track);
 ---
 
 <Layout alignWithHeader>
@@ -27,7 +23,7 @@ const audioJournal = latestPost?.data.audioJournal;
 Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="intro-word"><a href="/radio">radio</a>,</span> and <span class="intro-word"><a href="/software">software</a>.</span>
 
     </h1>
-    {latestJournal && <CdPlayer title={latestJournal.title} src={latestJournal.src} />}
+    <CdPlayer {tracks} />
     {latestPost && (
       <section class="latest-post" aria-labelledby="latest-post-heading">
         <h2 id="latest-post-heading">Latest blog post:</h2>
@@ -35,13 +31,8 @@ Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="
           <a class="latest-post-card" href={`/blog/${latestPost.id}/`} aria-labelledby="latest-post-title">
             <time datetime={latestPost.data.date}>{latestPost.data.date}</time>
             <h3 id="latest-post-title">{latestPost.data.title}</h3>
-            {!audioJournal && <p>{latestPost.data.summary}</p>}
+            <p>{latestPost.data.summary}</p>
           </a>
-          {audioJournal && (
-            <div class="latest-post-player">
-              <MusicPlayer title={latestPost.data.title} showHeader={false} tracks={[audioJournal]} />
-            </div>
-          )}
         </PixelBox>
       </section>
     )}
@@ -117,7 +108,6 @@ Making <span class="intro-word"><a href="/music">music</a>,</span> <span class="
   .latest-post-card h3 { text-decoration: underline; text-underline-offset: 0.18em; }
   .latest-post-card:hover { background: var(--nord2); color: var(--nord8); }
   .latest-post-card:focus-visible { outline: 2px solid var(--nord8); outline-offset: -4px; }
-  .latest-post-player { padding: 0 0.75rem 1.5rem; }
   .latest-post time { color: var(--nord4); font-size: 0.875rem; }
   .latest-post p { margin: 0; color: var(--nord4); line-height: 1.5; }
 

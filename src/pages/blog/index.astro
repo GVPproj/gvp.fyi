@@ -1,20 +1,25 @@
 ---
-import { getCollection } from 'astro:content';
+import { getDatedEntries } from '../../lib/dated-entries';
 import { sectionLabel } from '../../lib/site-settings';
 import Layout from '../../layouts/Layout.astro';
 
-const posts = (await getCollection('blog'))
-  .sort((a, b) => b.data.date.localeCompare(a.data.date));
+const posts = await getDatedEntries('blog');
+const journals = await getDatedEntries('musicJournal');
 const title = sectionLabel('blog');
 ---
 
 <Layout title={title}>
   <h1>{title}</h1>
-  <ul>
-    {posts.map((post) => (
-      <li><a href={`/blog/${post.id}/`}>{post.data.title}</a> - <time datetime={post.data.date}>{post.data.date}</time></li>
-    ))}
-  </ul>
+  {[{ heading: null, entries: posts }, { heading: 'Music Journal', entries: journals }].map(({ heading, entries }) =>
+    entries.length > 0 && <>
+      {heading && <h2>{heading}</h2>}
+      <ul>
+        {entries.map(({ id, data }) => (
+          <li><a href={`/blog/${id}/`}>{data.title}</a> - <time datetime={data.date}>{data.date}</time></li>
+        ))}
+      </ul>
+    </>
+  )}
 </Layout>
 
 <style>

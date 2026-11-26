@@ -2,23 +2,10 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parseHTML } from 'linkedom';
 import { chromium } from 'playwright-core';
 import { createBuildFixture } from './build-fixture.js';
-
-async function addPost(fixture, post) {
-  const directory = join(fixture.directory, 'src/content/blog', post.id);
-  await mkdir(directory);
-  await writeFile(join(directory, 'index.md'), `---\n${JSON.stringify(post)}\n---\n`);
-}
-
-const fixtureJournal = {
-  id: 'latest-journal-fixture', title: 'Fixture Audio Journal',
-  summary: 'A test recording.', date: '2099-01-01',
-  audioJournal: { title: 'Fixture recording', src: '/audio/audio-journal/Nov-20-2026.mp3' },
-};
 
 let workspace, server, browser, origin;
 before(async () => {
@@ -26,7 +13,6 @@ before(async () => {
     origin = process.env.LAYOUT_TEST_ORIGIN;
   } else {
     workspace = await createBuildFixture('detail-layout');
-    await addPost(workspace, fixtureJournal);
     await workspace.build();
     server = createServer(async (request, response) => {
       const pathname = new URL(request.url, 'http://localhost').pathname;
@@ -147,40 +133,36 @@ test('plain blog posts do not load cassette player styles', async () => {
   }
 });
 
-test('the homepage CD player uses the latest journal even when the latest post is plain', async () => {
-  const fixture = await createBuildFixture('cd-player');
-  try {
-    await addPost(fixture, fixtureJournal);
-    await addPost(fixture, {
-      id: 'newer-plain-fixture', title: 'Newer plain post',
-      summary: 'No recording.', date: '2099-01-02',
-    });
-    await fixture.build();
-    const { document } = parseHTML(await readFile(join(fixture.directory, 'dist/index.html'), 'utf8'));
-    assert.equal(document.querySelector('.latest-post-card')?.getAttribute('href'), '/blog/newer-plain-fixture/');
-    assert.equal(document.querySelector('.cd-player audio')?.getAttribute('src'), fixtureJournal.audioJournal.src);
-  } finally {
-    await fixture.cleanup();
-  }
-});
-
-test('the latest Audio Journal plays inside the homepage panel', async () => {
+test('the homepage CD plays independently of the latest blog card', async () => {
   const page = await browser.newPage({ viewport: { width: 320, height: 740 } });
   try {
     await page.goto(`${origin}/`);
-    const panel = page.getByRole('region', { name: 'Latest blog post:' });
-    const post = panel.locator('.latest-post-card');
-    const deck = panel.locator('music-deck');
-    assert.equal(await post.locator('music-deck').count(), 0);
-    assert.equal(await deck.locator('audio').getAttribute('src'), '/audio/audio-journal/Nov-20-2026.mp3');
-    await deck.getByRole('button', { name: 'Play', exact: true }).press('Space');
-    await page.waitForFunction(() => document.querySelector('.latest-post music-deck audio').currentTime > 0);
+    const deck = page.locator('.cd-player');
+    const second = deck.locator('[data-fallback] a').nth(1);
+    const selected = await second.getAttribute('href');
+    await deck.getByRole('button', { name: 'Next track' }).press('Space');
+    assert.equal(await deck.getByRole('status').textContent(), await second.textContent());
+    const play = deck.getByRole('button', { name: 'Play', exact: true });
+    const playIcon = await play.locator('path').getAttribute('d');
+    await play.press('Space');
+    await page.waitForFunction(src => [...document.querySelectorAll('.cd-player audio')]
+      .some(audio => audio.currentTime > 0 && new URL(audio.currentSrc).pathname === src), selected);
+    assert.equal(await play.locator('path').getAttribute('d'), playIcon);
+    const audio = deck.locator('audio').first();
+    await play.press('Space');
+    assert.equal(await audio.evaluate(el => el.paused), false);
+    await deck.getByRole('button', { name: 'Pause', exact: true }).press('Space');
+    assert.ok(await audio.evaluate(el => el.paused && el.currentTime > 0));
+    await play.press('Space');
+    assert.equal(await audio.evaluate(el => el.paused), false);
     assert.equal(page.url(), `${origin}/`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    await post.click();
-    const detailDeck = page.locator('.post-body music-deck');
-    assert.equal(await detailDeck.locator('audio').getAttribute('src'), '/audio/audio-journal/Nov-20-2026.mp3');
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('.post-body music-deck .keys')).display === 'grid');
+    const card = page.locator('.latest-post-card');
+    const href = await card.getAttribute('href');
+    assert.match(href, /^\/blog\/(?!music-journal-).+\/$/);
+    await card.click();
+    await page.waitForURL(`${origin}${href}`);
+    assert.equal(await page.locator('.post-body music-deck').count(), 0);
   } finally {
     await page.close();
   }
@@ -188,8 +170,20 @@ test('the latest Audio Journal plays inside the homepage panel', async () => {
   const fallback = await browser.newPage({ javaScriptEnabled: false });
   try {
     await fallback.goto(`${origin}/`);
-    assert.ok(await fallback.locator('.latest-post audio[controls]').isVisible());
-    assert.ok(await fallback.locator('.latest-post [data-fallback] a[download]').isVisible());
+    assert.ok(await fallback.locator('.cd-player audio[controls][src="/audio/audio-journal/Nov-20-2026.mp3"]').isVisible());
+    assert.ok(await fallback.locator('.cd-player a[href="/audio/audio-journal/Nov-20-2026.mp3"]').isVisible());
+    for (const day of [20, 25, 26]) {
+      const path = `/blog/music-journal-nov-${day}-2026/`;
+      const mp3 = `/audio/audio-journal/Nov-${day}-2026.mp3`;
+      await fallback.goto(`${origin}${path}`);
+      const canonical = await fallback.locator('link[rel="canonical"]').getAttribute('href');
+      assert.equal(new URL(canonical).pathname, path);
+      const deck = fallback.locator('.post-body music-deck');
+      const audio = deck.locator('audio[controls]');
+      assert.ok(await audio.isVisible());
+      assert.equal(await audio.getAttribute('src'), mp3);
+      assert.ok(await deck.locator(`[data-fallback] a[download][href="${mp3}"]`).isVisible());
+    }
   } finally {
     await fallback.close();
   }

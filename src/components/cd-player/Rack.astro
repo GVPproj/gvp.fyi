@@ -6,10 +6,8 @@ import StereoMeter from './StereoMeter.astro';
   <div class="unit">
     <div class="ear" aria-hidden="true"><i></i><i></i></div>
     <div class="panel">
-      <div class="drive">
-        <img class="brand" src={wordmark.src} width={wordmark.width} height={wordmark.height} alt="TASCAM CD-6010" />
-        <div class="tray" aria-hidden="true"><i></i></div>
-      </div>
+      <img class="brand" src={wordmark.src} width={wordmark.width} height={wordmark.height} alt="TASCAM CD-6010" />
+      <div class="tray" aria-hidden="true"><i></i></div>
       <div class="bezel"><div class="glass"><slot name="display" /></div></div>
       <svg class="speaker" viewBox="0 0 40 40" aria-hidden="true" shape-rendering="crispEdges">
         <path fill="#151719" d="M12 0h16v2h5v3h3v4h2v4h2v15h-2v4h-3v4h-4v2h-4v2H13v-2H8v-3H5v-4H2v-5H0V14h2V9h3V5h4V2h3z" />
@@ -29,8 +27,8 @@ import StereoMeter from './StereoMeter.astro';
   .right { transform:scaleX(-1); }
   .ear i { width:54%; aspect-ratio:1.6; background:#111113; box-shadow:inset 1px 2px #060608,0 1px #676565; clip-path:polygon(16% 0,84% 0,100% 22%,100% 78%,84% 100%,16% 100%,0 78%,0 22%); }
   .panel { display:grid; grid-template-columns:minmax(0,1.18fr) minmax(0,1fr) 9%; align-items:center; gap:clamp(10px,2cqi,22px); padding:clamp(12px,2.2cqi,24px) clamp(12px,2.8cqi,34px) clamp(10px,1.7cqi,20px); border:2px solid #18181a; border-top-color:#777574; box-shadow:inset 2px 3px #535354,inset -2px -3px #272729,0 3px #131315; background:repeating-linear-gradient(0deg,#ffffff03 0 1px,transparent 1px 4px),linear-gradient(104deg,#353537,#454547 56%,#373739); }
-  .drive { min-width:0; }
-  .brand { display:block; width:112px; max-width:100%; height:auto; margin-bottom:7px; image-rendering:pixelated; }
+  .brand,.tray { grid-area:1 / 1; }
+  .brand { align-self:start; display:block; width:112px; max-width:100%; height:auto; image-rendering:pixelated; }
   .tray { background:#111214; border:2px solid #252527; box-shadow:-1px -1px #555457,1px 2px #646365; padding:2px 3px 5px; }
   .tray i { display:block; height:clamp(18px,3.8cqi,42px); background:linear-gradient(175deg,#555557,#373739 45%,#252527 82%); border-top:2px solid #676768; border-bottom:3px solid #1a1a1c; box-shadow:1px 2px #09090a; }
   .bezel { min-width:0; padding:clamp(4px,.9cqi,10px); background:#141418; box-shadow:inset 2px 2px #08080b,1px 2px #69686a,-1px -1px #2a292b; }
@@ -40,8 +38,9 @@ import StereoMeter from './StereoMeter.astro';
   .strip { min-width:0; }
   .transport { grid-column:2 / 4; min-width:0; }
   @container (max-width:510px) {
-    .panel { grid-template-columns:minmax(0,1fr) 36px; gap:12px; }
-    .speaker { grid-area:1 / 2; }
-    .bezel,.strip,.transport { grid-column:1 / -1; }
+    .panel { grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:10px; }
+    .speaker { display:none; }
+    .strip { grid-area:1 / 1; align-self:end; border:0; box-shadow:none; padding:0; --transport-height:20px; }
+    .transport { grid-column:1 / -1; }
   }
 </style>

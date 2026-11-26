@@ -3,11 +3,11 @@
 Subscribe at `/rss.xml`. The static Astro endpoint uses `@astrojs/rss`, the configured
 site URL and site title/description. It reads only repository content at build time:
 no feed service, Mixcloud API, synchronization or runtime server is involved.
-The complete published Blog, Likes, Software, Music and Radio catalogue is included.
+The complete published Blog, Music Journal, Likes, Software, Music and Radio catalogue is included.
 
 ## Publishing and editing
 
-- Blog uses its existing `date`; Likes uses its existing `created` timestamp.
+- Blog posts and Music Journal entries use `date`; Likes uses its existing `created` timestamp.
 - Software, Music and Radio require `publishedAt: YYYY-MM-DD`: the day the entry is
   published **on this site**, not the project, release or broadcast's original date.
   Set this explicitly when adding an entry. Dates are validated calendar dates;
@@ -18,11 +18,13 @@ The complete published Blog, Likes, Software, Music and Radio catalogue is inclu
   edits, title changes, folder renames and slug changes. Never reuse a removed ID.
   Update slugs/folders and redirects separately; the feed links to the current
   local canonical detail URL, not to the GUID or an external listening page.
-- Blog, Software and Music require a plain-text `summary`. Describe the content,
+  Music Journal entries have their own feed category but retain the Blog GUID
+  namespace so existing subscribers do not receive duplicate entries.
+- Blog, Music Journal, Software and Music require a plain-text `summary`. Describe the content,
   not its implementation. Do not put Markdown, imports, HTML, scripts or interactive
   components in it. Software tooling/website/repository and Music artist/release/
   credits/listening metadata are added to the summary automatically.
-- Blog items also include the rendered MDX body in `content:encoded` for readers
+- Blog and Music Journal items also include the rendered MDX body in `content:encoded` for readers
   that support it. Article formatting, code and raster images are kept; links and
   image URLs are made absolute. Site styles, scripts and controls are omitted.
   Audio and video can be reached by direct links, and posts with embedded media

@@ -10,7 +10,7 @@ import { resolveWebURL } from '../lib/web-url';
 import { renderBlogForRSS } from '../lib/rss-blog-content';
 
 type FeedEntry = {
-  kind: 'Blog' | 'Likes' | 'Software' | 'Music' | 'Radio';
+  kind: 'Blog' | 'Music Journal' | 'Likes' | 'Software' | 'Music' | 'Radio';
   id: string;
   title: string;
   date: string;
@@ -41,7 +41,9 @@ export const GET: APIRoute = async ({ site }) => {
     return url ? `<p><a href="${escapeHTML(url)}">${escapeHTML(label)}</a></p>` : '';
   }
   function add({ kind, id, title, date, href, description, content }: FeedEntry) {
-    const identity = `urn:gvp.fyi:${kind.toLowerCase()}:${id}`;
+    // Journals were first published as Blog items; their GUIDs must not change.
+    const namespace = kind === 'Music Journal' ? 'blog' : kind.toLowerCase();
+    const identity = `urn:gvp.fyi:${namespace}:${id}`;
     if (identities.has(identity)) throw new Error(`Duplicate RSS identity: ${identity}`);
     identities.add(identity);
     items.push({
@@ -50,10 +52,11 @@ export const GET: APIRoute = async ({ site }) => {
       customData: `<guid isPermaLink="false">${identity}</guid>`,
     });
   }
-  for (const post of await getCollection('blog')) {
+  const [blog, journals] = await Promise.all([getCollection('blog'), getCollection('musicJournal')]);
+  for (const post of [...blog, ...journals]) {
     const { id, data } = post;
     const href = `/blog/${id}`;
-    add({ kind: 'Blog', id: data.id, title: data.title, date: data.date, href,
+    add({ kind: post.collection === 'musicJournal' ? 'Music Journal' : 'Blog', id: data.id, title: data.title, date: data.date, href,
       description: paragraph(data.summary), content: await renderBlogForRSS(post, new URL(`${href}/`, site)) });
   }
   for (const like of await getLikes()) {

@@ -3,13 +3,12 @@ import { render, type CollectionEntry } from 'astro:content';
 import MusicPlayer from './MusicPlayer.astro';
 
 interface Props {
-  post: CollectionEntry<'blog'>;
+  post: CollectionEntry<'blog' | 'musicJournal'>;
 }
 
 const { post } = Astro.props;
-const { title, audioJournal } = post.data;
 const { Content } = await render(post);
 ---
 
-{audioJournal && <MusicPlayer {title} showHeader={false} tracks={[audioJournal]} />}
+{post.collection === 'musicJournal' && <MusicPlayer title={post.data.title} showHeader={false} tracks={[post.data.track]} />}
 <Content />

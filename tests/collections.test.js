@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { parseHTML } from 'linkedom';
@@ -50,13 +50,48 @@ import Face from '@src/components/elements/Face.astro';
 
 <Face />
 `);
+  // Keep the CD playlist deterministic as new recordings are published.
+  const journals = join(fixture, 'src/content/music-journal');
+  await rm(journals, { recursive: true, force: true });
+  for (const [slug, date, day] of [
+    ['a-middle', '2099-01-02', 25], ['z-newest', '2099-01-03', 20], ['m-oldest', '2098-12-31', 26],
+  ]) {
+    const id = `music-journal-${slug}`;
+    const dir = join(journals, id);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'index.md'), `---\n${JSON.stringify({
+      id, date, title: `Post ${slug}`, summary: 'A test recording.',
+      track: { title: `Recording ${day}`, src: `/audio/audio-journal/Nov-${day}-2026.mp3` },
+    })}\n---\n`);
+  }
   await build();
 });
 
-test('homepage previews the latest post summary, not its MDX source', async () => {
+test('homepage previews the latest blog summary even when a journal entry is newer', async () => {
   const home = await page('');
+  assert.equal(home.querySelector('.latest-post-card')?.getAttribute('href'), '/blog/fixture-latest/');
   assert.equal(home.querySelector('.latest-post-card p')?.textContent, 'A readable preview.');
   assert.equal(home.querySelector('.latest-post music-deck'), null);
+});
+
+test('blog index puts Music Journal links below the regular posts, newest first', async () => {
+  const main = (await page('blog')).querySelector('main');
+  const groups = [...main.querySelectorAll('ul, h2')];
+  assert.deepEqual(groups.map(group => group.localName), ['ul', 'h2', 'ul']);
+  assert.equal(groups[1].textContent, 'Music Journal');
+  assert.equal(groups[0].querySelector('a').getAttribute('href'), '/blog/fixture-latest/');
+  assert.equal(groups[0].querySelector('a[href*="music-journal"]'), null);
+  assert.deepEqual([...groups[2].querySelectorAll('a')].map(link => link.getAttribute('href')),
+    ['z-newest', 'a-middle', 'm-oldest'].map(slug => `/blog/music-journal-${slug}/`));
+});
+
+test('homepage CD lists every journal track newest first, including without JavaScript', async () => {
+  const cd = (await page('')).querySelector('.cd-player');
+  const expected = [20, 25, 26].map(day => [`Recording ${day}`, `/audio/audio-journal/Nov-${day}-2026.mp3`]);
+  assert.equal(cd.querySelector('audio').getAttribute('src'), expected[0][1]);
+  assert.equal(cd.querySelector('.lcd [role="status"]').textContent, expected[0][0]);
+  assert.equal(cd.querySelector('select, h2'), null);
+  assert.deepEqual([...cd.querySelectorAll('ol a')].map(link => [link.textContent, link.getAttribute('href')]), expected);
 });
 
 after(async () => {

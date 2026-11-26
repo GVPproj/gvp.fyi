@@ -5,6 +5,9 @@ export default defineConfig({
   integrations: [mdx()],
   redirects: {
     '/blog/drawing-my-face/': '/blog/the-animated-face/',
+    '/blog/audio-journal-nov-20-2026/': '/blog/music-journal-nov-20-2026/',
+    '/blog/audio-journal-nov-25-2026/': '/blog/music-journal-nov-25-2026/',
+    '/blog/audio-journal-nov-26-2026/': '/blog/music-journal-nov-26-2026/',
   },
   server: {
     host: '127.0.0.1',

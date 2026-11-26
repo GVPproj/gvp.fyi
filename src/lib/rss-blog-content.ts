@@ -14,7 +14,7 @@ const articleAttributes: Record<string, readonly string[]> = {
   td: ['colspan', 'rowspan'], th: ['colspan', 'rowspan', 'scope'], details: ['open'],
 };
 
-export async function renderBlogForRSS(entry: CollectionEntry<'blog'>, permalink: URL) {
+export async function renderBlogForRSS(entry: CollectionEntry<'blog' | 'musicJournal'>, permalink: URL) {
   const container = await AstroContainer.create();
   container.addServerRenderer({ name: 'astro:jsx', renderer: mdxRenderer });
   const html = await container.renderToString(BlogPostBody, { props: { post: entry } });

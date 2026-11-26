@@ -5,12 +5,15 @@ import { sectionLabel } from '../../lib/site-settings';
 import Layout from '../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog');
+  const posts = [...await getCollection('blog'), ...await getCollection('musicJournal')];
+  if (new Set(posts.map(post => post.id)).size !== posts.length) {
+    throw new Error('Blog posts and Music Journal entries must have unique /blog/ paths');
+  }
   return posts.map((post) => ({ params: { id: post.id }, props: { post } }));
 }
 
 interface Props {
-  post: CollectionEntry<'blog'>;
+  post: CollectionEntry<'blog' | 'musicJournal'>;
 }
 
 const { post } = Astro.props;

@@ -25,7 +25,7 @@ before(async () => {
 });
 after(async () => workspace?.cleanup());
 
-test('an offline build publishes the complete five-type RSS catalogue with local canonical destinations', async () => {
+test('an offline build publishes the complete RSS catalogue with local canonical destinations', async () => {
   const document = await feed();
   assert.equal(document.documentElement.getAttribute('version'), '2.0');
   const settings = JSON.parse(await readFile(join(workspace.directory, 'src/config/site-settings.json'), 'utf8'));
@@ -44,7 +44,7 @@ test('an offline build publishes the complete five-type RSS catalogue with local
     const item = items.find(item => text(item, 'link') === `https://gvp.fyi/${path}/`);
     assert.equal(new Date(text(item, 'pubDate')).toISOString(), date);
   }
-  for (const [collection, category] of [['blog', 'Blog'], ['likes', 'Likes'], ['software', 'Software'], ['music', 'Music'], ['radio', 'Radio']]) {
+  for (const [collection, category] of [['blog', 'Blog'], ['music-journal', 'Music Journal'], ['likes', 'Likes'], ['software', 'Software'], ['music', 'Music'], ['radio', 'Radio']]) {
     const entries = await readdir(join(workspace.directory, 'src/content', collection));
     assert.equal(items.filter(item => text(item, 'category') === category).length, entries.length, collection);
   }
@@ -128,7 +128,7 @@ test('Blog RSS includes readable article HTML, published images and links for me
   const articles = new Map();
   for (const item of document.querySelectorAll('item')) {
     const encoded = item.getElementsByTagName('content:encoded')[0]?.textContent;
-    if (text(item, 'category') !== 'Blog') {
+    if (!['Blog', 'Music Journal'].includes(text(item, 'category'))) {
       assert.equal(encoded, undefined);
       continue;
     }
@@ -150,9 +150,17 @@ test('Blog RSS includes readable article HTML, published images and links for me
   const imageURL = new URL(image.getAttribute('src'));
   assert.equal(imageURL.origin, 'https://gvp.fyi');
   assert.ok((await readFile(join(workspace.directory, 'dist', imageURL.pathname))).length > 0);
-  const audio = articles.get('/blog/audio-journal-nov-20-2026/');
-  assert.ok(audio.querySelector('a[href="https://gvp.fyi/audio/audio-journal/Nov-20-2026.mp3"]'));
-  assert.doesNotMatch(audio.textContent, /Unable to play|0:00/);
+  for (const day of [20, 25, 26]) {
+    const path = `/blog/music-journal-nov-${day}-2026/`;
+    const item = [...document.querySelectorAll('item')].find(item => text(item, 'link') === `https://gvp.fyi${path}`);
+    assert.ok(item, path);
+    assert.equal(text(item, 'guid'), `urn:gvp.fyi:blog:audio-journal-nov-${day}-2026`);
+    assert.equal(new Date(text(item, 'pubDate')).toISOString(), `2026-11-${day}T00:00:00.000Z`);
+    const journal = articles.get(path);
+    assert.ok(journal, `Expected Blog article at ${path}`);
+    assert.ok(journal.querySelector(`a[href="https://gvp.fyi/audio/audio-journal/Nov-${day}-2026.mp3"]`));
+    assert.doesNotMatch(journal.textContent, /Unable to play|0:00/);
+  }
 });
 
 test('RSS subscription works with keyboard alone, no JavaScript and reduced motion at desktop and mobile sizes', async () => {

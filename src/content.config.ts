@@ -12,17 +12,25 @@ const summary = z.string().trim().min(1);
 // allowing glob's default slug-derived IDs to silently overwrite an entry.
 const entryId = ({ entry }: { entry: string }) => entry.replace(/\/index\.mdx?$/, '');
 
+const datedEntry = z.object({
+  id: persistentId,
+  title: z.string().min(1),
+  summary,
+  date: publicationDate,
+});
+
 const blog = defineCollection({
   loader: glob({ pattern: '**/index.{md,mdx}', base: './src/content/blog', generateId: entryId }),
-  schema: z.object({
-    id: persistentId,
-    title: z.string().min(1),
-    summary,
-    date: publicationDate,
-    audioJournal: z.object({
+  schema: datedEntry,
+});
+
+const musicJournal = defineCollection({
+  loader: glob({ pattern: '**/index.{md,mdx}', base: './src/content/music-journal', generateId: entryId }),
+  schema: datedEntry.extend({
+    track: z.object({
       title: z.string().trim().min(1),
-      src: z.string().regex(/^\/audio\/(?:[\w-]+\/)*[\w-]+\.mp3$/, 'Audio Journals require a local MP3 under /audio/'),
-    }).strict().optional(),
+      src: z.string().regex(/^\/audio\/(?:[\w-]+\/)*[\w-]+\.mp3$/, 'Music Journal entries require a local MP3 under /audio/'),
+    }).strict(),
   }),
 });
 
@@ -177,4 +185,4 @@ const radio = defineCollection({
   }).strict(),
 });
 
-export const collections = { blog, software, likes, music, radio };
+export const collections = { blog, musicJournal, software, likes, music, radio };
