@@ -121,6 +121,38 @@ test('detail articles fill the header/footer column without overflowing mobile',
   }
 });
 
+test('music journal cassette players fill the blog post width', async () => {
+  const page = await browser.newPage();
+  try {
+    for (const width of [1564, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/blog/music-journal-nov-26-2026/`);
+      const { bodyWidth, playerWidth, deckWidth, renderedRatio, originalRatio, frameHeight, deckHeight } = await page.locator('.post-body').evaluate(body => {
+        const player = body.querySelector('.music-player');
+        const frame = body.querySelector('[data-deck-scale]');
+        const deck = body.querySelector('.deck');
+        const deckBox = deck.getBoundingClientRect();
+        return {
+          bodyWidth: body.getBoundingClientRect().width,
+          playerWidth: player.getBoundingClientRect().width,
+          deckWidth: deckBox.width,
+          deckHeight: deckBox.height,
+          frameHeight: frame.getBoundingClientRect().height,
+          renderedRatio: deckBox.width / deckBox.height,
+          originalRatio: deck.offsetWidth / deck.offsetHeight,
+        };
+      });
+      assert.ok(Math.abs(playerWidth - bodyWidth) < 1, `at ${width}px: player is ${playerWidth}px wide in a ${bodyWidth}px post`);
+      assert.ok(Math.abs(deckWidth - bodyWidth) < 1, `at ${width}px: deck is ${deckWidth}px wide in a ${bodyWidth}px post`);
+      assert.ok(Math.abs(renderedRatio - originalRatio) < 0.001, `at ${width}px: recorder should retain its aspect ratio`);
+      assert.ok(Math.abs(frameHeight - deckHeight) < 1, `at ${width}px: frame should match the scaled recorder height`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
 test('plain blog posts do not load cassette player styles', async () => {
   const page = await browser.newPage();
   try {

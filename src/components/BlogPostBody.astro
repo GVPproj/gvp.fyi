@@ -10,5 +10,5 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 ---
 
-{post.collection === 'musicJournal' && <MusicPlayer title={post.data.title} showHeader={false} tracks={[post.data.track]} />}
+{post.collection === 'musicJournal' && <MusicPlayer title={post.data.title} showHeader={false} fullWidth tracks={[post.data.track]} />}
 <Content />

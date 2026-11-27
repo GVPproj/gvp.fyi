@@ -11,10 +11,11 @@ interface Props {
   title: string;
   artist?: string;
   showHeader?: boolean;
+  fullWidth?: boolean;
   tracks: { title: string; src: string }[];
 }
 
-const { id, title, artist, tracks, showHeader = true } = Astro.props;
+const { id, title, artist, tracks, showHeader = true, fullWidth = false } = Astro.props;
 const [first] = tracks;
 for (const track of tracks) {
   if (!track.src.startsWith('/audio/')) continue;
@@ -23,7 +24,7 @@ for (const track of tracks) {
 }
 ---
 
-{first && <section {id} class="music-player" aria-label={`Listen to ${title}`}>
+{first && <section {id} class:list={['music-player', { 'full-width': fullWidth }]} aria-label={`Listen to ${title}`}>
   <!-- Link the asset only when a deck renders, not on every page that imports it. -->
   <link rel="stylesheet" href={playerStyles} />
   {showHeader && <header><h2>{title}</h2>{artist && <p>{artist}</p>}</header>}
@@ -33,7 +34,7 @@ for (const track of tracks) {
       {tracks.map(track => <a href={track.src} download>Download {track.title}</a>)}
     </div>
     <div data-recorder hidden>
-      <CassetteRecorder {...first} />
+      <div data-deck-scale><CassetteRecorder {...first} /></div>
       <p class="error" role="status" hidden>Unable to play this track. Try downloading the MP3.</p>
       {tracks.length > 1 && <PixelBox class="track-index">
         <div class="legend"><span>Track index</span><span>{String(tracks.length).padStart(2, '0')} tracks</span></div>
@@ -53,11 +54,32 @@ for (const track of tracks) {
 
   class MusicDeck extends HTMLElement {
     private removeTransportSounds?: () => void;
+    private deckScaleObserver?: ResizeObserver;
+
+    private observeDeckScale() {
+      if (!this.parentElement?.classList.contains('full-width')) return;
+      const frame = this.querySelector<HTMLElement>('[data-deck-scale]')!;
+      const deck = frame.querySelector<HTMLElement>('.deck')!;
+      const baseWidth = deck.offsetWidth;
+      const scale = () => {
+        const ratio = frame.clientWidth / baseWidth;
+        deck.style.setProperty('--deck-scale', String(ratio));
+        frame.style.height = `${deck.offsetHeight * ratio}px`;
+      };
+      this.deckScaleObserver?.disconnect();
+      this.deckScaleObserver = new ResizeObserver(scale);
+      this.deckScaleObserver.observe(frame);
+      this.deckScaleObserver.observe(deck);
+      scale();
+    }
 
     connectedCallback() {
       const audio = this.querySelector('audio')!;
       this.removeTransportSounds ??= addTransportSounds(this, audio);
-      if (this.dataset.ready) return;
+      if (this.dataset.ready) {
+        this.observeDeckScale();
+        return;
+      }
       const play = this.querySelector<HTMLButtonElement>('[data-play]')!;
       const pause = this.querySelector<HTMLButtonElement>('[data-pause]')!;
       const mute = this.querySelector<HTMLButtonElement>('[data-mute]')!;
@@ -145,10 +167,13 @@ for (const track of tracks) {
       this.querySelector<HTMLElement>('[data-fallback]')!.hidden = true;
       this.querySelector<HTMLElement>('[data-recorder]')!.hidden = false;
       this.dataset.ready = 'true';
+      this.observeDeckScale();
     }
     disconnectedCallback() {
       this.removeTransportSounds?.();
       this.removeTransportSounds = undefined;
+      this.deckScaleObserver?.disconnect();
+      this.deckScaleObserver = undefined;
       this.querySelector('audio')?.pause();
     }
   }

@@ -1,6 +1,14 @@
 .music-player {
   width: min(100%, 380px); margin-inline: auto; text-align: left; scroll-margin-block-start: 6rem;
 
+  &.full-width { width: 100%; }
+  &.full-width [data-deck-scale] { width: 100%; overflow: hidden; }
+  &.full-width .deck {
+    width: 380px;
+    transform: scale(var(--deck-scale, 1));
+    transform-origin: top left;
+  }
+
   & > header { margin-bottom: .75rem; }
   & > header h2 { margin: 0; }
   & > header p, .error { color: var(--nord4); font-size: .875rem; }
