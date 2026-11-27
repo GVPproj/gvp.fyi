@@ -26,6 +26,28 @@ const imageAlt = 'A fully drawn one-line portrait of Graham Van Pelt beside gvp.
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      (() => {
+        const key = 'site-theme';
+        const system = matchMedia('(prefers-color-scheme: dark)');
+        let preference;
+        try { preference = localStorage.getItem(key); } catch { /* Storage may be blocked. */ }
+        if (preference !== 'light' && preference !== 'dark') preference = null;
+        const theme = () => preference ?? (system.matches ? 'dark' : 'light');
+        const apply = (root = document.documentElement) => { root.dataset.theme = theme(); };
+
+        // Set before the first paint and carry it into Astro's incoming page.
+        apply();
+        system.addEventListener('change', () => apply());
+        document.addEventListener('astro:before-swap', event => apply(event.newDocument.documentElement));
+        document.addEventListener('click', event => {
+          if (!(event.target instanceof Element) || !event.target.closest('[data-theme-toggle]')) return;
+          preference = theme() === 'dark' ? 'light' : 'dark';
+          apply();
+          try { localStorage.setItem(key, preference); } catch { /* Keep the choice for this visit. */ }
+        });
+      })();
+    </script>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
     <link rel="alternate" type="application/rss+xml" title={siteSettings.title} href={new URL('/rss.xml', Astro.site)} />

@@ -11,11 +11,19 @@
 /* Keep the original 32px size and hotspots; progress uses a static ANI frame. */
 @media (any-pointer: fine) and (forced-colors: none) {
   :root {
-    --cursor-default: url('/cursors/nord/default.png') 0 0, default;
-    --cursor-pointer: url('/cursors/nord/pointer.png') 5 0, pointer;
-    --cursor-text: url('/cursors/nord/text.png') 15 15, text;
-    --cursor-ns-resize: url('/cursors/nord/ns-resize.png') 15 15, ns-resize;
-    --cursor-progress: url('/cursors/nord/progress.png') 0 8, progress;
+    --cursor-default: url('/cursors/atom-one-dark/default.png') 0 0, default;
+    --cursor-pointer: url('/cursors/atom-one-dark/pointer.png') 5 0, pointer;
+    --cursor-text: url('/cursors/atom-one-dark/text.png') 15 15, text;
+    --cursor-ns-resize: url('/cursors/atom-one-dark/ns-resize.png') 15 15, ns-resize;
+    --cursor-progress: url('/cursors/atom-one-dark/progress.png') 0 8, progress;
+  }
+
+  :root[data-theme='light'] {
+    --cursor-default: url('/cursors/atom-one-light/default.png') 0 0, default;
+    --cursor-pointer: url('/cursors/atom-one-light/pointer.png') 5 0, pointer;
+    --cursor-text: url('/cursors/atom-one-light/text.png') 15 15, text;
+    --cursor-ns-resize: url('/cursors/atom-one-light/ns-resize.png') 15 15, ns-resize;
+    --cursor-progress: url('/cursors/atom-one-light/progress.png') 0 8, progress;
   }
 }
 

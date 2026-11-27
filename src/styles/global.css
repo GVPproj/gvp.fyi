@@ -11,20 +11,21 @@
   font-size: 100%;
   color-scheme: dark;
 
-  /* Ghostty Hivacruz, using the existing Nord token names for compatibility. */
-  --nord0: #132638;
-  --nord1: #243546;
-  --nord2: #344352;
-  --nord3: #59636f;
-  --nord4: #c1bec2;
-  --nord6: #ede4e4;
-  --nord7: #69a4d6;
-  --nord8: #55b3d0;
-  --nord11: #c94922;
-  --nord12: #c56a29;
-  --nord13: #c08b30;
-  --nord14: #ac9739;
-  --nord15: #6679cc;
+  /* Ghostty Atom One Dark with brighter text. Both palettes are based on
+     mbadolato/iTerm2-Color-Schemes (ghostty, 39d0d4d). Keep the existing token names. */
+  --nord0: #21252b;
+  --nord1: #2c3037;
+  --nord2: #363a41;
+  --nord3: #4d525a;
+  --nord4: #8f96a1;
+  --nord6: #d5d9df;
+  --nord7: #74b0e3;
+  --nord8: #6bb5c1;
+  --nord11: #e06c75;
+  --nord12: #e39678;
+  --nord13: #e5c07b;
+  --nord14: #98c379;
+  --nord15: #c678dd;
 
   --color-background: var(--nord0);
   --color-foreground: var(--nord6);
@@ -37,13 +38,34 @@
   --colour-text-base: var(--color-foreground);
   --colour-text-muted: var(--nord4);
   --colour-accent: var(--color-accent);
-  --colour-highlight: var(--nord7);
+  --colour-highlight: var(--nord15);
+  --colour-border: #191c20;
+  --colour-shadow: #121418;
   --ink-700: var(--nord2);
   --ink-500: var(--nord3);
   --site-header-width: 36rem;
 
   background: var(--color-background);
   color: var(--color-foreground);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --nord0: #fafafa;
+  --nord1: #eaebeb;
+  --nord2: #ddddde;
+  --nord3: #bcbdbf;
+  --nord4: #5f6067;
+  --nord6: #383a42;
+  --nord7: #3152c7;
+  --nord8: #0f729e;
+  --nord11: #de3e35;
+  --nord12: #d87a59;
+  --nord13: #d2b67c;
+  --nord14: #3f953a;
+  --nord15: #950095;
+  --colour-border: #696a70;
+  --colour-shadow: #999a9e;
 }
 
 /* Random dissolve (page-transitions.style): reveal scattered pixels.
@@ -213,7 +235,7 @@ a {
   height: 6px;
   transform: translateX(-50%);
   opacity: 0;
-  background: radial-gradient(ellipse, #11172288 15%, #11172244 55%, transparent 100%);
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--colour-shadow) 53%, transparent) 15%, color-mix(in srgb, var(--colour-shadow) 27%, transparent) 55%, transparent 100%);
   transition: translate 180ms ease-out, opacity 180ms ease-out;
 }
 

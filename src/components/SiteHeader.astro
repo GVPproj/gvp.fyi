@@ -1,6 +1,7 @@
 ---
 import Sig from './elements/Sig.astro'
 import PixelMenu from './elements/PixelMenu.astro'
+import ThemeIcon from './elements/ThemeIcon.astro'
 
 const path = Astro.url.pathname
 
@@ -55,14 +56,15 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   <!-- Native popover: light-dismiss, Escape, top layer and the ARIA wiring
        come free, and the menu works before JS loads. Accepted tradeoff: no
        focus trap, which is fine for this navigation drawer. -->
-  <button
-    type="button"
-    popovertarget="site-nav"
-    class="menu-toggle"
-    aria-label="Open menu"
-  >
-    <PixelMenu />
-  </button>
+  <div class="header-actions">
+    <button type="button" class="theme-toggle" data-theme-toggle>
+      <span class="theme-light-action"><ThemeIcon name="sun" /><span class="sr-only">Switch to light theme</span></span>
+      <span class="theme-dark-action"><ThemeIcon name="moon" /><span class="sr-only">Switch to dark theme</span></span>
+    </button>
+    <button type="button" popovertarget="site-nav" class="menu-toggle" aria-label="Open menu">
+      <PixelMenu />
+    </button>
+  </div>
 
   <!-- Native right-side drawer styled after unbusy.day's pixel menu. -->
   <nav popover id="site-nav" aria-label="Mobile navigation">
@@ -146,7 +148,39 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     padding: 1.5rem;
   }
 
+  .header-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .theme-toggle {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--colour-text-base);
+  }
+
+  .theme-toggle > span {
+    display: grid;
+  }
+
+  :global(:root:not([data-theme])) .theme-toggle,
+  :global(:root[data-theme='dark']) .theme-toggle .theme-dark-action,
+  :global(:root[data-theme='light']) .theme-toggle .theme-light-action {
+    display: none;
+  }
+
   @media (width < 48rem) {
+    .header-actions {
+      margin-inline-end: -0.5rem;
+    }
+
     header {
       position: fixed;
       inset: 0 0 auto;
@@ -202,7 +236,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
       background-color: color-mix(in srgb, var(--colour-fill) 80%, transparent);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 4px 12px -6px hsl(204 80% 6% / 0.3);
+      box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--colour-shadow) 30%, transparent);
     }
 
     .home {
@@ -244,9 +278,9 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     border-radius: 0;
   }
 
-  :is(.home, nav a, .group-toggle, summary):is(.current, :hover, :focus-visible),
+  :is(.home, nav a, .group-toggle, summary, .theme-toggle):is(.current, :hover, :focus-visible),
   .nav-group:has(.dropdown:popover-open) > .group-toggle {
-    background: var(--colour-accent);
+    background: var(--colour-highlight);
     color: var(--colour-fill);
   }
 
@@ -329,7 +363,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     border-radius: 0;
     background: var(--colour-fill);
     color: var(--colour-text-base);
-    box-shadow: 0 4px 12px -6px hsl(204 80% 6% / 0.3);
+    box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--colour-shadow) 30%, transparent);
     font: 500 1.125rem/1.5 var(--font-sans);
   }
 
@@ -349,14 +383,17 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     border-radius: 0;
   }
 
-  .menu-toggle,
   .menu-close {
     position: fixed;
-    /* Match the signature's center: header padding + half its height. */
-    top: calc(1.5rem + 2.5rem / 2);
+    /* Match the invoker's center in the mobile header. */
+    top: 2.75rem;
     transform: translateY(-50%);
     right: 1rem;
     z-index: 10;
+  }
+
+  .menu-toggle,
+  .menu-close {
     display: grid;
     place-items: center;
     padding: 0.4rem;
@@ -391,7 +428,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
     height: 100%;
     overflow-y: auto;
     padding: 5.5rem 0.75rem max(1.5rem, env(safe-area-inset-bottom));
-    border-inline-start: 2px solid #171c25;
+    border-inline-start: 2px solid var(--colour-border);
     border-radius: 0;
     background: var(--colour-fill);
     box-shadow: inset 2px 0 0 var(--nord3);
@@ -412,7 +449,7 @@ if (new Set(navigation.map(item => item.id)).size !== navigation.length) throw n
   }
 
   #site-nav::backdrop {
-    background: hsl(204 80% 6% / 0.55);
+    background: color-mix(in srgb, var(--colour-shadow) 55%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     transition: background 0.2s ease-out;

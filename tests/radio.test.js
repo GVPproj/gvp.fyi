@@ -271,6 +271,7 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     const episodeLink = tab.locator('.content-row a');
     await home.focus();
     for (const [name] of desktopLinks) await tabTo(namedLink(desktop, name));
+    await tabTo(tab.getByRole('button', { name: /^Switch to (light|dark) theme$/ }));
     await tabTo(episodeLink);
     await tab.keyboard.press('Enter');
     await tab.waitForURL('**/radio/afw-2026-10-20');
@@ -292,6 +293,7 @@ test('desktop and mobile navigation support the published keyboard journey', { t
     assert.equal(await desktop.isVisible(), false);
     assert.equal(await mobile.isVisible(), false);
     await home.focus();
+    await tabTo(tab.getByRole('button', { name: /^Switch to (light|dark) theme$/ }));
     await tabTo(openMenu);
     await assertFocusOutline(openMenu);
     await tab.keyboard.press('Enter');

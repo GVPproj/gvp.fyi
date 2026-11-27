@@ -37,13 +37,13 @@ after(async () => {
   await workspace?.cleanup();
 });
 
-test('Nord cursors preserve interaction states and native fallbacks', async () => {
-  const page = await browser.newPage();
+test('Themed cursors preserve interaction states and native fallbacks', async () => {
+  const page = await browser.newPage({ colorScheme: 'dark' });
   try {
     await page.goto(`${origin}/`);
     const cursor = selector => page.locator(selector).first().evaluate(element => getComputedStyle(element).cursor);
     const expectCursor = async (selector, name, hotspot, fallback) => {
-      assert.equal(await cursor(selector), `url("${origin}/cursors/nord/${name}.png") ${hotspot}, ${fallback}`);
+      assert.equal(await cursor(selector), `url("${origin}/cursors/atom-one-dark/${name}.png") ${hotspot}, ${fallback}`);
     };
     await expectCursor('body', 'default', '0 0', 'default');
     await expectCursor('a[href]', 'pointer', '5 0', 'pointer');
@@ -55,7 +55,7 @@ test('Nord cursors preserve interaction states and native fallbacks', async () =
     for (const name of ['default', 'pointer', 'text', 'ns-resize', 'progress']) {
       assert.deepEqual(await page.evaluate(async name => {
         const image = new Image();
-        image.src = `/cursors/nord/${name}.png`;
+        image.src = `/cursors/atom-one-dark/${name}.png`;
         await image.decode();
         return [image.naturalWidth, image.naturalHeight];
       }, name), [32, 32]);
@@ -86,6 +86,48 @@ test('Nord cursors preserve interaction states and native fallbacks', async () =
     assert.equal(await touch.locator('a[href]').first().evaluate(element => getComputedStyle(element).cursor), 'pointer');
   } finally {
     await touch.close();
+  }
+});
+
+test('The navbar theme toggle follows system preference until overridden and remembers the choice', async () => {
+  const page = await browser.newPage({ colorScheme: 'light', reducedMotion: 'reduce' });
+  try {
+    await page.goto(`${origin}/`);
+    const root = page.locator('html');
+    const darkAction = page.getByRole('button', { name: 'Switch to dark theme' });
+    const lightAction = page.getByRole('button', { name: 'Switch to light theme' });
+    const palette = () => root.evaluate(element => {
+      const style = getComputedStyle(element);
+      return [style.colorScheme, style.backgroundColor, style.color, style.cursor];
+    });
+    assert.deepEqual((await palette()).slice(0, 3), ['light', 'rgb(250, 250, 250)', 'rgb(56, 58, 66)']);
+    assert.match((await palette())[3], /\/cursors\/atom-one-light\/default\.png/);
+    await page.emulateMedia({ forcedColors: 'active' });
+    assert.equal((await palette())[3], 'default');
+    await page.emulateMedia({ forcedColors: 'none', colorScheme: 'dark' });
+    await lightAction.waitFor();
+    assert.deepEqual((await palette()).slice(0, 3), ['dark', 'rgb(33, 37, 43)', 'rgb(213, 217, 223)']);
+    await lightAction.focus();
+    await page.keyboard.press('Space');
+    assert.equal(await root.getAttribute('data-theme'), 'light');
+    assert.equal(await darkAction.evaluate(button => button === document.activeElement), true);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await darkAction.click();
+    assert.equal(await root.getAttribute('data-theme'), 'dark');
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.evaluate(() => document.addEventListener('astro:after-swap', () => {
+      document.body.dataset.themeAtSwap = document.documentElement.dataset.theme;
+    }, { once: true }));
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Radio', exact: true }).click();
+    await page.waitForURL('**/radio/');
+    assert.equal(await page.locator('body').getAttribute('data-theme-at-swap'), 'dark');
+    await page.reload();
+    await lightAction.waitFor();
+    assert.equal(await root.getAttribute('data-theme'), 'dark');
+  } finally {
+    await page.close();
   }
 });
 

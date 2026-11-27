@@ -16,7 +16,7 @@
   audio { width: 100%; }
   [hidden] { display: none !important; }
   [data-recorder] { display: grid; gap: 1rem; }
-  .legend { display: flex; justify-content: space-between; padding: .45rem .85rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--nord4); border-bottom: 2px solid #171c25; }
+  .legend { display: flex; justify-content: space-between; padding: .45rem .85rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--nord4); border-bottom: 2px solid var(--colour-border); }
   ol { list-style: none; margin: 0; padding: .2rem; }
   li + li { border-top: 1px solid var(--nord3); }
   li button { display: grid; grid-template-columns: 2ch 1fr auto; gap: .8rem; align-items: center; width: 100%; min-height: 2.75rem; padding: .4rem .65rem; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--nord6); text-align: left; font: inherit; cursor: var(--cursor-pointer); }
