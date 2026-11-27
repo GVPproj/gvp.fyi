@@ -1,4 +1,6 @@
 ---
+import CassettePrototype from './cassette-prototype/CassettePrototype.astro';
+
 interface Props {
   title: string;
   src: string;
@@ -10,7 +12,7 @@ const { title, src } = Astro.props;
 <div class="deck" role="group" aria-label="Cassette player">
   <div class="grille" aria-hidden="true"></div>
   <div class="door">
-    <div class="cassette">
+    {import.meta.env.DEV ? <CassettePrototype {title} /> : <div class="cassette">
       <div class="paper">
         <span class="side" aria-hidden="true">B</span>
         <span class="inscription" data-title role="status" aria-atomic="true">{title}</span>
@@ -39,7 +41,7 @@ const { title, src } = Astro.props;
         <path fill="#828375" d="M15 11h6v5h-6zm15-2h5v4h-5zm40 0h5v4h-5zm14 2h6v5h-6z" />
         <path fill="#f9f3de" d="M15 10h5v4h-5zm15-2h4v3h-4zm40 0h4v3h-4zm14 2h5v4h-5z" />
       </svg>
-    </div>
+    </div>}
     <!-- A separate lens crosses both the cassette and the dark recess around it. -->
     <svg class="lens" viewBox="0 0 160 92" preserveAspectRatio="none" shape-rendering="crispEdges" aria-hidden="true">
       <path fill="#cfe7e4" opacity=".19" d="M9 0h11v6h-3v6h-3v6h-3v6H8v6H5v6H2v6H0V18h2v-6h3V6h4zm19 0h3v6h-3v6h-3v6h-3v6h-3v6h-3v6h-3v6h-3v6H7v6H4v6H1v6H0v-12h1v-6h3v-6h3v-6h3v-6h3v-6h3v-6h3v-6h3V6h6z" />

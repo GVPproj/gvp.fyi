@@ -2,6 +2,7 @@
 import { stat } from 'node:fs/promises';
 import { publicDir } from 'astro:config/server';
 import CassetteRecorder from './CassetteRecorder.astro';
+import PrototypeSwitcher from './cassette-prototype/PrototypeSwitcher.astro';
 import PixelBox from './elements/PixelBox.astro';
 import playerStyles from '../styles/music-player.css?url&no-inline';
 
@@ -44,6 +45,7 @@ for (const track of tracks) {
       </PixelBox>}
     </div>
   </music-deck>
+  {import.meta.env.DEV && <PrototypeSwitcher />}
 </section>}
 
 <script>
@@ -130,8 +132,8 @@ for (const track of tracks) {
         audio.src = choice.dataset.src!;
         audio.setAttribute('aria-label', title);
         audio.load();
-        this.querySelector('[data-title]')!.textContent = title;
-        this.querySelector('[data-number]')!.textContent = String(index + 1).padStart(2, '0');
+        this.querySelectorAll('[data-title]').forEach(label => { label.textContent = title; });
+        this.querySelectorAll('[data-number]').forEach(number => { number.textContent = String(index + 1).padStart(2, '0'); });
         download.href = audio.src;
         download.setAttribute('aria-label', `Download ${title} (MP3)`);
         for (const other of choices) other.removeAttribute('aria-current');

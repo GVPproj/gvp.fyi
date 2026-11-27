@@ -113,7 +113,7 @@
   }
   @media (prefers-reduced-motion: no-preference) {
     .strip { transform: translateY(var(--roll, 0%)); }
-    music-deck[data-state='playing'] .hub { animation: cassette-reel-wind 3s steps(12) infinite; }
+    music-deck[data-state='playing'] .hub { animation: cassette-reel-wind 3s steps(48) infinite; }
   }
 }
 

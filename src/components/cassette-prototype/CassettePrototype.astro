@@ -1,0 +1,17 @@
+---
+// PROTOTYPE: Compare the two cassette designs via ?variant=A|B.
+import VariantA from './VariantA.astro';
+import VariantB from './VariantB.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div data-cassette-prototype>
+  <div data-cassette-variant="A"><VariantA {title} /></div>
+  <div data-cassette-variant="B" hidden><VariantB {title} /></div>
+</div>
+

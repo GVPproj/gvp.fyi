@@ -1,0 +1,61 @@
+<cassette-audition role="group" aria-label="Compare cassette designs">
+  <button type="button" data-prev aria-label="Previous cassette design">←</button>
+  <output>A · Oxblood</output>
+  <button type="button" data-next aria-label="Next cassette design">→</button>
+</cassette-audition>
+
+<style>
+  cassette-audition {
+    position: fixed; z-index: 100; bottom: max(1rem, env(safe-area-inset-bottom)); left: 50%;
+    display: flex; align-items: center; transform: translateX(-50%);
+    border: 1px solid #899b98; border-radius: 3rem; padding: .2rem;
+    background: #172125; color: #fff6e3; box-shadow: 0 3px 12px #0006;
+    font: .875rem/1.2 var(--font-sans);
+  }
+  output { min-width: 9rem; text-align: center; }
+  button {
+    width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%;
+    color: inherit; background: #34464a; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #52716f; }
+  button:focus-visible { outline: 2px solid #ffda86; outline-offset: 2px; }
+</style>
+
+<script>
+  const designs = [['A', 'Oxblood'], ['B', 'VOX C90']];
+  class CassetteAudition extends HTMLElement {
+    private listeners?: AbortController;
+    connectedCallback() {
+      const url = new URL(location.href);
+      let index = Math.max(0, designs.findIndex(([key]) => key === url.searchParams.get('variant')));
+      const player = this.closest('.music-player')!;
+      const render = () => {
+        const [key, name] = designs[index];
+        player.querySelectorAll<HTMLElement>('[data-cassette-variant]').forEach(art => {
+          art.hidden = art.dataset.cassetteVariant !== key;
+        });
+        this.querySelector('output')!.value = `${key} · ${name}`;
+      };
+      const step = (direction: number) => {
+        index = (index + direction + designs.length) % designs.length;
+        url.searchParams.set('variant', designs[index][0]);
+        history.replaceState(history.state, '', url);
+        render();
+      };
+      render();
+      this.listeners = new AbortController();
+      const options = { signal: this.listeners.signal };
+      this.querySelector('[data-prev]')!.addEventListener('click', () => step(-1), options);
+      this.querySelector('[data-next]')!.addEventListener('click', () => step(1), options);
+      document.addEventListener('keydown', e => {
+        if (e.defaultPrevented || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
+        if (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]')) return;
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        step(e.key === 'ArrowLeft' ? -1 : 1);
+      }, options);
+    }
+    disconnectedCallback() { this.listeners?.abort(); }
+  }
+  if (!customElements.get('cassette-audition')) customElements.define('cassette-audition', CassetteAudition);
+</script>

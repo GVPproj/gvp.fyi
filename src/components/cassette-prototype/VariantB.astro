@@ -1,0 +1,33 @@
+---
+import face from './vox-c90.png?url';
+interface Props { title: string }
+const { title } = Astro.props;
+---
+
+<div class="vox">
+  <img src={face} width="320" height="184" alt="" />
+  <svg viewBox="0 0 320 184" shape-rendering="crispEdges" aria-hidden="true">
+    <!-- The shell and well stay still; only the toothed cores turn. -->
+    {[91, 228].map(x => <g transform={`translate(${x} 83)`}>
+      <ellipse rx="17" ry="16" fill="#695d46" />
+      <g class="hub">
+        <circle r="15" fill="#373438" />
+        <circle r="13" fill="#484348" />
+        {[0, 60, 120, 180, 240, 300].map(angle => <g transform={`rotate(${angle})`}>
+          <path fill="#b5a88a" d="M-2-16h5v5h-5z" />
+          <path fill="#d1c4a2" d="M-2-12h5v1h-5z" />
+        </g>)}
+      </g>
+    </g>)}
+  </svg>
+  <span class="track" data-title role="status" aria-atomic="true">{title}</span>
+  <b class="number" data-number>01</b>
+</div>
+
+<style>
+  .vox { position: relative; container-type: inline-size; color: #302a25; }
+  img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .track { position: absolute; left: 24.7%; right: 21%; bottom: 81.5%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: italic 4.3cqw/1.1 Georgia, serif; }
+  .number { position: absolute; top: 23.4%; left: 14.5%; transform: translate(-50%, -50%); font: italic bold 5.2cqw/1 Georgia, serif; }
+</style>

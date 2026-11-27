@@ -1,0 +1,108 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const screws = [[9, 9], [191, 9], [9, 104], [191, 104]];
+---
+
+<div class="prototype-cassette sunset">
+  <svg viewBox="0 0 200 115" shape-rendering="crispEdges" aria-hidden="true">
+    <!-- Stepped corners, with a lit shoulder and a deep bottom lip. -->
+    <path fill="#25171e" d="M7 1h186v2h4v3h2v101h-2v4h-4v2H7v-2H3v-4H1V6h2V3h4z" />
+    <path fill="#532934" d="M8 3h184v2h3v3h2v96h-2v4h-4v2H9v-2H5v-4H3V8h2V5h3z" />
+    <path fill="#78404a" d="M8 3h184v2H8zM5 5h3v3H5zM3 8h2v93H3z" />
+    <path fill="#381e29" d="M195 12h2v92h-2zM12 108h176v2H12z" />
+
+    <!-- One paper insert: the disc breaks into offset bands at the horizon. -->
+    <path fill="#361f28" d="M17 7h166v2h3v68h-3v3H17v-3h-3V9h3z" />
+    <path fill="#f2dfb5" d="M18 9h164v2h2v64h-2v2H18v-2h-2V11h2z" />
+    <path fill="#f1b554" d="M40 13h12v1h5v2h4v2h3v3h3v4h2v5H23v-5h2v-4h3v-3h3v-2h4v-2h5z" />
+    <path fill="#dc8340" d="M24 27h44v3h2v5H22v-5h2z" />
+    <path fill="#b95439" d="M22 35h48v4H22zM24 41h44v3H24z" />
+    <path fill="#8c3936" d="M28 46h36v2H28z" />
+    <path fill="#e3a04a" d="M16 47h11v1H16zM65 47h119v1H65z" />
+    <path fill="#c56939" d="M16 49h168v2H16z" />
+    <path fill="#964433" d="M16 52h168v3H16z" />
+    <path fill="#68313a" d="M16 56h168v1H16z" />
+
+    <!-- Recessed spindle bridge and a narrow tape-level sight glass. -->
+    <path fill="#c9ac85" d="M53 58h94v2h3v11h-3v3H53v-3h-3V60h3z" />
+    <path fill="#402630" d="M54 59h92v2h3v9h-3v2H54v-2h-3v-9h3z" />
+    <path fill="#291d24" d="M78 61h44v9H78z" />
+    <path fill="#a88061" d="M80 63h40v5H80z" />
+    <path fill="#654537" d="M80 63h13v5H80zM116 63h4v5h-4z" />
+    <path fill="#d2ad83" d="M94 63h12v1H94z" />
+    {[62, 138].map(x => (
+      <g transform={`translate(${x} 65)`}>
+        <circle r="13" fill="#c9ac85" />
+        <circle r="12" fill="#402630" />
+        <g class="hub">
+          <circle r="10.5" fill="#d9c3a1" />
+          <circle r="8" fill="#241b20" />
+          {[0, 60, 120, 180, 240, 300].map(angle => (
+            <path transform={`rotate(${angle})`} fill="#d9c3a1" d="M-1.5-9h3v3h-3z" />
+          ))}
+        </g>
+      </g>
+    ))}
+
+    <!-- Raised head cover, capstan bores and guide slots. -->
+    <path fill="#341e28" d="M45 84h110v4h3v6h3v7h3v6h3v5H33v-5h3v-6h3v-7h3v-6h3z" />
+    <path fill="#68333e" d="M46 85h108v5h3v6h3v7h3v6H37v-6h3v-7h3v-6h3z" />
+    <path fill="#94515a" d="M46 85h108v2H46zM43 90h2v6h-2zM40 96h2v7h-2z" />
+    {[54, 146].map(x => (
+      <g transform={`translate(${x} 101)`}>
+        <path fill="#995660" d="M-3-4h6v1h2v6H3v2h-6V3h-2v-6h2z" />
+        <path fill="#251920" d="M-2-4h4v1h2v5H2v1h-4V2h-2v-5h2z" />
+      </g>
+    ))}
+    <path fill="#291b23" d="M72 98h6v6h-6zM122 98h6v6h-6z" />
+    <path fill="#8b4a53" d="M72 104h6v1h-6zM122 104h6v1h-6z" />
+    {screws.map(([x, y]) => (
+      <g transform={`translate(${x} ${y})`}>
+        <path fill="#321e27" d="M-2-3h4v1h1v4H2v1h-4V2h-1v-4h1z" />
+        <path fill="#aa8b7b" d="M-2-2h4v4h-4z" />
+        <path fill="#503940" d="M-2 0h2v1h-2zM0-1h2v1H0z" />
+      </g>
+    ))}
+  </svg>
+
+  <span class="title" data-title role="status" aria-atomic="true">{title}</span>
+  <span class="index">TRK <b data-number>01</b></span>
+  <span class="stock">TYPE I</span>
+</div>
+
+<style>
+  .sunset {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 320 / 184;
+    container-type: inline-size;
+    color: #402630;
+    font-family: var(--font-sans, sans-serif);
+  }
+  svg { display: block; width: 100%; height: 100%; }
+  .title {
+    position: absolute;
+    inset: 25% 10% auto 38%;
+    transform: translateY(-50%);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 4.3cqw;
+    font-weight: 700;
+    line-height: 1.04;
+  }
+  .index, .stock {
+    position: absolute;
+    top: 57.4%;
+    transform: translateY(-50%);
+    font: bold 2.8cqw/1 monospace;
+  }
+  .index { left: 10%; }
+  .stock { right: 10%; }
+</style>
