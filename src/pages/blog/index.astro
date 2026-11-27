@@ -8,8 +8,8 @@ const journals = await getDatedEntries('musicJournal');
 const title = sectionLabel('blog');
 ---
 
-<Layout title={title}>
-  <h1>{title}</h1>
+<Layout title={title} collection>
+  <h1 class="sr-only">{title}</h1>
   {[{ heading: null, entries: posts }, { heading: 'Music Journal', entries: journals }].map(({ heading, entries }) =>
     entries.length > 0 && <>
       {heading && <h2>{heading}</h2>}

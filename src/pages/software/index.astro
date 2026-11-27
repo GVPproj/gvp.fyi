@@ -9,9 +9,9 @@ const rows = getCollectionOverview('software', await getSoftwareProjects());
 const title = sectionLabel('software');
 ---
 
-<Layout title={title}>
+<Layout title={title} collection>
   <div class="software">
-    <h1>{title}</h1>
+    <h1 class="sr-only">{title}</h1>
     {rows.map(row => <ContentRow
       id={row.id}
       title={row.title}

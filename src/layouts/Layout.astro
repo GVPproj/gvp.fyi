@@ -11,9 +11,10 @@ interface Props {
   description?: string;
   type?: 'website' | 'article';
   alignWithHeader?: boolean;
+  collection?: boolean;
 }
 
-const { title, description = siteSettings.description, type = 'website', alignWithHeader = false } = Astro.props;
+const { title, description = siteSettings.description, type = 'website', alignWithHeader = false, collection = false } = Astro.props;
 const pageTitle = title ? `${title}${siteSettings.title ? ` · ${siteSettings.title}` : ''}` : siteSettings.title;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const imageURL = new URL('/social/og-image.png', Astro.site);
@@ -54,7 +55,7 @@ const imageAlt = 'A fully drawn one-line portrait of Graham Van Pelt beside gvp.
   <body>
     <div id="navigation-status" role="status" aria-atomic="true"><span></span></div>
     <SiteHeader />
-    <main class:list={{ 'header-aligned': alignWithHeader }} aria-label={title ?? (siteSettings.identity || undefined)}>
+    <main class:list={{ 'header-aligned': alignWithHeader, 'collection-page': collection }} aria-label={title ?? (siteSettings.identity || undefined)}>
       <slot />
     </main>
     <SiteFooter />
@@ -62,7 +63,15 @@ const imageAlt = 'A fully drawn one-line portrait of Graham Van Pelt beside gvp.
 </html>
 
 <style>
+  main.collection-page {
+    justify-content: flex-start;
+  }
+
   @media (width >= 48rem) {
+    :global(body:has(main.collection-page) .site-header) {
+      margin-block-end: 0;
+    }
+
     main.header-aligned {
       grid-column: 2;
       min-width: 0;

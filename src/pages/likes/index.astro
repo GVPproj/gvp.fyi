@@ -8,9 +8,9 @@ import { sectionLabel } from '../../lib/site-settings';
 const rows = getCollectionOverview('likes', await getLikes());
 ---
 
-<Layout title={sectionLabel('likes')}>
+<Layout title={sectionLabel('likes')} collection>
   <div class="likes">
-    <h1>{sectionLabel('likes')}</h1>
+    <h1 class="sr-only">{sectionLabel('likes')}</h1>
     <div id="collection-rows">
       {rows.map(row => <ContentRow
         id={`collection-${row.id}`}

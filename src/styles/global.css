@@ -11,32 +11,26 @@
   font-size: 100%;
   color-scheme: dark;
 
-  /* Nord — Polar Night */
-  --nord0: #2e3440;
-  --nord1: #3b4252;
-  --nord2: #434c5e;
-  --nord3: #4c566a;
-
-  /* Snow Storm */
-  --nord4: #d8dee9;
-  --nord6: #eceff4;
-
-  /* Frost */
-  --nord7: #8fbcbb;
-  --nord8: #88c0d0;
-
-  /* Aurora */
-  --nord11: #bf616a;
-  --nord12: #d08770;
-  --nord13: #ebcb8b;
-  --nord14: #a3be8c;
-  --nord15: #b48ead;
+  /* Ghostty Hivacruz, using the existing Nord token names for compatibility. */
+  --nord0: #132638;
+  --nord1: #243546;
+  --nord2: #344352;
+  --nord3: #59636f;
+  --nord4: #c1bec2;
+  --nord6: #ede4e4;
+  --nord7: #69a4d6;
+  --nord8: #55b3d0;
+  --nord11: #c94922;
+  --nord12: #c56a29;
+  --nord13: #c08b30;
+  --nord14: #ac9739;
+  --nord15: #6679cc;
 
   --color-background: var(--nord0);
   --color-foreground: var(--nord6);
   --color-accent: var(--nord8);
 
-  /* Shared navigation tokens, mapped to this site's Nord palette. */
+  /* Shared navigation tokens. */
   --font-sans: 'Gohu', ui-monospace, monospace;
   --colour-fill: var(--color-background);
   --colour-fill-muted: var(--nord1);
@@ -183,6 +177,17 @@ p {
 
 h1 {
   font-size: 28px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Counter-translate the shadow so it stays grounded as the link lifts. */

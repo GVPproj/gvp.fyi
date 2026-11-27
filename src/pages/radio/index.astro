@@ -8,9 +8,9 @@ import { sectionLabel } from '../../lib/site-settings';
 const rows = getCollectionOverview('radio', await getRadioEpisodes());
 ---
 
-<Layout title={sectionLabel('radio')}>
+<Layout title={sectionLabel('radio')} collection>
   <div class="radio-episodes">
-    <h1>{sectionLabel('radio')}</h1>
+    <h1 class="sr-only">{sectionLabel('radio')}</h1>
     {rows.map(row => <ContentRow
       id={`programme-${row.id}`}
       title={row.title}

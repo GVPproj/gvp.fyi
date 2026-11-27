@@ -8,9 +8,9 @@ import { sectionLabel } from '../../lib/site-settings';
 const rows = getCollectionOverview('music', await getMusicReleases());
 ---
 
-<Layout title={sectionLabel('music')}>
+<Layout title={sectionLabel('music')} collection>
   <div class="music-releases">
-    <h1>{sectionLabel('music')}</h1>
+    <h1 class="sr-only">{sectionLabel('music')}</h1>
     {rows.map(row => <ContentRow
       id={`category-${row.id}`}
       title={row.title}
